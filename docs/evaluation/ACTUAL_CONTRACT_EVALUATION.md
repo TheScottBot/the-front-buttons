@@ -1198,3 +1198,68 @@ deep mapping nesting 6.9 ms (both refused by the parser), 209,715 empty pages
 | Tests requiring the author | none |
 | Not run | CI on either runner (needs the author's push); anything on the Dell |
 | Outstanding | no author gate for TE2; CI on both runners |
+
+(11 November 2026, later: the author accepted the five TE2 design choices above,
+answering "Accept, start TE3".)
+
+## TE3: layout
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17.
+
+### What was built
+
+- **Key numbering** (`keyindex.go`): a position's device key number, and back,
+  counted row by row from the top left. The order is **inferred from the
+  reference source and unverified** until experiment 1 (Appendix A, DV1); it is
+  computed in one function so a correction is one change and one test.
+- **Paging** (`paging.go`): a value type that moves forward and back with wrap
+  around in both directions, stays put on a single page, has no current page with
+  no pages, and on a reload keeps the current page if it still exists or moves to
+  the last page if not.
+- **Page indication**: the current page's number (counted from one), the page
+  count, and the current, previous and next page names, absent rather than
+  guessed when names and count disagree. The specification asks that the
+  navigation keys show the page name or number; how they draw it is TE4's, which
+  has the legibility gate.
+- **Arrangement** (`arrange.go`): one page laid out by key number: the navigation
+  keys at their reserved positions on every page, including empty pages, each
+  brick at its key, every other key empty (drawn blank, not as an error). It
+  refuses a brick on a navigation key, off the grid or sharing a key, as a guard
+  behind the configuration decoder.
+
+### Tests first
+
+Written against stubs and run before the implementation; output (the go test
+failure prefix written as `[FAIL]`, as above):
+
+```text
+[FAIL] TestArrange_RefusesBricksOnReservedOffGridOrSharedPositions (0.00s)
+[FAIL] TestGrid_NavigationKeys_AreTheLastRowsFirstAndLastKeys (0.00s)
+[FAIL] TestArrange_PutsNavigationOnEveryPage_IncludingEmptyOnes (0.00s)
+[FAIL] TestArrange_SlotAt_FindsTheSlotForAPressedKey (0.00s)
+[FAIL] TestPaging_Resize_KeepsThePageWhenItStillExists_AndClampsWhenItDoesNot (0.00s)
+[FAIL] TestPaging_Indication_IsAbsent_WhenNamesDoNotMatchThePageCount (0.00s)
+panic: runtime error: index out of range [24] with length 0 [recovered, repanicked]
+panic({0x104c850c0?, 0x799d0f626018?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/layout	0.231s
+FAIL
+```
+
+The stub returned an empty arrangement, so the run stopped at a panic indexing
+it; every test reached before that failed on its assertion.
+
+### Reproduction report, 11 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| `go test -race -count=1 ./...` | every package ok; 178 tests and subtests passed, 0 failed, 0 skipped |
+| `go tool -modfile=tools/go.mod golangci-lint run ./...` | 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Memory analysis | race detector, clean |
+| Fuzz | not applicable: TE3 parses no input |
+| Warnings | 0 |
+| Not run | CI on either runner (needs the author's push); anything on the Dell |
+| Outstanding | no author gate for TE3; the key order assumption awaits experiment 1 |
