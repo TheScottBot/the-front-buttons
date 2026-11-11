@@ -37,6 +37,12 @@ linters:
     - dupl
 
   settings:
+    exhaustruct_v5:
+      ignore-patterns:
+        # A key appearance's zero values mean absent (no icon, default
+        # background, no status), so partial literals are its intended use.
+        - '^github\.com/TheScottBot/the-front-buttons/internal/render\.Appearance$'
+
     tagalign:
       # Keep tags aligned and in one order: a parameter's name first, then its
       # bounds, format and description, so a declaration reads left to right as
@@ -75,6 +81,18 @@ linters:
             - pkg: github.com/TheScottBot/the-front-buttons/internal/editor
               desc: the editor drives the core; only cmd/the-front-buttons may import it
 
+        # Evaluation record, TE4 dependency record: only the render packages
+        # draw, so the font and image library stays inside them.
+        image-library-only-in-render:
+          list-mode: lax
+          files:
+            - "$all"
+            - "!**/internal/render/**"
+            - "!**/internal/testsupport/**"
+          deny:
+            - pkg: golang.org/x/image
+              desc: only internal/render draws (specification section 2)
+
         # Evaluation record, TE2 dependency record: only the config package
         # parses YAML, so replacing the parser touches one package.
         yaml-only-in-config:
@@ -96,6 +114,13 @@ linters:
       - linters:
           - lll
         source: '`brick:"'
+
+      # Glyph outlines are coordinates in a unit square, read as a drawing.
+      # Naming each number would restate it without explaining anything, so
+      # the magic number check is relaxed for this one file of geometry only.
+      - linters:
+          - mnd
+        path: internal/render/glyphs\.go
 
 formatters:
   # Formatting is checked rather than applied in continuous integration, so an

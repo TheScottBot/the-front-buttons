@@ -45,6 +45,11 @@ jobs:
       - name: Test with the race detector
         run: go test -race ./...
 
+      # golangci-lint ignores an unknown setting rather than refusing it, so a
+      # misspelt key would silently switch a rule off; verify the file first.
+      - name: Verify the linter configuration
+        run: go tool -modfile=tools/go.mod golangci-lint config verify
+
       - name: Lint (every linter, import layering, formatting)
         run: go tool -modfile=tools/go.mod golangci-lint run ./...
 

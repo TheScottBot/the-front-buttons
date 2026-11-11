@@ -20,9 +20,14 @@ const gitDirectoryName = ".git"
 // vendoredPaths lists, file by file, the vendored third party sources exempt from
 // the prose scan (engineering datum 0.8). It is an explicit list rather than a
 // pattern because a pattern eventually exempts something that is not vendored.
-// Nothing is vendored yet; TE4 adds the icon font and TE9 adds htmx.
+// PROVENANCE.md records where each came from. The font itself is binary and so
+// is skipped by the binary check, but it is listed so the list is complete.
 func vendoredPaths() []string {
-	return []string{}
+	return []string{
+		"internal/render/tablericons/LICENSE",
+		"internal/render/tablericons/tabler-icons.css",
+		"internal/render/tablericons/tabler-icons.ttf",
+	}
 }
 
 // ScanRepository walks the tree under repositoryRoot and applies every check to

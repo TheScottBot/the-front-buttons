@@ -403,6 +403,7 @@ never carry URLs (spec section 7).
 | TF9 | (Resolved in TE1 by the standalone dupl, proven on the plant.) golangci-lint's `dupl` compares code only within one package. At thresholds of 150, 125, 100 and 75 tokens it found nothing in a scratch tree holding the same 25 line function in `internal/bricks/plantedone` and `internal/bricks/plantedtwo`; at 50 it reported only repetition inside single test files. It cannot catch the cross package duplicate TE1 must plant | TE1 planted run, 11 November 2026 | This project, TE1: run the standalone `mibk/dupl` (MIT, v1.1.0, which scans files across the whole tree) pinned in `tools/go.mod`, subject to the author's permission (see TE1 below) |
 | TF10 | golangci-lint keeps one issue per line by default (`uniq-by-line`), so a planted import layering violation was hidden behind a different linter's finding on the same line | TE1 planted run | This project, TE1: fixed by `uniq-by-line: false` and no caps; the plant then failed as required |
 | TF11 | go-yaml v4 `WithUniqueKeys(true)` does not reject a duplicated mapping key when the target is a `yaml.Node`; `a: 1` then `a: 2` loads with no error. Multiple documents are rejected as documented | TE2 test `TestDecode_RejectsMalformedDuplicateAndMultipleDocuments`, then a probe of `yaml.Load` into a node, 11 November 2026 | Upstream go-yaml (worth an issue). This project: the decoder walks the tree and rejects duplicates itself |
+| TF12 | golangci-lint v2.15.0 ignores an unknown key in `.golangci.yml`: a misspelt `exhaustruct_v5` setting (`exclude` instead of `ignore-patterns`) switched nothing on and produced no warning. `golangci-lint config verify` refuses it (exit 3) | TE4, the agent's own configuration error, 11 November 2026 | This project, TE4: CI now runs `config verify` before linting |
 | TF8 | The spec's press behaviour for `pipeline_status` reads the same either way: if the latest run failed, opening the latest failing run is opening the latest run | Spec section 2, Bricks in scope | Author, TD10 part b |
 
 ## 9. Decisions for the author
@@ -1263,3 +1264,171 @@ it; every test reached before that failed on its assertion.
 | Warnings | 0 |
 | Not run | CI on either runner (needs the author's push); anything on the Dell |
 | Outstanding | no author gate for TE3; the key order assumption awaits experiment 1 |
+
+## TE4: rendering
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17.
+
+### Dependency record: golang.org/x/image v0.47.0 (datum 0.13)
+
+Order of events, stated plainly: the agent ran `go get golang.org/x/image@v0.48.0`
+before writing this record, which reverses the order datum 0.13 requires. It then
+chose v0.47.0 instead, because v0.48.0 was published two days earlier (9 November
+2026) and a release that new has had little exposure; `go mod tidy` removed the
+unused requirement, so nothing depended on it. This record is written before any
+code imports the package.
+
+| Item | Record |
+|---|---|
+| Behaviour provided | TrueType and OpenType parsing and glyph rasterising (`font/opentype`, `font/sfnt`), the Go fonts (`font/gofont`), and image scaling (`draw`) |
+| Why the standard library is insufficient | The standard library draws rectangles and images but has no font rasteriser and no quality image scaler |
+| Maintenance | Maintained by the Go team under the Go project; tagged releases monthly; v0.47.0 published 9 October 2026 |
+| Licence | BSD 3 clause (Go authors); the Go fonts under the same terms (Bigelow and Holmes) |
+| Size | about 35,000 lines across the packages used, most of it the embedded Go font data |
+| Platform support | Pure Go in the packages used; no cgo and no `unsafe` in `font/opentype`, `font/sfnt` or `draw` (searched) |
+| Security | Parses font files. The only fonts parsed are vendored ones (the Go fonts, compiled in, and the icon font TD5 vendors with a digest), never fonts from configuration or the network. User icons are PNG, decoded by the standard library under byte and pixel bounds |
+| Test strategy | Golden image tests through the render package, plus unit tests of text fitting |
+| Replacement cost | Contained to `internal/render`, enforced by depguard |
+| Requires | `golang.org/x/sys` v0.49.0 and `golang.org/x/text` v0.43.0, Go project modules |
+
+### Font choice (datum 0.13)
+
+Go Medium for labels and Go Bold for status words and navigation, from
+`golang.org/x/image/font/gofont`. Reasons: designed for legibility at small
+sizes with clearly distinguished letter forms (the Go fonts were drawn so that
+1, l and I differ), compiled into the binary so nothing is read from disk, and
+licensed with the package. Whether they are legible on the physical deck at arm's
+length is the TE4 author gate.
+
+### What was built
+
+- **`internal/render`**: the renderer and the only drawing code. Key layout in
+  hundredths of the key width, so it follows the model table's key size. A key
+  shows an icon (bundled, user PNG, or a missing icon marker) and a label; a live
+  key shows a status glyph, the label and the status word; a key in error shows
+  an error glyph, the label and the reason category, and error outranks status.
+  Navigation keys show a chevron, the current page as number of count, and the
+  name of the page they lead to; blank keys are plain background. Labels and
+  words that do not fit step down through smaller sizes before being shortened
+  with an ellipsis. Text is black or white, whichever contrasts more with the
+  background; a status colour is used only where it reaches 3 to 1 against the
+  background and otherwise falls back to the text colour.
+- **Status glyphs**, drawn as vector shapes: passed a tick, failed a cross,
+  running three dots, queued an hourglass, cancelled a circle with a slash,
+  unknown a question mark, error a triangle with an exclamation mark. Words:
+  PASSED, FAILED, RUNNING, QUEUED, CANCELLED, UNKNOWN.
+- **User icons**: PNG only, refused over 1 MiB before reading and over 512
+  pixels a side from the header before decoding.
+- **`internal/render/tablericons`**: the vendored Tabler icon font as an
+  `IconSet`, with names read from the vendored stylesheet at load (5,000 or
+  more). `PROVENANCE.md` records the three files' digests; the prose scan's
+  vendored list names them.
+- **Shared golden helper** in `internal/testsupport`, used by both render
+  packages.
+- **depguard** confines `golang.org/x/image` to `internal/render` (and the shared
+  test support's golden helper); **CI** verifies the linter configuration first
+  (TF12).
+
+### Decisions taken by the agent under DV2
+
+Each is recorded here because the author is away; each can be reversed.
+
+1. **Downloading the icon font.** The author's TD5 answer ("Yes, use the font")
+   was taken as approval to download it. Version 3.49.0 (5 October 2026) was
+   chosen over the newest, 3.51.0 (8 November), so the release had more than two
+   weeks of exposure. Files and digests are in `PROVENANCE.md`.
+2. **x/image v0.47.0** rather than v0.48.0, for the same reason; `go mod tidy`
+   twice reselected the newest and was pinned back each time, with `x/sys`
+   v0.49.0 and `x/text` v0.43.0 to match.
+3. **Status words, glyph shapes and colours** as listed above, and the error
+   state outranking a status.
+4. **Navigation key design**: both keys show the current page number, and each
+   names the page it leads to.
+5. **Two linter relaxations, each scoped and explained in the configuration**:
+   `mnd` is off for `internal/render/glyphs.go`, whose numbers are outline
+   coordinates; `exhaustruct_v5` ignores `render.Appearance`, whose zero values
+   mean absent by design.
+
+Every size and position is provisional until the TE4 author gate.
+
+### Tests first
+
+Written against stubs and run before the implementation (output with the go test
+failure prefix written as `[FAIL]`):
+
+```text
+[FAIL] TestRender_ProducesAKeySizedImage (0.00s)
+[FAIL] TestParseColour_AcceptsHashSixHexDigitsOnly (0.00s)
+[FAIL] TestStatusWord_IsDistinctForEveryStatus (0.00s)
+[FAIL] TestRenderNavigation_MatchesGoldenImages (0.00s)
+[FAIL] TestDecodeUserIcon_RefusesAnythingButPNG (0.00s)
+[FAIL] TestFitText_ShortensALongLabelToFit_WithAnEllipsis (0.00s)
+[FAIL] TestNewRenderer_RefusesImplausibleKeySizes (0.00s)
+[FAIL] TestDecodeUserIcon_RefusesBeforeDecoding_WhenDimensionsExceedTheBound (0.00s)
+[FAIL] TestDecodeUserIcon_RefusesFilesOverTheByteBound (0.00s)
+[FAIL] TestDecodeUserIcon_AcceptsASmallPNG (0.00s)
+[FAIL] TestRender_MatchesGoldenImages (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/user_icon (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/light_background (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/error_state (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/long_label (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/label_with_bundled_icon (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/status_queued (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/status_in_progress (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/status_cancelled (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/status_unknown (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/missing_icon (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/status_success (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/label_only (0.00s)
+    [FAIL] TestRender_MatchesGoldenImages/status_failure (0.00s)
+[FAIL] TestForegroundFor_MeetsWCAGContrastOnEveryBackground (0.00s)
+[FAIL] TestRender_EveryStatusIsDistinguishableWithoutColour (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/render	0.216s
+FAIL
+```
+
+The icon set's tests were likewise run against a stub first: the load and draw
+tests failed, and the two that expect refusals passed already, as they should.
+
+The first golden images, inspected as a contact sheet before being trusted,
+showed two faults that were fixed and regenerated: thin seams where a stroke met
+its round end (opposite polygon windings cancelling in the rasteriser; every
+solid shape is now wound one way), and CANCELLED shortened to CANCELL with an
+ellipsis (status words now step down through smaller sizes like labels). The
+golden images are therefore a record of what the renderer draws as reviewed by
+the agent, not of what the author has accepted; the TE4 gate is the author's.
+
+### Planted violations for the new checks
+
+```text
+##### planted: imageoutsiderender
+$ go tool -modfile=tools/go.mod golangci-lint run --enable-only depguard ./...
+internal/live/planted.go:4:8: import 'golang.org/x/image/draw' is not allowed from list 'image-library-only-in-render': only internal/render draws (specification section 2) (depguard)
+import _ "golang.org/x/image/draw"
+       ^
+1 issues:
+* depguard: 1
+
+##### planted: misspelt linter setting (the agent's own error, caught before the fix)
+$ go tool -modfile=tools/go.mod golangci-lint config verify
+jsonschema: "linters.settings.exhaustruct_v5" does not validate with "/properties/linters/properties/settings/properties/exhaustruct_v5/$ref/additionalProperties": additional properties 'exclude' not allowed
+The command is terminated due to an error: the configuration contains invalid elements
+exit 3
+```
+
+### Reproduction report, 11 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| `go test -race -count=1 ./...` | every package ok; 209 tests and subtests passed, 0 failed, 0 skipped; 21 golden images |
+| `go tool -modfile=tools/go.mod golangci-lint config verify` | valid |
+| `go tool -modfile=tools/go.mod golangci-lint run ./...` | 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Memory analysis | race detector, clean |
+| Fuzz | not run in TE4: the only new parser input is a user PNG, decoded by the standard library under byte and pixel bounds checked first; a fuzz target for `DecodeUserIcon` is a candidate if the author wants one |
+| Warnings | 0 |
+| **Author gate, outstanding** | legibility on the physical deck at arm's length in the dock, under normal desk lighting, on both machines. Not claimed |
+| Not run | CI on either runner; anything on the Dell |

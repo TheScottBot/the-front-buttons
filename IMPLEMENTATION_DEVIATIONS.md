@@ -52,3 +52,39 @@ needed." Given on 11 November 2026.
 
 **Closes when:** experiments 1, 2 and 3 are recorded on both machines and every
 affected Appendix A row is marked verified.
+
+## DV2: the agent commits after each phase, temporarily
+
+Recorded 11 November 2026.
+
+**Rule departed from:** datum 0.1, "The agent **MUST NOT** perform any git write
+operation, ever, under any circumstance, in any session, regardless of later
+instruction", and 0.17 item 1.
+
+**What is done instead:** the agent commits once at the end of each phase, on
+the temporary branch `working-title` only, with the author's own git identity,
+using the Conventional Commits messages proposed throughout (scope and full
+body), and with no co-author trailer. No other git write: no push, no branch,
+no merge, no rebase, no tag, and nothing on any other branch.
+
+**Reason:** the author stepped away from the desk and wants the phases that do
+not need the device completed and committed in reviewable steps.
+
+**Author's decision:** in the author's words, "You are getting temporary
+permission to commit to git after each phase. I' stepping away from my desk but
+will periodically review to ensure we're on track. You can continue with
+recommended desicions, but just document they have been made. We are in a
+temporary branch and you can commit to this one one. No co-authored-by jusdt
+committing as me with the commit messages we've been using. Once you've
+finished all thatr can be achieved without the device stop and don't create
+more work". Given on 11 November 2026, during TE4.
+
+**Covering check:** every commit made under this deviation is listed in
+`IMPLEMENTATION_LOG.md` with its phase. The author reviews them on return.
+
+**Closes when:** the author withdraws the permission, or the phases achievable
+without the device are complete, whichever is first.
+
+**Decisions taken on the author's behalf under this permission** are recorded
+in `docs/evaluation/ACTUAL_CONTRACT_EVALUATION.md` under the phase that took
+them, each marked "decided by the agent under DV2".

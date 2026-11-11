@@ -10,6 +10,7 @@ root with Go 1.27.3; nothing here needs a Stream Deck attached.
 | Unit tests, with the race detector | `go test -race ./...` | locally; CI on macos-26 and windows-2025 |
 | Repository checks: prose and typography, operating system use, README first line; files named in `.gitignore` are skipped, and an ignore pattern the checks cannot read fails | included in the command above, as `internal/repositorychecks` | locally; CI on both runners |
 | Linters: every golangci-lint linter, import layering (depguard), formatting (gofmt, gofumpt, goimports) | `go tool -modfile=tools/go.mod golangci-lint run ./...` | locally; CI on both runners |
+| Linter configuration verified against golangci-lint's schema, so a misspelt setting cannot silently switch a rule off | `go tool -modfile=tools/go.mod golangci-lint config verify` | locally; CI on both runners |
 | Build with vet | `go build ./...` then `go vet ./...` | locally; CI on both runners |
 | Fuzzing the configuration decoder: never panics, and anything accepted survives encode then decode unchanged | `go test -run '^$' -fuzz FuzzDecode -fuzztime 30s ./internal/config/` | locally; CI on both runners, 30 seconds per run |
 | Duplicate code across packages: standalone mibk/dupl, threshold 100 tokens | `scripts/check-duplicate-code.sh` | locally; CI on both runners, under Bash |
