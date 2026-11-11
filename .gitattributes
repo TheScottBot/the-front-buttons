@@ -1,0 +1,5 @@
+# Every text file is stored and checked out with LF line endings on every
+# platform. Without this, a Windows checkout converts to CRLF, and the README
+# first line check and the prose scan would see a different file on the Windows
+# runner than on macOS.
+* text=auto eol=lf

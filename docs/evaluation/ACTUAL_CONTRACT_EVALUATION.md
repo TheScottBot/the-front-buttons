@@ -400,6 +400,8 @@ never carry URLs (spec section 7).
 | TF5 | go-hid `Enumerate` can panic on macOS on an invalid HID string | go-hid issue #18 | Upstream go-hid. Until fixed, the hidtransport adapter recovers at the enumeration boundary, counts it and reports the watcher as faulted rather than crashing (TE6) |
 | TF6 | The reference library sends a 33 byte brightness feature report and admits key index 32 | Section 3.5 | Upstream python-elgato-streamdeck. No action here beyond not copying either |
 | TF7 | `go-yaml/yaml` (the long standing `gopkg.in/yaml.v3`) is archived; `yaml/go-yaml` is maintained, Apache 2.0, v4.0.0 released 4 November 2026; `goccy/go-yaml` is maintained, MIT, v1.19.2 | `gh api`, 11 November 2026 | Informs TD4 |
+| TF9 | (Resolved in TE1 by the standalone dupl, proven on the plant.) golangci-lint's `dupl` compares code only within one package. At thresholds of 150, 125, 100 and 75 tokens it found nothing in a scratch tree holding the same 25 line function in `internal/bricks/plantedone` and `internal/bricks/plantedtwo`; at 50 it reported only repetition inside single test files. It cannot catch the cross package duplicate TE1 must plant | TE1 planted run, 11 November 2026 | This project, TE1: run the standalone `mibk/dupl` (MIT, v1.1.0, which scans files across the whole tree) pinned in `tools/go.mod`, subject to the author's permission (see TE1 below) |
+| TF10 | golangci-lint keeps one issue per line by default (`uniq-by-line`), so a planted import layering violation was hidden behind a different linter's finding on the same line | TE1 planted run | This project, TE1: fixed by `uniq-by-line: false` and no caps; the plant then failed as required |
 | TF8 | The spec's press behaviour for `pipeline_status` reads the same either way: if the latest run failed, opening the latest failing run is opening the latest run | Spec section 2, Bricks in scope | Author, TD10 part b |
 
 ## 9. Decisions for the author
@@ -763,3 +765,284 @@ v3.51.0, MIT, addressed by name through its codepoint table, with licence and
 digest recorded under datum 0.13 at TE4. User icons are PNG files only, read under
 a byte bound and checked with `png.DecodeConfig` against a pixel bound before
 decoding. SVG user icons are out of scope.
+
+## TE1: repository and checks
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17.
+
+### What was built
+
+- Module `github.com/TheScottBot/the-front-buttons`, `go 1.27.3`, and the package
+  layout of specification section 2, each package with a doc comment saying why it
+  exists. Ports in `internal/platform`; their adapters in
+  `internal/platform/systemadapter`, so a brick can depend on a port without
+  importing operating system code.
+- `internal/repositorychecks`: the prose and typography scan (dash characters
+  anywhere; hyphen runs in prose, which in Go means comments and string literals
+  only; the Markdown table separator and long flag token exemptions), the
+  operating system check (imports of `syscall`, `C`, `os/exec`,
+  `golang.org/x/sys`; `runtime.GOOS` under any import name; operating system file
+  suffixes and build constraints, using Go's own lists copied from
+  `internal/syslist`), and the README first line check. `TestRepository_HasNoViolations`
+  runs them over the tree as part of `go test`.
+- `.golangci.yml`: every linter enabled, three deprecated duplicates disabled with
+  the reason, depguard enforcing that only `cmd/the-front-buttons` imports
+  adapters, every finding reported, and the gofmt, gofumpt and goimports
+  formatters checked.
+- `tools/go.mod`: golangci-lint v2.15.0 as a Go tool, in its own module.
+- `.github/workflows/ci.yml`: build and vet, `go test -race`, and lint, on
+  `macos-26` (arm64) and `windows-2025` (amd64), runner labels read from
+  `actions/runner-images` on 11 November 2026; actions pinned by commit hash
+  (`actions/checkout` v7.0.1 `3d3c42e5aac5ba805825da76410c181273ba90b1`,
+  `actions/setup-go` v7.0.0 `b7ad1dad31e06c5925ef5d2fc7ad053ef454303e`).
+- `.gitattributes`: LF line endings everywhere, so the Windows runner sees the
+  same bytes as macOS.
+- `README.md` with the settled first line, and `TESTING.md`.
+
+Tool recorded under datum 0.13 (ships in nothing built): golangci-lint v2.15.0,
+module sum `h1:w94zf8HAYI7hm3164kwKsvZRuqXvY+YxeFoTbu1OLg8=`, invoked as
+`go tool -modfile=tools/go.mod golangci-lint run ./...`.
+
+### Tests first
+
+The repository check tests were written against stubs returning no violations
+and run before any implementation: 37 failures, each for the expected reason (a
+planted violation not reported). The implementation then made them pass.
+
+### Planted violations
+
+Each plant was made in its own scratch copy of the tree, outside the repository.
+Output verbatim except for one marker: `go test` prefixes a failing test with
+three hyphens, which this file's own prose scan forbids, so that prefix is written
+here as `[FAIL]`.
+
+```text
+##### planted: duplicate
+$ go test ./...
+ok  	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.256s
+exit 0
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+internal/bricks/plantedone/plantedone.go:20:21: Magic number: 12, in <condition> detected (mnd)
+		if len(trimmed) > 12 {
+		                  ^
+internal/bricks/plantedtwo/plantedtwo.go:20:21: Magic number: 12, in <condition> detected (mnd)
+		if len(trimmed) > 12 {
+		                  ^
+internal/bricks/plantedone/plantedone.go:17:6: stringscutprefix: HasPrefix + TrimPrefix can be simplified to CutPrefix (modernize)
+		if strings.HasPrefix(trimmed, "#") {
+		   ^
+internal/bricks/plantedtwo/plantedtwo.go:17:6: stringscutprefix: HasPrefix + TrimPrefix can be simplified to CutPrefix (modernize)
+		if strings.HasPrefix(trimmed, "#") {
+		   ^
+internal/bricks/plantedone/plantedone.go:28:2: return with no blank line before (nlreturn)
+	return strings.Join(selected, separator) + " (" + strings.Repeat("x", len(selected)) + ")"
+	^
+internal/bricks/plantedtwo/plantedtwo.go:28:2: return with no blank line before (nlreturn)
+	return strings.Join(selected, separator) + " (" + strings.Repeat("x", len(selected)) + ")"
+	^
+internal/bricks/plantedone/plantedone.go:13:3: missing whitespace above this line (invalid statement above assign) (wsl_v5)
+		trimmed := strings.TrimSpace(label)
+		^
+internal/bricks/plantedone/plantedone.go:23:3: missing whitespace above this line (invalid statement above assign) (wsl_v5)
+		selected = append(selected, strings.ToUpper(trimmed))
+		^
+internal/bricks/plantedone/plantedone.go:25:2: missing whitespace above this line (invalid statement above if) (wsl_v5)
+	if len(selected) == 0 {
+	^
+internal/bricks/plantedtwo/plantedtwo.go:13:3: missing whitespace above this line (invalid statement above assign) (wsl_v5)
+		trimmed := strings.TrimSpace(label)
+		^
+internal/bricks/plantedtwo/plantedtwo.go:25:2: missing whitespace above this line (invalid statement above if) (wsl_v5)
+	if len(selected) == 0 {
+	^
+11 issues:
+* mnd: 2
+* modernize: 2
+* nlreturn: 2
+* wsl_v5: 5
+exit 1
+##### planted: adapter
+$ go test ./...
+ok  	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.324s
+exit 0
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+internal/bricks/plantedbrick/plantedbrick.go:4:8: blank-imports: a blank import should be only in a main or test package, or have a comment justifying it (revive)
+import _ "github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
+       ^
+1 issues:
+* revive: 1
+exit 1
+##### planted: goos
+$ go test ./...
+[FAIL] TestRepository_HasNoViolations (0.01s)
+    repository_test.go:151: internal/live/planted.go:7: operating-system-check: runtime.GOOS outside a permitted package; inject behaviour through a port instead
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.278s
+FAIL
+exit 1
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+0 issues.
+exit 0
+##### planted: endash
+$ go test ./...
+[FAIL] TestRepository_HasNoViolations (0.01s)
+    repository_test.go:151: IMPLEMENTATION_LOG.md:36: dash-character: forbidden dash character U+2013; use a comma, colon, semicolon, parentheses or a new sentence
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.200s
+FAIL
+exit 1
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+0 issues.
+exit 0
+##### planted: readme
+$ go test ./...
+[FAIL] TestRepository_HasNoViolations (0.01s)
+    repository_test.go:151: README.md:1: readme-first-line: first line must be exactly "This is for the lions living in the wiry frames of my peripherals' bodies", found "This is for the lions living in the wiry frames of my peripherals' bodies changed"
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.190s
+FAIL
+exit 1
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+0 issues.
+exit 0
+##### planted: adapter (rerun after uniq-by-line: false)
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+internal/bricks/plantedbrick/plantedbrick.go:4:8: import 'github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter' is not allowed from list 'adapters-only-from-composition-root': an adapter; only cmd/the-front-buttons may import it, everything else uses the ports in internal/platform (depguard)
+import _ "github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
+       ^
+internal/bricks/plantedbrick/plantedbrick.go:4:8: blank-imports: a blank import should be only in a main or test package, or have a comment justifying it (revive)
+import _ "github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
+       ^
+2 issues:
+* depguard: 1
+* revive: 1
+exit 1
+##### planted: format
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+internal/live/planted.go:3:1: File is not properly formatted (gofmt)
+func   Badly( )   int { return 1 }
+^
+internal/live/planted.go:3:1: File is not properly formatted (gofumpt)
+func   Badly( )   int { return 1 }
+^
+internal/live/planted.go:3:1: File is not properly formatted (goimports)
+func   Badly( )   int { return 1 }
+^
+internal/live/planted.go:3:1: exported: exported function Badly should have comment or be unexported (revive)
+func   Badly( )   int { return 1 }
+^
+4 issues:
+* gofmt: 1
+* gofumpt: 1
+* goimports: 1
+* revive: 1
+exit 1
+##### planted: cmdallowed
+$ go tool -modfile=tools/go.mod golangci-lint run ./...
+0 issues.
+exit 0
+```
+
+Reading of the results:
+
+| Plant | Check | Result |
+|---|---|---|
+| en dash in a tracked file | prose scan | Failed as required |
+| runtime.GOOS in internal/live | operating system check | Failed as required |
+| changed README first line | README check | Failed as required |
+| brick importing an adapter | depguard | Hidden on the first run (TF10); failed as required after the fix |
+| composition root importing an adapter | depguard exemption | Passed, as required |
+| unformatted Go file | gofmt, gofumpt, goimports | Failed as required |
+| duplicated block across two brick packages | golangci-lint dupl | **Did not fail** (TF9) |
+
+### Blocked, then resolved
+
+Adding `mibk/dupl` to `tools/go.mod` and running it was refused by the session's
+permission classifier. (11 November 2026, later: the author ran
+`cd tools && go get -tool github.com/mibk/dupl@v1.1.0` themselves, output
+`go: added github.com/mibk/dupl v1.1.0`.)
+
+mibk/dupl v1.1.0 read from the module cache: MIT; default threshold 100 tokens;
+walks every `.go` file under the given path, skipping `vendor` directories; always
+exits zero, so `scripts/check-duplicate-code.sh` fails on any output. Recorded
+under datum 0.13 as a tool that ships in nothing built. golangci-lint's own `dupl`
+is disabled so the threshold lives in one place.
+
+The planted duplicate, rerun against the script in the same scratch copy:
+
+```text
+##### planted: duplicate (rerun with the standalone mibk/dupl v1.1.0)
+$ scripts/check-duplicate-code.sh
+Duplicate code found (threshold 100 tokens):
+internal/bricks/plantedone/plantedone.go:2-29: duplicate of internal/bricks/plantedtwo/plantedtwo.go:2-29
+internal/bricks/plantedtwo/plantedtwo.go:2-29: duplicate of internal/bricks/plantedone/plantedone.go:2-29
+exit 1
+```
+
+On the real tree the script reports no duplicate code at 100 tokens (and none at
+75). Duplicate code linter threshold (Appendix A row): **100 tokens**, dupl's
+default, as recommended in section 9 and accepted, now proven against the plant.
+
+### Reproduction report, 11 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64 |
+| Go | go1.27.3 darwin/arm64 |
+| golangci-lint | v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| `go test -race -count=1 ./...` | `internal/repositorychecks` ok; 49 tests and subtests passed, 0 failed, 0 skipped; every other package has no tests yet |
+| `go tool -modfile=tools/go.mod golangci-lint run ./...` | 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Warnings | 0 (golangci-lint prints no warnings with this configuration) |
+| Memory and undefined behaviour analysis | race detector, clean |
+| Fuzzing | not applicable: no parser of untrusted input yet |
+| Tests skipped | none |
+| Tests requiring the author | none automated |
+| Not run | CI on either runner (needs the author's push); anything on the Dell |
+| Outstanding | author gate: reproduction on both machines and CI green on both runners |
+
+### Ignored files (added 11 November 2026, at the author's request)
+
+The author asked for a `.gitignore` that excludes editor, operating system,
+build, test and log output properly. Until then the repository checks walked
+every file on disk, including an untracked `.idea/` editor directory, while datum
+0.8 asks for the scan to cover tracked files.
+
+- `.gitignore` written for editor state (`.idea/`, `.vscode/`, swap and backup
+  files), operating system clutter, the root build binary and `bin/` and `dist/`,
+  Delve debugger builds, test binaries, coverage and profiles, and logs. Checked
+  with `git check-ignore -v` against `.idea/workspace.xml`, `the-front-buttons`,
+  `coverage.html` and a `.log` file: each matched its intended line.
+- The repository checks now read the root `.gitignore` and skip what it names, so
+  the ignore list lives in one place (datum 0.7). They read a deliberate subset of
+  git's grammar (single segment globs, a leading slash to anchor, a trailing slash
+  for directories) and report any other line as `unsupported-ignore-pattern`
+  rather than guess, because a wrong guess would scan ignored files or skip
+  tracked ones.
+- Tests first: six new tests in `gitignore_test.go`, run before the
+  implementation; the four that plant something to skip or reject failed for the
+  expected reason, the two that expect scanning to continue passed already, as
+  they should.
+
+Planted in scratch copies, output verbatim except the `[FAIL]` marker as above:
+
+```text
+##### planted: ignoredfile
+$ go test ./internal/repositorychecks/
+[FAIL] TestRepository_HasNoViolations (0.01s)
+    repository_test.go:151: docs/planted.md:1: dash-character: forbidden dash character U+2013; use a comma, colon, semicolon, parentheses or a new sentence
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.258s
+FAIL
+##### planted: unsupportedpattern
+$ go test ./internal/repositorychecks/
+[FAIL] TestRepository_HasNoViolations (0.01s)
+    repository_test.go:151: .gitignore:35: unsupported-ignore-pattern: pattern "!keep.log" is outside the subset the repository checks read: negation is not supported
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.183s
+FAIL
+```
+
+The en dash planted inside `.idea/` was skipped while the one in `docs/` was
+reported, and the unsupported negation pattern failed the build.

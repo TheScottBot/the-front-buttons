@@ -1,0 +1,55 @@
+# Continuous integration for The Front Buttons.
+#
+# Runs on both pinned platform targets from the specification: macOS on Apple
+# silicon and Windows on amd64. Every step must pass on both, because a check that
+# only runs on one machine cannot prove the tree is clean on the other.
+#
+# Actions are pinned by commit hash, with the release tag beside each, so a moved
+# tag cannot change what runs here.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, windows-2025]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The Go version comes from go.mod alone, so the toolchain named there is
+      # the one proven here (datum 0.7: one place for a value).
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          # The product module has no dependencies yet, so it has no go.sum;
+          # TE2 adds its first and adds go.sum here.
+          cache-dependency-path: tools/go.sum
+
+      - name: Build (warnings as errors via vet)
+        run: |
+          go build ./...
+          go vet ./...
+
+      # Includes the repository checks: the prose and typography scan, the
+      # operating system use check and the README first line check. The race
+      # detector is Go's memory analysis for concurrent code (datum 0.10).
+      - name: Test with the race detector
+        run: go test -race ./...
+
+      - name: Lint (every linter, import layering, formatting)
+        run: go tool -modfile=tools/go.mod golangci-lint run ./...
+
+      # Bash on both runners, so the one script is the one definition of the
+      # check (Windows runners provide Git Bash).
+      - name: Duplicate code across packages
+        shell: bash
+        run: scripts/check-duplicate-code.sh

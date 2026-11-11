@@ -8,7 +8,7 @@ a later change is a dated note.
 | Phase | Status | Outstanding author gate |
 |---|---|---|
 | Plan | Exited under DV1, 11 November 2026; TD1 to TD13 answered | Experiments 1, 2 and 3 deferred until the deck arrives (DV1); experiment 5 needs the author's token |
-| TE1 | Not started | Reproduction on both machines |
+| TE1 | Automated criteria green on this Mac; every check proven on a planted violation | Reproduction on both machines; CI green on both runners |
 | TE2 | Not started | None |
 | TE3 | Not started | None |
 | TE4 | Not started | Legibility on the physical deck |

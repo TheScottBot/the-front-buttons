@@ -1,0 +1,71 @@
+# golangci-lint configuration, pinned to v2.15.0 in tools/go.mod.
+#
+# Engineering datum 0.10 asks for the strictest setting the language offers with
+# warnings treated as errors, so every linter is enabled and each one disabled
+# below says why. A linter is disabled only where it contradicts the datum or the
+# specification, never because it is inconvenient.
+version: "2"
+
+run:
+  # Test files are code too, and the duplicate code linter must see test
+  # doubles so they are shared rather than copied (datum 0.7).
+  tests: true
+
+issues:
+  # Report every finding. By default golangci-lint keeps one issue per line and
+  # caps repeats, which hid the import layering violation behind a different
+  # linter's finding on the same line when TE1 planted it. A check that can be
+  # hidden is not proven.
+  uniq-by-line: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: all
+
+  disable:
+    # Deprecated by golangci-lint v2.15.0 in favour of new major versions, which
+    # default: all already enables (exhaustruct_v5, gomodguard_v2, wsl_v5).
+    # Running both would report every finding twice.
+    - exhaustruct
+    - gomodguard
+    - wsl
+    # Compares code only within one package, so it cannot see a block copied
+    # between two brick packages (finding TF9). scripts/check-duplicate-code.sh
+    # runs the standalone mibk/dupl across the whole tree instead, and keeping
+    # both would put the duplication threshold in two places.
+    - dupl
+
+  settings:
+    depguard:
+      rules:
+        # Specification section 2: cmd/ is the only place adapters are
+        # constructed and injected. Brick packages, and everything else in the
+        # core, depend on ports, never on adapters. Each adapter's own directory
+        # is excluded so its tests may import it.
+        adapters-only-from-composition-root:
+          list-mode: lax
+          files:
+            - "$all"
+            - "!**/cmd/the-front-buttons/**"
+            - "!**/internal/deck/hidtransport/**"
+            - "!**/internal/platform/systemadapter/**"
+            - "!**/internal/githubactions/**"
+            - "!**/internal/editor/**"
+          deny:
+            - pkg: github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport
+              desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the DeckDevice and DeckWatcher ports
+            - pkg: github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter
+              desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the ports in internal/platform
+            - pkg: github.com/TheScottBot/the-front-buttons/internal/githubactions
+              desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the PipelineProvider port
+            - pkg: github.com/TheScottBot/the-front-buttons/internal/editor
+              desc: the editor drives the core; only cmd/the-front-buttons may import it
+
+formatters:
+  # Formatting is checked rather than applied in continuous integration, so an
+  # unformatted file fails the build instead of being silently fixed.
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports

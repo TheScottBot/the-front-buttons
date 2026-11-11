@@ -1,0 +1,34 @@
+# What git never tracks here. The repository checks read this file too, so the
+# prose scan covers exactly the files git would track. They understand only
+# single segment patterns, optionally anchored with a leading slash or limited to
+# directories with a trailing slash; anything else fails the checks rather than
+# being guessed at.
+
+# Editor and IDE state: each developer's own, never shared.
+.idea/
+.vscode/
+*.swp
+*~
+
+# Operating system clutter.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build output. go build ./cmd/the-front-buttons writes the binary at the root.
+/the-front-buttons
+/the-front-buttons.exe
+/bin/
+/dist/
+
+# Debugger builds left by Delve, which GoLand and VS Code both run.
+__debug_bin*
+
+# Test, coverage and profiling output.
+*.test
+*.out
+*.prof
+coverage.html
+
+# Logs from running the daemon out of a checkout.
+*.log
