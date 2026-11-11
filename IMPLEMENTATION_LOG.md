@@ -12,7 +12,7 @@ a later change is a dated note.
 | TE2 | Automated criteria green on this Mac, fuzz run recorded | None; CI on both runners after the author pushes |
 | TE3 | Automated criteria green on this Mac | None; key order awaits experiment 1 (DV1) |
 | TE4 | Automated criteria green on this Mac | Legibility on the physical deck at arm's length, both machines |
-| TE5 | Not started | None; values read from source pending experiment 1 (DV1) |
+| TE5 | Automated criteria green on this Mac, fuzz runs recorded | None; every value awaits experiment 1 (DV1) |
 | TE6 | Not started | Keys, paging and ten dock switches on both machines |
 | TE7 | Not started | Every preset and both bricks on each machine |
 | TE8 | Not started | A real workflow red then green, press opening the failing run |
@@ -40,4 +40,5 @@ commit, since a commit cannot name its own hash.
 
 | Phase | Commit subject | Hash |
 |---|---|---|
-| TE4 | feat(render): add key renderer, status glyphs and bundled icons | recorded in the next commit |
+| TE4 | feat(render): add key renderer, status glyphs and bundled icons | `f11a68d` |
+| TE5 | feat(deck): add Stream Deck XL model table and protocol codec | recorded in the next commit |

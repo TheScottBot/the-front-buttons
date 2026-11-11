@@ -1432,3 +1432,112 @@ exit 3
 | Warnings | 0 |
 | **Author gate, outstanding** | legibility on the physical deck at arm's length in the dock, under normal desk lighting, on both machines. Not claimed |
 | Not run | CI on either runner; anything on the Dell |
+
+## TE5: deck protocol
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17. Every value is
+read from source (section 3) and **not confirmed on hardware** (DV1).
+
+### What was built
+
+- **Model table** (`internal/deck/model.go`): three rows, one per XL product ID
+  (`0x006C`, `0x008F`, `0x00BA`), sharing one protocol: 4 by 8 keys, 96 pixel
+  JPEG images flipped on both axes at quality 100, 1024 byte output reports with
+  an 8 byte image header, 32 byte feature reports, 36 byte input reports with a 4
+  byte header, and every report ID, command and text offset. The protocol code
+  reads only the table.
+- **Pure encoders**: reset key stream, reset, brightness, key image pages, and
+  `EncodeKeyImage`, which flips an upright image as the model requires and
+  encodes it as JPEG. Only this function knows the deck draws images flipped; the
+  renderer and the editor preview stay upright.
+- **Pure decoders**: key states from an input report (exact length only, header
+  not interpreted, any non zero key byte pressed as in the reference), key
+  changes between two reports, and the serial number and firmware text from
+  feature reports (printable ASCII to the first NUL, other bytes shown as ?).
+
+### Decisions taken by the agent under DV2
+
+1. **Refuse, do not clamp.** The reference clamps brightness into 0 to 100 and
+   admits key 32 (TF6). Here an out of range brightness, a key the model lacks,
+   an empty image or an oversized one is refused with `ErrOutOfRange` (datum
+   0.10: refuse rather than truncate), so a caller's bug shows.
+2. **A key image is bounded at 64 pages** (65,024 bytes). A worst case noisy key
+   at quality 100 encodes well within it (tested).
+3. **The input report header is not checked.** Its four bytes are unknown until
+   experiment 1, and the reference never reads them; checking a guessed report ID
+   would refuse every real report if the guess were wrong. Experiment 1 records
+   the header and a later change can check it.
+4. **Brightness is 32 bytes**, not the reference's accidental 33 (TF6).
+   Experiment 1 confirms the device accepts it.
+5. **The device ports are TE6's.** TE5 is bytes in and bytes out; the port
+   interfaces that move those bytes are designed with the adapter in TE6.
+
+### Tests first
+
+Written against stubs and run first (go test failure prefix written as
+`[FAIL]`):
+
+```text
+[FAIL] TestEncodeKeyImagePages_WritesExactReferenceHeaders (0.00s)
+[FAIL] TestDecodeFeatureText_ReplacesUnprintableBytes_AndRefusesShortReports (0.00s)
+[FAIL] TestDecodeKeyStates_ReadsOneByteperKeyAfterTheHeader (0.00s)
+[FAIL] TestLookupModel_FindsEveryXLVariant_WithTheSameProtocolFacts (0.00s)
+[FAIL] TestDecodeKeyStates_DecodesEveryKeyPressedAndReleased (0.00s)
+[FAIL] TestDecodeKeyStates_TreatsAnyNonZeroByteAsPressed_AsTheReferenceDoes (0.00s)
+[FAIL] TestEncodeKeyImage_FlipsBothAxes_SoTheDeckShowsItUpright (0.00s)
+[FAIL] TestEncodeBrightness_RefusesRatherThanClampsOutOfRangeValues (0.00s)
+[FAIL] TestEncodeReset_MatchesTheReference (0.00s)
+[FAIL] TestEncodeKeyImagePages_RefusesKeysThatDoNotExist_AndEmptyOrOversizedImages (0.00s)
+[FAIL] TestEncodeKeyImagePages_FitsAnExactPageInOnePage (0.00s)
+[FAIL] TestEncodeResetKeyStream_MatchesTheReference (0.00s)
+[FAIL] TestEncodeKeyImage_RefusesAnImageOfTheWrongSize (0.00s)
+[FAIL] TestEncodeKeyImage_FitsWithinTheImageBound (0.00s)
+[FAIL] TestDecodeKeyStates_RefusesShortAndOversizedReports (0.00s)
+[FAIL] TestEncodeBrightness_MatchesTheReference_InThirtyTwoBytes (0.00s)
+[FAIL] TestDecodeFeatureText_ReadsTheSerialAndFirmwareAsTheReferenceDoes (0.00s)
+[FAIL] TestKeyChanges_ListsOnlyKeysWhoseStateChanged (0.00s)
+[FAIL] TestLookupModel_CarriesTheXLFactsReadFromSource (0.00s)
+[FAIL] FuzzDecodeKeyStates (0.00s)
+    [FAIL] FuzzDecodeKeyStates/seed#0 (0.00s)
+    [FAIL] FuzzDecodeKeyStates/seed#1 (0.00s)
+    [FAIL] FuzzDecodeKeyStates/seed#2 (0.00s)
+    [FAIL] FuzzDecodeKeyStates/seed#3 (0.00s)
+    [FAIL] FuzzDecodeKeyStates/seed#4 (0.00s)
+[FAIL] FuzzDecodeSerialNumber (0.00s)
+    [FAIL] FuzzDecodeSerialNumber/seed#0 (0.00s)
+    [FAIL] FuzzDecodeSerialNumber/seed#1 (0.00s)
+    [FAIL] FuzzDecodeSerialNumber/seed#2 (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/deck	0.213s
+FAIL
+```
+
+Byte fixtures are derived by hand from `StreamDeckXL.py` at commit `064f6cf`, as
+the test file's comment shows: for a 2,000 byte image, page 0's header is
+`02 07 05 00 F8 03 00 00` (1,016 bytes, not last) and page 1's is
+`02 07 05 01 D8 03 01 00` (984 bytes, last). A correction from experiment 1
+changes one table row and one fixture.
+
+### Fuzzing
+
+```text
+FuzzDecodeKeyStates: elapsed: 30s, execs: 19180236 (0/sec), new interesting: 0 (total: 6)
+FuzzDecodeSerialNumber: elapsed: 30s, execs: 18918151 (0/sec), new interesting: 1 (total: 34)
+```
+
+No failures. CI now runs both deck fuzz targets for 30 seconds on each runner.
+
+### Reproduction report, 11 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| `go test -race -count=1 ./...` | every package ok; 240 tests and subtests passed, 0 failed, 0 skipped |
+| `golangci-lint config verify`, then `run ./...` | valid; 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Fuzz | as above |
+| Memory analysis | race detector, clean |
+| Warnings | 0 |
+| Not run | CI on either runner; anything on the Dell; anything on a deck |
+| Outstanding | every protocol value awaits experiment 1 (DV1); no author gate for TE5 |

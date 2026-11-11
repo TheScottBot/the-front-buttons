@@ -59,6 +59,14 @@ jobs:
       - name: Fuzz the configuration decoder
         run: go test -run '^$' -fuzz FuzzDecode -fuzztime 30s ./internal/config/
 
+      # The deck's input reports are the other untrusted parser (datum 0.10).
+      # Go runs one fuzz target per command, so each has its own step.
+      - name: Fuzz the deck input report decoder
+        run: go test -run '^$' -fuzz '^FuzzDecodeKeyStates$' -fuzztime 30s ./internal/deck/
+
+      - name: Fuzz the deck feature text decoder
+        run: go test -run '^$' -fuzz '^FuzzDecodeSerialNumber$' -fuzztime 30s ./internal/deck/
+
       # Bash on both runners, so the one script is the one definition of the
       # check (Windows runners provide Git Bash).
       - name: Duplicate code across packages

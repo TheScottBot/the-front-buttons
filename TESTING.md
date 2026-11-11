@@ -13,6 +13,7 @@ root with Go 1.27.3; nothing here needs a Stream Deck attached.
 | Linter configuration verified against golangci-lint's schema, so a misspelt setting cannot silently switch a rule off | `go tool -modfile=tools/go.mod golangci-lint config verify` | locally; CI on both runners |
 | Build with vet | `go build ./...` then `go vet ./...` | locally; CI on both runners |
 | Fuzzing the configuration decoder: never panics, and anything accepted survives encode then decode unchanged | `go test -run '^$' -fuzz FuzzDecode -fuzztime 30s ./internal/config/` | locally; CI on both runners, 30 seconds per run |
+| Fuzzing the deck's input report and feature text decoders: never panic, accept only exact lengths | `go test -run '^$' -fuzz '^FuzzDecodeKeyStates$' -fuzztime 30s ./internal/deck/`, and the same for `^FuzzDecodeSerialNumber$` | locally; CI on both runners, 30 seconds each |
 | Duplicate code across packages: standalone mibk/dupl, threshold 100 tokens | `scripts/check-duplicate-code.sh` | locally; CI on both runners, under Bash |
 
 golangci-lint v2.15.0 and mibk/dupl v1.1.0 are pinned in `tools/go.mod`, a
