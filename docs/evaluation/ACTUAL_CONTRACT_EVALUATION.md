@@ -1541,3 +1541,158 @@ No failures. CI now runs both deck fuzz targets for 30 seconds on each runner.
 | Warnings | 0 |
 | Not run | CI on either runner; anything on the Dell; anything on a deck |
 | Outstanding | every protocol value awaits experiment 1 (DV1); no author gate for TE5 |
+
+## TE6: transport, watcher and daemon loop
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17.
+
+### Dependency record: github.com/sstallion/go-hid v0.15.0 (datum 0.13)
+
+Written before the dependency is added. Facts from section 4 of this record.
+
+| Item | Record |
+|---|---|
+| Behaviour provided | Enumerating, opening, reading and writing USB HID devices, through hidapi |
+| Why the standard library is insufficient | Go's standard library has no USB or HID access; the platform APIs (IOKit, the Windows HID class driver) are what hidapi wraps |
+| Maintenance | Active, not archived; v0.15.0 tagged 23 May 2025, bundling hidapi 0.15.0, the current upstream release. The alternative, karalabe/hid, is archived (TD3) |
+| Licence | BSD 2 clause for the wrapper; hidapi taken under its BSD style option |
+| Size | the wrapper plus bundled hidapi C sources for each platform |
+| Platform support | macOS through IOKit and Windows through the HID class driver, both via cgo; the only cgo in this module, confined to `internal/deck/hidtransport` |
+| Security | Device bytes are untrusted: every input report goes through the bounded, fuzzed decoder (TE5). Open issues TF5 (Enumerate can panic on macOS on a bad string) and #15 (transient set report failures on macOS) are guarded: enumeration recovers a panic and reports it, and a failed write is treated as a disconnection, after which the watcher reconnects |
+| Test strategy | The adapter runs the same `DeckDevice` and `DeckWatcher` contract suites as the test doubles; on a machine with no deck attached the device half is skipped with that reason, and running it on the deck is part of the TE6 author gate |
+| Replacement cost | Contained to `internal/deck/hidtransport` behind the two ports |
+
+Added with `go get github.com/sstallion/go-hid@v0.15.0`, after this record.
+
+### What was built
+
+- **Ports** (`internal/deck/ports.go`): `DeckDevice` moves bytes to and from one
+  open deck and understands no protocol; `DeckWatcher` lists attached decks and
+  opens one. Every error after a deck goes away wraps `ErrDisconnected`; a deck
+  that is listed but will not open is `ErrDeckBusy`.
+- **Driver** (`internal/deck/driver.go`): `Deck` composes the pure protocol with a
+  `DeckDevice`: open resets the key stream, then key images, brightness, reset,
+  key changes from input reports, and the serial number.
+- **Connection diffing**: arrivals and departures by path, and filtering to
+  supported models.
+- **Adapter** (`internal/deck/hidtransport`): go-hid with the bundled hidapi, the
+  only cgo package. Enumeration recovers the TF5 panic and reports it; every call
+  on a device is serialised; closing twice never reaches hidapi twice; a timed
+  read that times out returns nothing rather than an error.
+- **Contract suites** (`internal/testsupport/deckcontract.go`): one suite per
+  port, run by the doubles and by the adapter.
+- **Shared doubles** (`internal/testsupport/deckdoubles.go`, `buttons.go`): a fake
+  deck that records writes, replays key presses and can vanish mid repaint; a
+  fake watcher with attach, detach and busy; a fake pressable button kind.
+- **Brick behaviour** (`internal/brick/behaviour.go`): `Pressable`,
+  `ReasonCategorised` with `ReasonCategoryOf`, and `AppearanceOf`.
+- **Daemon loop** (`internal/daemon`): one goroutine owns all state; a reader
+  goroutine per deck and a goroutine per press report back with a generation
+  number so stale events are ignored. It polls for decks, connects with a full
+  repaint and brightness, pages with wrap around, presses bricks with a timeout,
+  shows a press failure on the key by reason category, repaints on reload, drops
+  a deck that fails a read or write and repaints the next one in full, logs each
+  connection state once, and resets and closes the deck on shutdown.
+
+### Experiment 4, local half
+
+The adapter's watcher contract runs against the real hidapi through cgo on this
+Mac: go-hid v0.15.0 and its bundled hidapi build with Apple clang 21 and
+enumerate with no deck attached. **Run**, 11 November 2026. The Windows build and
+the runner builds remain (CI, after the author pushes).
+
+### Decisions taken by the agent under DV2
+
+1. **A `daemon` package** holds the main loop. The specification's layout has no
+   home for it, and `cmd/` must stay composition only.
+2. **The port names stay `DeckDevice` and `DeckWatcher`**, as the specification's
+   ports table names them, with the linter's stutter warning suppressed and the
+   reason given.
+3. **Busy or gone**: when a listed deck will not open, the adapter enumerates
+   again; still listed means busy (held by other software), gone means
+   disconnected.
+4. **The deck is reset on shutdown**, so keys that no longer work are not left
+   showing.
+5. **The composition root is wired in TE7**, with the configuration location
+   port, rather than twice. Poll interval, read timeout and brightness are set
+   there.
+
+### Tests first
+
+Each piece was written against stubs and run first (go test prefixes written in
+brackets, as above). The deck driver and diffing (the contract tests on the
+doubles passed from the start, because the doubles were written with the suite):
+
+```text
+[FAIL] TestDeck_SerialNumber_IsReadFromItsFeatureReport (0.00s)
+[FAIL] TestSupportedConnections_DropsDevicesOutsideTheModelTable (0.00s)
+[FAIL] TestDeck_SetBrightness_SendsTheFeatureReport (0.00s)
+[FAIL] TestOpenDeck_RefusesAnUnsupportedModel (0.00s)
+[FAIL] TestOpenDeck_ResetsTheKeyStreamBeforeAnythingElse (0.00s)
+[FAIL] TestDeck_ReadKeyChanges_ReportsPressAndRelease (0.00s)
+[FAIL] TestDiffConnections_ReportsArrivalsAndDepartures_ByPath (0.00s)
+[FAIL] TestDeck_ReportsDisconnection_WhenTheDeckGoesAway (0.00s)
+[FAIL] TestDeck_SetKeyImage_WritesEveryPageForTheKey (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/deck	0.356s
+FAIL
+```
+
+The adapter, against a stub watcher:
+
+```text
+[SKIP] TestDevice_PassesTheDeckDeviceContract_OnAnAttachedDeck (0.00s)
+[FAIL] TestWatcher_PassesTheDeckWatcherContract_WithOrWithoutADeck (0.00s)
+    [PASS] TestWatcher_PassesTheDeckWatcherContract_WithOrWithoutADeck/lists_only_supported_models (0.00s)
+    [FAIL] TestWatcher_PassesTheDeckWatcherContract_WithOrWithoutADeck/refuses_to_open_a_deck_that_is_not_attached (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+panic({0x10271b670?, 0x102759750?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport	0.167s
+FAIL
+```
+
+The brick behaviour:
+
+```text
+[FAIL] TestAppearanceOf_ReadsTheEmbeddedAppearance (0.00s)
+[FAIL] TestReasonCategoryOf_UsesTheErrorsOwnCategory_EvenWhenWrapped (0.00s)
+[FAIL] TestAppearanceOf_ReportsParametersWithoutAnAppearance (0.00s)
+[FAIL] TestReasonCategoryOf_FallsBackToFailed_ForAPlainError (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/brick	0.153s
+FAIL
+```
+
+The daemon, against a stub loop that did nothing:
+
+```text
+[FAIL] TestDaemon_PagesForwardAndBack_WithWrapAround (0.00s)
+[FAIL] TestDaemon_RepaintsEveryKey_AndSetsBrightness_WhenADeckConnects (0.00s)
+[FAIL] TestDaemon_SurvivesDisconnectionMidRepaint_AndRepaintsTheReturningDeck (0.00s)
+[FAIL] TestDaemon_RepaintsWhenTheConfigurationReloads (0.00s)
+panic: deadlock: all goroutines in bubble are blocked [recovered, repanicked]
+panic({0x104d3f548?, 0x72e53eda81b0?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/daemon	0.178s
+FAIL
+```
+
+One daemon test was corrected before it went green: it assumed the deck always
+connects after the first configuration arrives, but either order is valid, so it
+now measures a reload as one more repaint of every key.
+
+### Reproduction report, 11 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; Apple clang 21.0.0; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean, including the cgo adapter |
+| `go test -race -count=1 ./...` | every package ok; 275 tests and subtests passed, 0 failed, 1 skipped |
+| Skipped | `TestDevice_PassesTheDeckDeviceContract_OnAnAttachedDeck`: needs a deck and `THE_FRONT_BUTTONS_DECK_TESTS=1`; part of the TE6 author gate |
+| `golangci-lint config verify`, then `run ./...` | valid; 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Memory analysis | race detector, clean; the daemon tests run three times in a row clean |
+| Warnings | 0 |
+| **Author gate, outstanding** | on both machines, pressing keys, paging both ways, and switching the dock ten times without restarting. The automated ten switch test passes against doubles; that is not the gate and is not claimed as it |
+| Not run | the device contract; experiments 1 and 2; CI; anything on the Dell |

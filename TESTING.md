@@ -29,9 +29,19 @@ in memory, so a regression in a check fails the build.
 
 ## Testing deviations
 
-None recorded.
+- The `DeckDevice` contract against the real adapter runs only with a deck
+  attached and `THE_FRONT_BUTTONS_DECK_TESTS=1`; elsewhere, including CI, it is
+  skipped with that reason. The watcher half of the adapter's contract runs
+  everywhere. Run it on the deck with:
+
+  ```bash
+  THE_FRONT_BUTTONS_DECK_TESTS=1 go test -count=1 -run Contract ./internal/deck/hidtransport/
+  ```
 
 ## Author gates
 
 - TE1: the author reproduces the automated criteria on both machines, and CI is
   green on both runners after the author pushes.
+- TE4: legibility on the physical deck at arm's length, both machines.
+- TE6: the device contract above on both machines; pressing keys, paging both
+  ways, and ten dock switches without restarting the daemon.

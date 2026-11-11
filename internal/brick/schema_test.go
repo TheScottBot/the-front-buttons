@@ -22,6 +22,7 @@ const (
 	credentialFieldName = "credential"
 	sampleCredential    = "github-work"
 	sampleAddress       = "https://example.test/"
+	docsLabel           = "Docs"
 )
 
 func deriveSampleSchema(t *testing.T) brick.Schema {
@@ -223,7 +224,7 @@ func TestSchemaAssignAndRead_RoundTripEveryFieldType(t *testing.T) {
 	schema := deriveSampleSchema(t)
 
 	values := map[string]any{
-		labelFieldName:      "Docs",
+		labelFieldName:      docsLabel,
 		addressFieldName:    sampleAddress,
 		countFieldName:      int64(3),
 		enabledFieldName:    true,
@@ -242,7 +243,7 @@ func TestSchemaAssignAndRead_RoundTripEveryFieldType(t *testing.T) {
 	}
 
 	want := &sampleParameters{
-		Label:      "Docs",
+		Label:      docsLabel,
 		Icon:       "",
 		Background: "",
 		Address:    sampleAddress,
