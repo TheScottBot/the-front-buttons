@@ -30,9 +30,9 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          # The product module has no dependencies yet, so it has no go.sum;
-          # TE2 adds its first and adds go.sum here.
-          cache-dependency-path: tools/go.sum
+          cache-dependency-path: |
+            go.sum
+            tools/go.sum
 
       - name: Build (warnings as errors via vet)
         run: |
@@ -47,6 +47,12 @@ jobs:
 
       - name: Lint (every linter, import layering, formatting)
         run: go tool -modfile=tools/go.mod golangci-lint run ./...
+
+      # Datum Stage three: a short fuzz run on every change where a parser
+      # exists. The configuration decoder parses a file a person edits by hand,
+      # and the fuzz target also proves encode and decode agree.
+      - name: Fuzz the configuration decoder
+        run: go test -run '^$' -fuzz FuzzDecode -fuzztime 30s ./internal/config/
 
       # Bash on both runners, so the one script is the one definition of the
       # check (Windows runners provide Git Bash).

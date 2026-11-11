@@ -37,6 +37,19 @@ linters:
     - dupl
 
   settings:
+    tagalign:
+      # Keep tags aligned and in one order: a parameter's name first, then its
+      # bounds, format and description, so a declaration reads left to right as
+      # what the field is, then how it is limited, then what it means.
+      align: true
+      sort: true
+      order:
+        - brick
+        - bounds
+        - format
+        - description
+        - yaml
+
     depguard:
       rules:
         # Specification section 2: cmd/ is the only place adapters are
@@ -61,6 +74,28 @@ linters:
               desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the PipelineProvider port
             - pkg: github.com/TheScottBot/the-front-buttons/internal/editor
               desc: the editor drives the core; only cmd/the-front-buttons may import it
+
+        # Evaluation record, TE2 dependency record: only the config package
+        # parses YAML, so replacing the parser touches one package.
+        yaml-only-in-config:
+          list-mode: lax
+          files:
+            - "$all"
+            - "!**/internal/config/**"
+          deny:
+            - pkg: go.yaml.in/yaml
+              desc: only internal/config may parse YAML
+
+  exclusions:
+    rules:
+      # A Go struct tag cannot be wrapped across lines, and parameter
+      # declarations carry their description in the tag so the editor and the
+      # generated reference read it from the one declaration (spec section 2).
+      # Only the line length check is relaxed, and only on lines holding a brick
+      # tag.
+      - linters:
+          - lll
+        source: '`brick:"'
 
 formatters:
   # Formatting is checked rather than applied in continuous integration, so an

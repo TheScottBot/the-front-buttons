@@ -402,6 +402,7 @@ never carry URLs (spec section 7).
 | TF7 | `go-yaml/yaml` (the long standing `gopkg.in/yaml.v3`) is archived; `yaml/go-yaml` is maintained, Apache 2.0, v4.0.0 released 4 November 2026; `goccy/go-yaml` is maintained, MIT, v1.19.2 | `gh api`, 11 November 2026 | Informs TD4 |
 | TF9 | (Resolved in TE1 by the standalone dupl, proven on the plant.) golangci-lint's `dupl` compares code only within one package. At thresholds of 150, 125, 100 and 75 tokens it found nothing in a scratch tree holding the same 25 line function in `internal/bricks/plantedone` and `internal/bricks/plantedtwo`; at 50 it reported only repetition inside single test files. It cannot catch the cross package duplicate TE1 must plant | TE1 planted run, 11 November 2026 | This project, TE1: run the standalone `mibk/dupl` (MIT, v1.1.0, which scans files across the whole tree) pinned in `tools/go.mod`, subject to the author's permission (see TE1 below) |
 | TF10 | golangci-lint keeps one issue per line by default (`uniq-by-line`), so a planted import layering violation was hidden behind a different linter's finding on the same line | TE1 planted run | This project, TE1: fixed by `uniq-by-line: false` and no caps; the plant then failed as required |
+| TF11 | go-yaml v4 `WithUniqueKeys(true)` does not reject a duplicated mapping key when the target is a `yaml.Node`; `a: 1` then `a: 2` loads with no error. Multiple documents are rejected as documented | TE2 test `TestDecode_RejectsMalformedDuplicateAndMultipleDocuments`, then a probe of `yaml.Load` into a node, 11 November 2026 | Upstream go-yaml (worth an issue). This project: the decoder walks the tree and rejects duplicates itself |
 | TF8 | The spec's press behaviour for `pipeline_status` reads the same either way: if the latest run failed, opening the latest failing run is opening the latest run | Spec section 2, Bricks in scope | Author, TD10 part b |
 
 ## 9. Decisions for the author
@@ -1046,3 +1047,154 @@ FAIL
 
 The en dash planted inside `.idea/` was skipped while the one in `docs/` was
 reported, and the unsupported negation pattern failed the build.
+
+## TE2: config and the brick schema mechanism
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17.
+
+### Dependency record: go.yaml.in/yaml/v4 v4.0.0 (datum 0.13)
+
+Recorded before adding, from the source at commit
+`f2f9563503f11b7a60da0c532175dcc693ce8d5a` read on 11 November 2026.
+
+| Item | Record |
+|---|---|
+| Behaviour provided | Parsing and emitting YAML, with a node tree that keeps each value's tag, line and column, and comments |
+| Why the standard library is insufficient | Go has no YAML package; TD4 chose YAML for hand editing |
+| Maintenance | Maintained by the YAML organisation; v4.0.0 released 4 November 2026 and stated stable; v2 and v3 frozen with security fixes |
+| Licence | Apache 2.0, with files ported from libyaml under MIT (listed in its NOTICE). Apache 2.0 requires the NOTICE to accompany distributions; nothing is distributed (spec TE10 excludes packaging), and TE10's LICENSE work records it |
+| Size | about 20,300 lines of non test Go; no dependencies of its own (`go.mod` requires nothing) |
+| Platform support | Pure Go, no cgo; builds on both targets |
+| Security | Parses untrusted input. Mitigations: the file is read under a byte bound before parsing (datum 0.10); alias expansion is bounded upstream (tests assert an excessive aliasing error); duplicate keys are rejected by the decoder's own check (11 November 2026, later: corrected after a TE2 test showed v4's unique key option does not apply when decoding into a node tree, finding TF11); values are never decoded by YAML's own typing, only through the derived schema, which checks each node's tag; a fuzz harness runs on the decoder |
+| Test strategy | Unit tests through the config package's public decoder, plus the fuzz harness |
+| Replacement cost | Contained: only `internal/config` imports it, enforced by depguard, so a swap to v3 or another parser touches one package |
+
+Added with `go get go.yaml.in/yaml/v4@v4.0.0`. depguard now confines it to
+`internal/config`; proven against a planted import (below).
+
+### What was built
+
+- **`internal/layout`**: `Position`, `Grid` and the reserved navigation
+  positions (bottom left back, bottom right forward), with a grid too small for
+  two distinct navigation keys refused. Built here rather than in TE3 because
+  TE2's tests reject reserved positions; TE3 builds pages, wrapping and page
+  indication on top. The grid is injected, never assumed to be the XL's.
+- **`internal/brick`**: schema derivation by reflection from tagged parameter
+  structs; the shared `Appearance` struct, embedded and declared once; value
+  validation by type, bounds and format; assignment and reading through the
+  schema; the generic `Register` function and the registry.
+- **`internal/presets`**: preset rows as data (friendly fields declared with the
+  same tags, plus `text/template` templates keyed by target field), checked
+  against the registry when the table is built; expansion escapes every value
+  through `path_segment` or `query`, passes appearance through, and validates
+  the result with the target kind's schema.
+- **`internal/config`**: the decoder (bounded before parsing, one YAML document,
+  no anchors or aliases, no duplicate keys, schema version required, migration
+  hook, strict decode of every level through the schemas with values read by
+  YAML tag only, positions checked against the grid, every problem collected
+  with path and line, values never echoed), the schema driven encoder (preset
+  keys written as their preset, zero optional values left out), atomic write
+  through a filesystem port, and the store (bounded read, digest to skip
+  unchanged content, last good configuration kept on any rejection or read
+  failure, deep copies out, saves through the same file and reload path, a
+  polling watcher logging each change of result once by reason, never value).
+- **`internal/testsupport`**: the shared fake kinds and presets every package's
+  tests use.
+
+### The configuration contract, provisional (datum 0.11)
+
+The file shape, as decoded and encoded:
+
+| Level | Fields |
+|---|---|
+| Top | `schema_version` (required integer), `pages` (required list) |
+| Page | `name` (required text, 1 to 24 characters), `keys` (required list) |
+| Key | `row`, `column` (required integers); exactly one of `kind` with optional `parameters`, or `preset` with `fields` |
+| Parameters and fields | the brick kind's or preset's derived schema |
+
+Bounds, in `internal/config/contract.go`: file 1,048,576 bytes; 64 pages; page
+name 24 characters; keys per page at most the grid's positions. The appearance
+label bound of 24 characters is provisional pending TE4's legibility gate.
+
+### Design choices made in TE2, for the author to see
+
+These are within the specification's text, but each is a choice the author may
+want to revisit:
+
+1. **The secret flag means a credential name.** The specification asks for a
+   secret flag in the tags and also forbids secrets in the file. Read together,
+   a field marked secret holds the name of a credential in the credential store;
+   the editor (TE9) offers write only entry for the secret it names. The schema
+   enforces that secret fields are text.
+2. **A `format` tag joins the specified tags** (name, requiredness, bounds,
+   description, secret). Without it each brick would need its own validator for
+   URLs and IDs, which the specification forbids. Formats: `https_url`,
+   `identifier`, `digits`, `colour`, one check each in one table.
+3. **The watcher polls** once per interval and compares a digest, rather than
+   subscribing to filesystem events. That needs no dependency, behaves the same
+   on both operating systems, and copes with editors that replace a file rather
+   than write to it. The interval is a TE6 value.
+4. **YAML anchors and aliases are refused**, which removes alias expansion from
+   the attack surface; hand written configuration has no need of them.
+5. **Saving from the editor drops hand written comments** in this phase. Keeping
+   them is possible through the node tree; it is TE9's decision, as raised in
+   11.3.
+
+### Tests first
+
+Each package's tests were written against stubs and run before the
+implementation, and every one failed for the expected reason (a stub reporting
+nothing, or for presets a stub schema panicking on a nil type, both meaning
+not yet implemented): layout 4 tests; brick 11 tests and 17 tag rule subtests;
+presets, the whole package; config decoding 19 tests with their subtests; store
+and atomic write 14 tests. Runs observed in the terminal on 11 November 2026;
+their output was not saved to files.
+
+Two tests found real faults while going green:
+
+- the duplicate key case found TF11, so the decoder checks duplicates itself;
+- the save test found that `Store.Current` shared slices with the running
+  configuration, so an editor's change would have altered what was running
+  without a save or reload. `Current` now returns a deep copy, and a new test
+  proves a parameter edit cannot leak in.
+
+### Planted violation for the new check
+
+```text
+##### planted: yamloutsideconfig
+$ go tool -modfile=tools/go.mod golangci-lint run --enable-only depguard ./...
+internal/live/planted.go:4:8: import 'go.yaml.in/yaml/v4' is not allowed from list 'yaml-only-in-config': only internal/config may parse YAML (depguard)
+import _ "go.yaml.in/yaml/v4"
+       ^
+1 issues:
+* depguard: 1
+```
+
+### Fuzzing
+
+`FuzzDecode` seeds the valid file, an empty file, minimal files, a hexadecimal
+integer, an anchor and alias, a duplicate key and unbalanced brackets. Its
+property: no panic, and any accepted file survives encode then decode unchanged.
+Runs on this Mac: 60 seconds, 1,807,442 executions, no failure; then 30 seconds,
+628,325 executions, no failure. The fuzzer's progress output showed pauses at 0
+executions per second that coincided with new interesting inputs, which is
+consistent with Go's fuzzer pausing to minimise each new input rather than a slow decoder. To rule
+that out, inputs at the 1 MiB bound were timed: deep sequence nesting 2.8 ms and
+deep mapping nesting 6.9 ms (both refused by the parser), 209,715 empty pages
+53 ms, 209,715 duplicate keys 74 ms, one long scalar 6.9 ms.
+
+### Reproduction report, 11 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| `go test -race -count=1 ./...` | brick, config, layout, presets, repositorychecks ok; 163 tests and subtests passed, 0 failed, 0 skipped |
+| `go tool -modfile=tools/go.mod golangci-lint run ./...` | 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Fuzz | `go test -run '^$' -fuzz FuzzDecode -fuzztime 30s ./internal/config/`: 628,325 executions, pass |
+| Memory analysis | race detector, clean |
+| Warnings | 0 |
+| Tests requiring the author | none |
+| Not run | CI on either runner (needs the author's push); anything on the Dell |
+| Outstanding | no author gate for TE2; CI on both runners |
