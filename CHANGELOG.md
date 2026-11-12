@@ -32,6 +32,14 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - Start at login for both systems without administrator rights, the rotating log
   file, the generated brick reference and the remaining documents (TE10).
 
+### Changed
+
+- The editor is restyled after the author's sites, punkdev.fyi and
+  cryptid.wine: a hot pink page, monospace text, misprinted lowercase
+  headings, black tags, heavy rules and slab buttons. Every colour pair still
+  meets WCAG AA (the lowest is 6.1 to 1) and focus is a thick ink and yellow
+  ring. A key's kind now shows on its own line under its label in the grid.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

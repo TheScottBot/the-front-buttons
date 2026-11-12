@@ -157,6 +157,7 @@ type cellView struct {
 	Reserved bool
 	Name     string
 	Text     string
+	Kind     string
 	Href     string
 }
 
@@ -232,16 +233,23 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 			switch {
 			case position == grid.BackPosition():
 				cells = append(cells,
-					cellView{Reserved: true, Name: place + "reserved for paging back", Text: "Back", Href: ""})
+					cellView{Reserved: true, Name: place + "reserved for paging back", Text: "Back", Kind: "", Href: ""})
 			case position == grid.ForwardPosition():
 				cells = append(cells,
-					cellView{Reserved: true, Name: place + "reserved for paging forward", Text: "Forward", Href: ""})
+					cellView{Reserved: true, Name: place + "reserved for paging forward", Text: "Forward", Kind: "", Href: ""})
 			default:
-				text := describeKey(page, position)
+				text, kindName := describeKey(page, position)
+
+				name := place + text
+				if kindName != "" {
+					name += " (" + kindName + ")"
+				}
+
 				cells = append(cells, cellView{
 					Reserved: false,
-					Name:     place + text,
+					Name:     name,
 					Text:     text,
+					Kind:     kindName,
 					Href:     fmt.Sprintf("/key?page=%d&row=%d&column=%d", pageIndex, row, column),
 				})
 			}
@@ -253,18 +261,21 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 	return rows
 }
 
-func describeKey(page config.Page, position layout.Position) string {
+// describeKey names a grid cell: its label and, apart, its kind, which the grid
+// shows on a smaller line of its own; a key with no label is named by its kind
+// alone, and a free position is "empty".
+func describeKey(page config.Page, position layout.Position) (string, string) {
 	key, found := keyAt(page, position)
 	if !found {
-		return "empty"
+		return "empty", ""
 	}
 
 	appearance, _ := brick.AppearanceOf(key.Parameters)
 	if appearance.Label != "" {
-		return appearance.Label + " (" + key.Kind + ")"
+		return appearance.Label, key.Kind
 	}
 
-	return key.Kind
+	return key.Kind, ""
 }
 
 func keyAt(page config.Page, position layout.Position) (config.Key, bool) {
