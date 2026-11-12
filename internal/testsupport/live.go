@@ -2,11 +2,18 @@ package testsupport
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 )
+
+// LiveNoRunReason is the fake live kind's press failure when no run is known,
+// matching the real pipeline key's.
+const LiveNoRunReason = "no_run"
+
+var errLiveNoRun = errors.New("fake live key: no run to open yet")
 
 // LiveKindName is a fake live kind whose states a test sets directly.
 const LiveKindName = "test_live"
@@ -111,6 +118,11 @@ func (watcher liveTestDouble) Watch(watchContext context.Context, publish func(s
 func (watcher liveTestDouble) PressWithState(_ context.Context, state brick.LiveState) error {
 	watcher.controller.mutex.Lock()
 	defer watcher.controller.mutex.Unlock()
+
+	// Like the real pipeline key, a press with no run known yet fails.
+	if state.TargetURL == "" {
+		return fmt.Errorf("pressing the fake live key: %w", brick.Categorised(LiveNoRunReason, errLiveNoRun))
+	}
 
 	watcher.controller.pressed = append(watcher.controller.pressed, state.TargetURL)
 

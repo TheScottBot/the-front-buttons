@@ -244,3 +244,46 @@ func TestDaemon_CountsPressesByKind(t *testing.T) {
 		running.stop(t)
 	})
 }
+
+// TestDaemon_NewerLiveNewsReplacesAnOlderPressError presses a live key before
+// its source has published, which fails with no run, then publishes a failed
+// run. On the real deck the press error stayed on the key over the newer run
+// state, so a failed pipeline read "no run" (evaluation, deck testing). The
+// newer news wins: the key shows the failure.
+func TestDaemon_NewerLiveNewsReplacesAnOlderPressError(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running := startHarness(t)
+		running.configurations <- livePages()
+
+		device := testsupport.NewDeckDeviceTestDouble(xlModel(t))
+		running.watcher.Attach("deck-a", device)
+		time.Sleep(settle)
+		synctest.Wait()
+
+		tap(device, 1)
+		time.Sleep(settle)
+		synctest.Wait()
+
+		noRun := running.renderer.Render(render.Appearance{Label: buildLabel, ErrorReason: testsupport.LiveNoRunReason})
+		plain := running.renderer.Render(render.Appearance{Label: buildLabel})
+
+		if early := drawnImage(t, device, 1); distance(early, noRun) >= distance(early, plain) {
+			t.Fatal("want the early press to show its no run error first")
+		}
+
+		running.live.Set("shared", brick.LiveState{Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL})
+		time.Sleep(settle)
+		synctest.Wait()
+
+		shown := drawnImage(t, device, 1)
+		failure := running.renderer.Render(render.Appearance{Label: buildLabel, Status: render.StatusFailure})
+
+		if distance(shown, failure) >= distance(shown, noRun) {
+			t.Fatal("want the published failure shown over the older press error")
+		}
+
+		running.stop(t)
+	})
+}

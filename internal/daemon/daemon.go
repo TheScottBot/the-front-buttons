@@ -319,7 +319,10 @@ func (state *loopState) logMissingCredentials(runContext context.Context, config
 }
 
 // handleLiveChanges repaints the keys on the showing page whose source
-// published, and logs each change of a source's error reason once.
+// published, and logs each change of a source's error reason once. A press
+// error on such a key is cleared first: the publish is newer news than the
+// press, and a press made before any run was known otherwise left "no run" on
+// a key whose run had since failed (evaluation, deck testing).
 func (state *loopState) handleLiveChanges(runContext context.Context, identities map[string]bool) {
 	for identity := range identities {
 		liveState, _ := state.hub.State(identity)
@@ -329,6 +332,8 @@ func (state *loopState) handleLiveChanges(runContext context.Context, identities
 		}
 	}
 
+	state.clearPressErrors(identities)
+
 	if !state.paging.HasPage() {
 		return
 	}
@@ -337,6 +342,20 @@ func (state *loopState) handleLiveChanges(runContext context.Context, identities
 		source, isLive := configured.instance.(brick.LiveSource)
 		if isLive && identities[source.LiveIdentity()] {
 			state.repaintKey(runContext, configured.key.Position, configured)
+		}
+	}
+}
+
+// clearPressErrors forgets the press errors of every key, on any page, whose
+// source has just published.
+func (state *loopState) clearPressErrors(identities map[string]bool) {
+	for pageIndex := range state.pages {
+		for keyIndex := range state.pages[pageIndex] {
+			configured := &state.pages[pageIndex][keyIndex]
+
+			if source, isLive := configured.instance.(brick.LiveSource); isLive && identities[source.LiveIdentity()] {
+				configured.errorReason = ""
+			}
 		}
 	}
 }

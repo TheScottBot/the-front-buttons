@@ -22,6 +22,12 @@ jobs:
       matrix:
         runner: [macos-26, windows-2025]
     runs-on: ${{ matrix.runner }}
+    # Every step runs under Bash (Git Bash on Windows) unless it names its own
+    # shell. PowerShell splits an argument such as -modfile=tools/go.mod at its
+    # dot, which failed the first Windows run (evaluation, deck testing).
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
