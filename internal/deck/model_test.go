@@ -91,3 +91,24 @@ func TestModels_GridBuildsForEveryRow(t *testing.T) {
 		}
 	}
 }
+
+// TestXL_CarriesTheContentInsetMeasuredOnTheDeck: probes on the author's XL V2
+// showed each key's image drawn a little up and left of its window; the inset
+// places a key's content so the black seen around it is even (evaluation, deck
+// testing). It must fit on the key and leave room to draw.
+func TestXL_CarriesTheContentInsetMeasuredOnTheDeck(t *testing.T) {
+	t.Parallel()
+
+	model, _ := deck.LookupModel(0x0FD9, 0x008F)
+	protocol := model.Protocol
+
+	if protocol.ContentLeft != 8 || protocol.ContentTop != 10 || protocol.ContentPixels != 84 {
+		t.Fatalf("want content 84 pixels at 8, 10; got %d at %d, %d",
+			protocol.ContentPixels, protocol.ContentLeft, protocol.ContentTop)
+	}
+
+	if protocol.ContentLeft+protocol.ContentPixels > protocol.KeyPixels ||
+		protocol.ContentTop+protocol.ContentPixels > protocol.KeyPixels {
+		t.Fatal("want the content to fit on the key")
+	}
+}

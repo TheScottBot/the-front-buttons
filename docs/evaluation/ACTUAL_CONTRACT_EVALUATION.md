@@ -3066,6 +3066,37 @@ accepted the file and logged no icon failure. TE9's gate is a full page built
 from scratch on each machine by keyboard; this is one key of it, recorded as
 the author reported it, who found it smooth.
 
+### A black strip on light keys, and keys framed in black
+
+On light coloured keys the author saw a black strip at the bottom and right
+only. The bytes sent were complete: a solid key encoded by the real encoder
+decoded to 96 by 96 pixels of its colour to every edge. Probes on the deck,
+with the daemon paused, then showed:
+
+- With a one pixel line on each edge, only the bottom and right lines showed,
+  with black beyond them, more below than to the right; the top and left lines
+  were hidden. Frames one pixel apart put the first visible ring two to three
+  pixels in at the top and left.
+- Images of any width other than 96 drew skewed, with lines at angles, so the
+  deck reads each row as exactly 96 pixels.
+- Taller images, 96 by 104 to 96 by 120 with the extra rows at either end,
+  changed nothing seen straight on: in the author's photograph every row showed
+  the same strip, so the deck draws 96 by 96 and nothing more. An earlier
+  impression that one helped was the viewing angle.
+
+So the strip is the deck's own: each key's 96 pixel image is drawn a little up
+and left of its window, and the window's edges bow. No image can fill it. The
+author chose to frame every key in black so the edges look even and the bow is
+hidden. `render.NewFramedRenderer` draws a key's content at a smaller size and
+places it in a black square, for keys, navigation keys and blanks alike, so the
+deck and the editor's previews agree; `render.Inset` gives the square's size
+and place, refused if it does not fit or is too small to draw in. The XL's
+values sit in the model table: an 84 pixel square, 8 from the left and 10 from
+the top, thicker at the top and left that the deck hides. They are estimates
+from the probes, to be adjusted on the deck. Tests first, both failing before
+the code. The probe file was temporary and deleted; the probes ended at the
+author's request, late at night.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

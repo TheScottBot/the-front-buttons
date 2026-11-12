@@ -15,6 +15,12 @@ type Protocol struct {
 	FlipVertical   bool
 	// JPEGQuality is the quality the reference encodes key images at.
 	JPEGQuality int
+	// ContentPixels, ContentLeft and ContentTop place a key's content inside
+	// a black frame, measured on the deck: the XL draws each 96 pixel image a
+	// little up and left of its window (evaluation, deck testing).
+	ContentPixels int
+	ContentLeft   int
+	ContentTop    int
 
 	OutputReportLength  int
 	ImageHeaderLength   int
@@ -84,6 +90,15 @@ const (
 	// 96 pixel JPEG at the reference's quality of 100 is a few pages even for a
 	// worst case image, and the page number field could otherwise run to 65,535.
 	xlMaximumImagePages = 64
+
+	// The content square of a key and its place, from probes on the author's
+	// XL V2 on 12 November 2026: about three pixels hidden at the top, two at
+	// the left, and two to three of black seen beyond the right edge and two to
+	// three times that below, looking straight on. Thicker black at the top
+	// and left evens out what is seen; provisional until checked on the deck.
+	xlContentPixels = 84
+	xlContentLeft   = 8
+	xlContentTop    = 10
 )
 
 func streamDeckXLProtocol() Protocol {
@@ -92,6 +107,9 @@ func streamDeckXLProtocol() Protocol {
 		FlipHorizontal:         true,
 		FlipVertical:           true,
 		JPEGQuality:            xlJPEGQuality,
+		ContentPixels:          xlContentPixels,
+		ContentLeft:            xlContentLeft,
+		ContentTop:             xlContentTop,
 		OutputReportLength:     xlOutputReportLength,
 		ImageHeaderLength:      xlImageHeaderLength,
 		MaximumImageBytes:      xlMaximumImagePages * (xlOutputReportLength - xlImageHeaderLength),

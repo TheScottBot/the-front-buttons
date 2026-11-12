@@ -303,7 +303,11 @@ func buildCore() (core, error) {
 		return core{}, fmt.Errorf("loading icons: %w", iconError)
 	}
 
-	renderer, rendererError := render.NewRenderer(model.Protocol.KeyPixels, icons)
+	// Every key is framed in black, placed by the deck's measured inset, so the
+	// black seen around each key is even (evaluation, deck testing).
+	renderer, rendererError := render.NewFramedRenderer(model.Protocol.KeyPixels, icons, render.Inset{
+		Left: model.Protocol.ContentLeft, Top: model.Protocol.ContentTop, ContentPixels: model.Protocol.ContentPixels,
+	})
 	if rendererError != nil {
 		return core{}, fmt.Errorf("building the renderer: %w", rendererError)
 	}

@@ -88,6 +88,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - Dragging a key shows a bin, out of the way of the tiles; dropping a key on
   it removes it, and the page offers Undo.
 
+- Every key is framed in black, so the XL's slight offset and bowed edges no
+  longer show as a strip on light keys.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

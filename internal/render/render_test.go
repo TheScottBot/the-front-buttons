@@ -292,3 +292,90 @@ func TestRender_DrawsTheMissingMarker_ForAnIconFileThatCouldNotBeLoaded(t *testi
 		t.Fatalf("want the missing marker drawn, %d pixels differ", differing)
 	}
 }
+
+// The frame the framed renderer tests use: an 84 pixel square, 8 from the left
+// and 10 from the top of a 96 pixel key.
+var testInset = render.Inset{Left: 8, Top: 10, ContentPixels: 84} //nolint:gochecknoglobals // a fixed test value
+
+func framedRenderer(t *testing.T) *render.Renderer {
+	t.Helper()
+
+	renderer, rendererError := render.NewFramedRenderer(testKeyPixels, iconSetTestDouble{}, testInset)
+	if rendererError != nil {
+		t.Fatal(rendererError)
+	}
+
+	return renderer
+}
+
+func isBlack(colour color.Color) bool {
+	red, green, blue, _ := colour.RGBA()
+
+	return red == 0 && green == 0 && blue == 0
+}
+
+// TestFramedRenderer_ContainsEveryKeyInABlackSquare: the XL draws each key's
+// image a little up and left of its window and its edges bow, so a light key
+// showed a black strip at the bottom and right only. The author asked for every
+// key to sit in a black square instead (evaluation, deck testing): the content
+// is drawn smaller, placed by the deck's measured inset, with black around it.
+func TestFramedRenderer_ContainsEveryKeyInABlackSquare(t *testing.T) {
+	t.Parallel()
+
+	renderer := framedRenderer(t)
+	light := color.RGBA{R: 0x2E, G: 0xE6, B: 0xFF, A: 0xFF}
+
+	keys := map[string]image.Image{
+		"key": renderer.Render(render.Appearance{Label: buildLabel, Background: light}),
+		"navigation": renderer.RenderNavigation(render.DirectionForward, layout.PageIndication{
+			Number: 1, Count: 1, CurrentName: "", PreviousName: "", NextName: "",
+		}, false),
+		"blank": renderer.RenderBlank(),
+	}
+
+	inner := testInset.ContentPixels
+	frame := []image.Point{
+		{X: 0, Y: 0},
+		{X: testInset.Left - 1, Y: 50},
+		{X: 50, Y: testInset.Top - 1},
+		{X: testInset.Left + inner, Y: 50},
+		{X: 50, Y: testInset.Top + inner},
+		{X: 95, Y: 95},
+	}
+
+	for name, key := range keys {
+		if key.Bounds().Dx() != testKeyPixels || key.Bounds().Dy() != testKeyPixels {
+			t.Fatalf("%s: want a %d pixel key, got %v", name, testKeyPixels, key.Bounds())
+		}
+
+		for _, point := range frame {
+			if !isBlack(key.At(point.X, point.Y)) {
+				t.Errorf("%s: want black frame at %v, got %v", name, point, key.At(point.X, point.Y))
+			}
+		}
+	}
+
+	if got := keys["key"].At(testInset.Left+3, testInset.Top+3); got != color.Color(light) {
+		t.Errorf("want the key's own colour just inside the frame, got %v", got)
+	}
+
+	if isBlack(keys["navigation"].At(testInset.Left+3, testInset.Top+3)) {
+		t.Error("want the navigation key drawn inside the frame")
+	}
+}
+
+func TestNewFramedRenderer_RefusesAFrameThatDoesNotFit(t *testing.T) {
+	t.Parallel()
+
+	for name, inset := range map[string]render.Inset{
+		"too small to draw in": {Left: 0, Top: 0, ContentPixels: 40},
+		"off the right":        {Left: 20, Top: 0, ContentPixels: 84},
+		"off the bottom":       {Left: 0, Top: 20, ContentPixels: 84},
+		"negative":             {Left: -1, Top: 0, ContentPixels: 84},
+	} {
+		_, rendererError := render.NewFramedRenderer(testKeyPixels, iconSetTestDouble{}, inset)
+		if rendererError == nil {
+			t.Errorf("%s: want the frame refused", name)
+		}
+	}
+}

@@ -17,6 +17,10 @@ func (renderer *Renderer) RenderNavigation(
 	indication layout.PageIndication,
 	hasIndication bool,
 ) image.Image {
+	if renderer.frame != nil {
+		return renderer.frame.place(renderer.frame.inner.RenderNavigation(direction, indication, hasIndication))
+	}
+
 	renderer.mutex.Lock()
 	defer renderer.mutex.Unlock()
 

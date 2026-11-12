@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"sync"
 )
 
@@ -23,6 +24,10 @@ const (
 
 // ErrImplausibleKeySize reports a key size outside the plausible range.
 var ErrImplausibleKeySize = errors.New("implausible key size")
+
+// ErrFrameDoesNotFit reports a frame whose content square would not fit on the
+// key, or would be too small to draw in.
+var ErrFrameDoesNotFit = errors.New("key frame does not fit")
 
 // The key's layout, in hundredths of its width, shared by every kind of key so
 // they line up as a set. Provisional until the TE4 legibility gate.
@@ -126,6 +131,61 @@ type Renderer struct {
 	// Font faces cache glyphs and are not safe for concurrent use, so drawing
 	// is serialised.
 	mutex sync.Mutex
+	// frame, when set, draws every key smaller, by an inner renderer, inside
+	// a black frame.
+	frame *keyFrame
+}
+
+// Inset places a key's content inside a black frame: a square of
+// ContentPixels, its top left corner Left and Top pixels into the key. The XL
+// draws each key's image a little up and left of its window, and its edges bow,
+// so a light key showed a black strip at the bottom and right only; framing
+// every key in black, thicker at the top and left that the deck hides, makes
+// the black seen around each key even (the author's request, evaluation, deck
+// testing).
+type Inset struct {
+	Left          int
+	Top           int
+	ContentPixels int
+}
+
+// keyFrame draws a key's content with an inner renderer and places it in a
+// black square.
+type keyFrame struct {
+	inner *Renderer
+	inset Inset
+	size  int
+}
+
+func (frame *keyFrame) place(content image.Image) image.Image {
+	key := image.NewRGBA(image.Rect(0, 0, frame.size, frame.size))
+	draw.Draw(key, key.Bounds(), image.NewUniform(defaultBackground()), image.Point{X: 0, Y: 0}, draw.Src)
+
+	destination := image.Rect(frame.inset.Left, frame.inset.Top,
+		frame.inset.Left+frame.inset.ContentPixels, frame.inset.Top+frame.inset.ContentPixels)
+	draw.Draw(key, destination, content, content.Bounds().Min, draw.Src)
+
+	return key
+}
+
+// NewFramedRenderer returns a renderer whose keys are keyPixels square, with
+// their content drawn at the inset's size and placed in a black frame.
+func NewFramedRenderer(keyPixels int, icons IconSet, inset Inset) (*Renderer, error) {
+	if inset.Left < 0 || inset.Top < 0 || inset.ContentPixels < minimumKeyPixels ||
+		inset.Left+inset.ContentPixels > keyPixels || inset.Top+inset.ContentPixels > keyPixels {
+		return nil, fmt.Errorf("%w: %d pixels at %d, %d on a %d pixel key",
+			ErrFrameDoesNotFit, inset.ContentPixels, inset.Left, inset.Top, keyPixels)
+	}
+
+	inner, innerError := NewRenderer(inset.ContentPixels, icons)
+	if innerError != nil {
+		return nil, innerError
+	}
+
+	return &Renderer{
+		keyPixels: keyPixels, icons: icons, faces: inner.faces, mutex: sync.Mutex{},
+		frame: &keyFrame{inner: inner, inset: inset, size: keyPixels},
+	}, nil
 }
 
 // NewRenderer returns a renderer for square keys of keyPixels, taken from the
@@ -141,11 +201,15 @@ func NewRenderer(keyPixels int, icons IconSet) (*Renderer, error) {
 		return nil, facesError
 	}
 
-	return &Renderer{keyPixels: keyPixels, icons: icons, faces: faces, mutex: sync.Mutex{}}, nil
+	return &Renderer{keyPixels: keyPixels, icons: icons, faces: faces, mutex: sync.Mutex{}, frame: nil}, nil
 }
 
 // Render draws a brick's key.
 func (renderer *Renderer) Render(appearance Appearance) image.Image {
+	if renderer.frame != nil {
+		return renderer.frame.place(renderer.frame.inner.Render(appearance))
+	}
+
 	renderer.mutex.Lock()
 	defer renderer.mutex.Unlock()
 
@@ -199,6 +263,10 @@ func backgroundOf(appearance Appearance) color.RGBA {
 // RenderBlank draws an empty position: plain background, not an error
 // (specification section 2).
 func (renderer *Renderer) RenderBlank() image.Image {
+	if renderer.frame != nil {
+		return renderer.frame.place(renderer.frame.inner.RenderBlank())
+	}
+
 	return renderer.newKey(defaultBackground())
 }
 
