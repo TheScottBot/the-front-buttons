@@ -71,7 +71,7 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 	}
 
 	keyIndex, onGrid := state.grid.KeyIndex(position)
-	if !onGrid {
+	if !onGrid || state.hiddenByOff(position) {
 		return
 	}
 
@@ -85,6 +85,11 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 
 func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) image.Image {
 	renderer := state.options.Renderer
+
+	if state.controls.off && (slot.Kind != layout.SlotBrick ||
+		state.hiddenByOff(state.pages[state.paging.Current()][slot.BrickIndex].key.Position)) {
+		return renderer.RenderBlank()
+	}
 
 	switch slot.Kind {
 	case layout.SlotBack, layout.SlotForward:
@@ -115,8 +120,13 @@ func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) i
 func (state *loopState) appearanceFor(runContext context.Context, configured configuredKey) render.Appearance {
 	configuredAppearance, _ := brick.AppearanceOf(configured.key.Parameters)
 
+	label := configuredAppearance.Label
+	if label == "" {
+		label = controlLabel(configured.instance)
+	}
+
 	appearance := render.Appearance{
-		Label:       configuredAppearance.Label,
+		Label:       label,
 		Icon:        configuredAppearance.Icon,
 		ErrorReason: configured.errorReason,
 	}

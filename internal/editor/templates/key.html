@@ -26,7 +26,9 @@
 {{end}}</select>
 {{else if eq .Control "checkbox"}}<input id="{{.ID}}" name="{{.Name}}" type="checkbox"{{if .Checked}} checked{{end}}{{if .Replaces}} data-replaces="{{.Replaces}}"{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
 {{else}}<input id="{{.ID}}" name="{{.Name}}" type="{{.Control}}" value="{{.Value}}"{{if .Required}} required{{end}}{{if .MinimumLength}} minlength="{{.MinimumLength}}"{{end}}{{if .MaximumLength}} maxlength="{{.MaximumLength}}"{{end}}{{if .Minimum}} min="{{.Minimum}}"{{end}}{{if .Maximum}} max="{{.Maximum}}"{{end}}{{if .Error}} aria-invalid="true"{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
-{{if .Choices}}<label for="{{.ID}}-picker">Or choose an installed application</label>
+{{if .Slider}}<div class="slider" hidden><label for="{{.ID}}-slider">Or slide it</label>
+<input id="{{.ID}}-slider" class="slider-input" type="range" min="{{.Minimum}}" max="{{.Maximum}}"{{if .Value}} value="{{.Value}}"{{end}} data-mirrors="{{.ID}}"></div>
+{{end}}{{if .Choices}}<label for="{{.ID}}-picker">Or choose an installed application</label>
 <select id="{{.ID}}-picker" class="app-picker" data-fills="{{.ID}}">
 <option value="">Choose an application</option>
 {{range .Choices}}<option value="{{.Value}}">{{.Label}}</option>

@@ -62,7 +62,10 @@ type fieldView struct {
 	MaximumLength string
 	Minimum       string
 	Maximum       string
-	Autofocus     bool
+	// Slider offers a slider beside a bounded number, kept in step with it
+	// by the script; the number box is what is sent.
+	Slider    bool
+	Autofocus bool
 	// Suggestions names the list a picker beside the field offers, and Choices
 	// is that list, filled in when the page is shown.
 	Suggestions brick.Suggestions
@@ -179,6 +182,7 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			MaximumLength: "",
 			Minimum:       "",
 			Maximum:       "",
+			Slider:        false,
 			Autofocus:     false,
 			Suggestions:   field.Suggestions,
 			Choices:       nil,
@@ -237,6 +241,7 @@ func applyBounds(view *fieldView, field brick.Field) {
 	case brick.FieldTypeInteger:
 		view.Minimum = strconv.FormatInt(field.Bounds.Minimum, 10)
 		view.Maximum = strconv.FormatInt(field.Bounds.Maximum, 10)
+		view.Slider = true
 	}
 }
 

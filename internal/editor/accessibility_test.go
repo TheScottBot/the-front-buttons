@@ -13,6 +13,7 @@ func editorPages() []string {
 		"/key?page=0&row=0&column=0",
 		"/key?page=0&row=1&column=1&type=kind:pipeline_status",
 		"/key?page=0&row=1&column=1&type=preset:teams_channel",
+		brightnessKeyPath,
 		"/credentials",
 		"/diagnostics",
 	}

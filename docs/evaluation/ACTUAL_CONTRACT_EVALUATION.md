@@ -3157,6 +3157,39 @@ drifting apart) failed them. In the browser the switch turned the page dark,
 set the cookie, and the next page arrived dark from the server; switching
 back gave light.
 
+### Brightness and off keys
+
+The author asked for a key showing a brightness percentage, set by digit and
+slider, that toggles the deck between its usual brightness and that level;
+and an off key that turns every other key off and the deck down low.
+
+Brightness is the whole deck's, and the daemon owns the deck, so these bricks
+reach for no port: `brick.DeckControl` names a request (toggle brightness to a
+percentage, or toggle off at one), and the daemon carries it out in its loop.
+Both kinds live in `internal/bricks/deckcontrol`, levels 1 to 100: nought
+would leave a deck too dark to find the key that brings it back.
+
+While off, every key but the off key is drawn blank, including navigation and
+any live key whose source publishes. A press of any key only wakes the deck,
+since what it would do cannot be seen, and waking restores the brightness in
+force before, dimmed or not. A new configuration wakes the deck, as the off
+key may have moved. The chosen brightness is set again when the deck returns
+from the dock. Pressing a brightness key at the level it set goes back to the
+usual; at another level, goes to that one. A key without a label shows its
+percentage, or Off.
+
+In the editor any bounded integer gets a slider beside its number box: the
+number is sent, the slider has no name, and the script keeps the two in step
+and shows the slider, as it does in the key dialog.
+
+Tests first, failing before the code: the bricks' requests, default and
+bounds; the daemon dimming and restoring, blanking the other keys and keeping
+a live key blank, waking on any press without pressing, restoring a dimmed
+level, and a returning deck keeping it; the slider's markup and the script.
+Planted violations failed them: no wake on press, a live key drawn while off,
+a returning deck at the usual brightness, the wrong default. In the browser
+the slider and number moved each other both ways.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

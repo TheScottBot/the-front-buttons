@@ -102,6 +102,14 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   setting. The choice is kept in a cookie the editor reads, so each page is
   drawn in it from the start without a flash of the other palette.
 
+- Two keys that change the deck itself. `brightness` toggles the deck between
+  its usual brightness and a set percentage, which it shows unless labelled.
+  `deck_off` turns every other key off and the deck down low (10 percent unless
+  set); pressing it, or any key, turns them back on without doing anything else.
+  The chosen brightness survives the deck being unplugged and returned.
+- A bounded number in the editor, such as a brightness level, can be set with a
+  slider as well as typed; the two stay in step.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

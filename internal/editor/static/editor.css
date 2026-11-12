@@ -639,6 +639,30 @@ label[for$="-picker"] {
   padding: 0.2rem 0.8rem;
 }
 
+/* A slider beside a bounded number: its track in the rule colour, so it shows
+   on either palette. Hidden until the script shows it. */
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.slider[hidden] {
+  display: none;
+}
+
+.slider label {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.slider-input {
+  flex: 1;
+  accent-color: var(--rule);
+}
+
 /*
  * Dark, when the system asks for it or the switch chooses it: the author's
  * Thyme clock. Its near black panel, its pink time text and outline, and lilac

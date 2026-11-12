@@ -204,6 +204,8 @@ type loopState struct {
 	deckGeneration int
 
 	loggedState string
+
+	controls deckControls
 }
 
 func newLoopState(options Options) *loopState {
@@ -226,6 +228,9 @@ func newLoopState(options Options) *loopState {
 		slots:                   nil,
 		deckGeneration:          0,
 		loggedState:             "",
+		controls: deckControls{
+			dimmed: false, dimPercent: 0, off: false, offPercent: 0, offPage: 0, offBrick: 0,
+		},
 	}
 }
 
@@ -288,6 +293,13 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	} else {
 		state.paging = layout.NewPaging(len(state.pages))
 		state.hasConfiguration = true
+	}
+
+	// The off key may have moved or gone, so a new configuration turns the
+	// keys back on.
+	if state.controls.off {
+		state.controls.off = false
+		state.applyBrightness(runContext)
 	}
 
 	state.hub.Update(runContext, state.liveSources())
@@ -490,7 +502,7 @@ func (state *loopState) connect(runContext context.Context, connection deck.Conn
 	}
 
 	grid, gridError := opened.Model().Grid()
-	brightnessError := opened.SetBrightness(state.options.Brightness)
+	brightnessError := opened.SetBrightness(state.brightness())
 
 	if gridError != nil || brightnessError != nil {
 		// Already abandoning a deck that failed to start; its close error adds nothing.
@@ -568,6 +580,14 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 			continue
 		}
 
+		// While off, a press only wakes the deck: what it would do cannot be
+		// seen. The rest of the report is dropped with it.
+		if state.controls.off {
+			state.wake(runContext)
+
+			return
+		}
+
 		slot, slotFound := layout.SlotAt(state.slots, change.KeyIndex)
 		if !slotFound {
 			continue
@@ -595,6 +615,12 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 		slog.Int("row", configured.key.Position.Row), slog.Int("column", configured.key.Position.Column))
 
 	state.options.Counters.Increment("key_presses." + configured.key.Kind)
+
+	if control, isControl := configured.instance.(brick.DeckControl); isControl {
+		state.pressControl(runContext, pageIndex, brickIndex, control.DeckControl())
+
+		return
+	}
 
 	pressFunction := state.pressFunction(configured)
 	if pressFunction == nil {

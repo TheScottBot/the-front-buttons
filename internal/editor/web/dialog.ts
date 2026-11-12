@@ -9,6 +9,7 @@
 // focus goes back to the tile that opened it.
 
 import { applyReplacements } from "./replaces";
+import { showSliders } from "./slider";
 
 interface Elements {
   readonly dialog: HTMLDialogElement;
@@ -115,6 +116,7 @@ async function load(parts: Elements, url: string, init?: RequestInit): Promise<v
   parts.body.replaceChildren(document.importNode(editor, true));
   htmx()?.process(parts.body);
   applyReplacements(document);
+  showSliders(document);
 
   if (!parts.dialog.open) {
     parts.dialog.showModal();

@@ -188,6 +188,30 @@ never enter the daemon's dependencies.
 Generated from each kind's and preset's declaration. Do not edit by hand: run
 `UPDATE_README=1 go test ./internal/reference/` after changing a declaration.
 
+### `brightness`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `level` | integer | required | 1 to 100 |  | How bright the deck goes, in percent, when the key is pressed; pressing it again goes back to the usual brightness. The key shows the percentage unless it has a label. |
+
+### `deck_off`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `level` | integer | optional | 1 to 100 |  | How bright the deck is, in percent, while every other key is off; 10 if left out. Pressing this key, or any other, turns the keys back on. |
+
 ### `open_application`
 
 A brick kind.

@@ -6,10 +6,12 @@ import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
+import { enableSliders } from "./slider";
 import { enableThemeToggle } from "./theme";
 
 enablePickers(document);
 enableReplacements(document);
+enableSliders(document);
 enableThemeToggle(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");

@@ -28,6 +28,41 @@
     applyReplacements(root);
   }
 
+  // internal/editor/web/slider.ts
+  var sliderSelector = "input.slider-input";
+  function showSliders(root) {
+    for (const slider of root.querySelectorAll(sliderSelector)) {
+      const number = root.getElementById(slider.dataset.mirrors ?? "");
+      if (number instanceof HTMLInputElement && number.value !== "") {
+        slider.value = number.value;
+      }
+      const holder = slider.closest(".slider");
+      if (holder !== null) {
+        holder.hidden = false;
+      }
+    }
+  }
+  function enableSliders(root) {
+    root.addEventListener("input", (event) => {
+      const moved = event.target;
+      if (!(moved instanceof HTMLInputElement)) {
+        return;
+      }
+      if (moved.matches(sliderSelector)) {
+        const number = root.getElementById(moved.dataset.mirrors ?? "");
+        if (number instanceof HTMLInputElement) {
+          number.value = moved.value;
+        }
+        return;
+      }
+      const slider = root.querySelector(`${sliderSelector}[data-mirrors="${CSS.escape(moved.id)}"]`);
+      if (slider !== null && moved.value !== "") {
+        slider.value = moved.value;
+      }
+    });
+    showSliders(root);
+  }
+
   // internal/editor/web/dialog.ts
   var keyLinkSelector = 'a[href^="/key?"]';
   var editorID = "key-editor";
@@ -93,6 +128,7 @@
     parts.body.replaceChildren(document.importNode(editor, true));
     htmx()?.process(parts.body);
     applyReplacements(document);
+    showSliders(document);
     if (!parts.dialog.open) {
       parts.dialog.showModal();
     }
@@ -339,6 +375,7 @@
   // internal/editor/web/editor.ts
   enablePickers(document);
   enableReplacements(document);
+  enableSliders(document);
   enableThemeToggle(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {

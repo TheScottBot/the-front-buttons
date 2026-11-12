@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
@@ -102,6 +103,7 @@ func harnessRegistry(
 		testsupport.RegisterButtonKind(registry, recorder),
 		testsupport.RegisterLiveKind(registry, liveController),
 		openapplication.Register(registry),
+		deckcontrol.Register(registry),
 	)
 	if registerError != nil {
 		t.Fatal(registerError)
