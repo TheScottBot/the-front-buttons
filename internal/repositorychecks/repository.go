@@ -27,6 +27,8 @@ func vendoredPaths() []string {
 		"internal/render/tablericons/LICENSE",
 		"internal/render/tablericons/tabler-icons.css",
 		"internal/render/tablericons/tabler-icons.ttf",
+		"internal/editor/static/htmx.min.js",
+		"internal/editor/static/htmx-LICENSE",
 	}
 }
 

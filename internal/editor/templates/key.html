@@ -1,0 +1,43 @@
+{{template "head" .}}
+<h1>Key at row {{.DisplayRow}}, column {{.DisplayColumn}}</h1>
+<p><a href="/page?page={{.PageIndex}}">Back to the page</a></p>
+<div id="key-editor">
+{{if .Errors}}<div class="errors" role="alert"><ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+<form method="get" action="/key" id="type-form">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="hidden" name="row" value="{{.Row}}">
+<input type="hidden" name="column" value="{{.Column}}">
+<label for="key-type">What the key does</label>
+<select id="key-type" name="type" hx-get="/key" hx-trigger="change" hx-target="#key-editor" hx-select="#key-editor" hx-swap="outerHTML" hx-include="#type-form">
+{{range .Types}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+</select>
+<button type="submit">Use this type</button>
+</form>
+<form method="post" action="/key" id="key-form">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="hidden" name="row" value="{{.Row}}">
+<input type="hidden" name="column" value="{{.Column}}">
+<input type="hidden" name="type" value="{{.TypeChoice}}">
+{{range .Fields}}<div class="field">
+<label for="{{.ID}}">{{.Label}}{{if .Required}} (required){{end}}</label>
+{{if eq .Control "checkbox"}}<input id="{{.ID}}" name="{{.Name}}" type="checkbox"{{if .Checked}} checked{{end}} aria-describedby="{{.DescribedBy}}">
+{{else}}<input id="{{.ID}}" name="{{.Name}}" type="{{.Control}}" value="{{.Value}}"{{if .Required}} required{{end}}{{if .MinimumLength}} minlength="{{.MinimumLength}}"{{end}}{{if .MaximumLength}} maxlength="{{.MaximumLength}}"{{end}}{{if .Minimum}} min="{{.Minimum}}"{{end}}{{if .Maximum}} max="{{.Maximum}}"{{end}}{{if .Error}} aria-invalid="true"{{end}} aria-describedby="{{.DescribedBy}}">
+{{end}}{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}
+<p class="help" id="{{.DescriptionID}}">{{.Description}}{{if .Secret}} This names a stored credential; set its secret on the <a href="/credentials">credentials page</a>.{{end}}</p>
+</div>
+{{end}}<button type="submit">Save key</button>
+</form>
+{{if .HasKey}}<form method="post" action="/key/delete">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="hidden" name="row" value="{{.Row}}">
+<input type="hidden" name="column" value="{{.Column}}">
+<button type="submit">Remove this key</button>
+</form>{{end}}
+<figure>
+<img src="/preview.png?page={{.PageIndex}}&amp;row={{.Row}}&amp;column={{.Column}}" width="96" height="96" alt="Preview of the key as last saved">
+<figcaption>The key as last saved. A live key shows its state on the deck.</figcaption>
+</figure>
+</div>
+{{template "foot" .}}

@@ -1,0 +1,132 @@
+/*
+ * The editor's styles. Text and controls meet WCAG AA contrast, focus is always
+ * visible, nothing moves for a person who asks for reduced motion, and state is
+ * always written in words as well as shown (engineering datum 0.16).
+ */
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #1a1a1a;
+  background: #ffffff;
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: 0 1rem 2rem;
+}
+
+a {
+  color: #0b4f9c;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+main:focus-visible {
+  outline: 3px solid #b35c00;
+  outline-offset: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: -100rem;
+}
+
+.skip:focus {
+  position: static;
+}
+
+nav ul,
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+[aria-current="page"] {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.grid {
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.grid td {
+  border: 1px solid #555555;
+  width: 6.5rem;
+  height: 4rem;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.25rem;
+}
+
+.grid a {
+  display: block;
+  padding: 0.5rem 0.25rem;
+}
+
+.reserved {
+  font-style: italic;
+  color: #333333;
+}
+
+.field {
+  margin: 1rem 0;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select {
+  font-size: 1rem;
+  padding: 0.4rem;
+  border: 2px solid #555555;
+  min-width: 18rem;
+}
+
+input[aria-invalid="true"] {
+  border-color: #a4000f;
+  border-width: 3px;
+}
+
+.error,
+.problems,
+.errors {
+  color: #a4000f;
+  font-weight: bold;
+}
+
+.help {
+  margin: 0.25rem 0 0;
+  color: #333333;
+}
+
+.inline {
+  margin: 1rem 0;
+}
+
+button {
+  font-size: 1rem;
+  padding: 0.4rem 0.9rem;
+  border: 2px solid #1a1a1a;
+  background: #f2f2f2;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none;
+    transition: none;
+    scroll-behavior: auto;
+  }
+}

@@ -57,3 +57,5 @@ in memory, so a regression in a check fails the build.
   app ID on the Dell (DV3).
 - TE8: a real workflow turning red then green on the deck at work, with a press
   opening the failing run; the credential contract above on both machines.
+- TE9: building a full page from scratch in the editor on each machine, once
+  using the keyboard only.

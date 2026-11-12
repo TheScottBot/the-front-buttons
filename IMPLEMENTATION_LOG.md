@@ -16,7 +16,7 @@ a later change is a dated note.
 | TE6 | Automated criteria green on this Mac; device contract skipped without a deck | Device contract, keys, paging and ten dock switches on both machines |
 | TE7 | Automated criteria green on this Mac; binary smoke run | Every preset and both bricks on each machine |
 | TE8 | Automated criteria green on this Mac | A real workflow red then green, press opening the failing run; credential contract with consent |
-| TE9 | Not started | A full page built in the editor, once keyboard only |
+| TE9 | Automated criteria green on this Mac; live editor probed | A full page built in the editor on each machine, once keyboard only |
 | TE10 | Not started | Start at login on both machines |
 
 ## Entries
@@ -44,4 +44,5 @@ commit, since a commit cannot name its own hash.
 | TE5 | feat(deck): add Stream Deck XL model table and protocol codec | `fa6a3f4` |
 | TE6 | feat(daemon): add HID transport, deck watching and the main loop | `d36a8ac` |
 | TE7 | feat(bricks): add URL and application bricks, presets and the composition root | `ec1820f` |
-| TE8 | feat(live): add live hub, GitHub Actions pipeline status and credentials | recorded in the next commit |
+| TE8 | feat(live): add live hub, GitHub Actions pipeline status and credentials | `5643a74` |
+| TE9 | feat(editor): add the local editor and the open_editor brick | recorded in the next commit |

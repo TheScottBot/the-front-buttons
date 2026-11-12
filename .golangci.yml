@@ -42,6 +42,10 @@ linters:
         # A key appearance's zero values mean absent (no icon, default
         # background, no status), so partial literals are its intended use.
         - '^github\.com/TheScottBot/the-front-buttons/internal/render\.Appearance$'
+        # A brick's ports: every kind refuses to construct without the ports it
+        # needs (ErrPortMissing, tested per kind), so a missing port is caught
+        # where it matters, and a test may give a kind only the ports it uses.
+        - '^github\.com/TheScottBot/the-front-buttons/internal/brick\.Ports$'
 
     tagalign:
       # Keep tags aligned and in one order: a parameter's name first, then its

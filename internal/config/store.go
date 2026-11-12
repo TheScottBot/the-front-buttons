@@ -196,6 +196,19 @@ func (store *Store) Watch(
 	}
 }
 
+// OnDisk decodes the file as it is now, without changing what is running and
+// without consuming the change, so the watcher still reloads it. The editor shows
+// this, so a person sees a change they saved a moment ago, and a hand edit that
+// the store refused, with its problems.
+func (store *Store) OnDisk() (Configuration, error) {
+	fileContent, readError := store.fileSystem.ReadBounded(store.path, MaximumFileBytes)
+	if readError != nil {
+		return Configuration{SchemaVersion: 0, Pages: nil}, fmt.Errorf("reading the configuration file: %w", readError)
+	}
+
+	return store.decoder.Decode(fileContent)
+}
+
 func (store *Store) report(
 	watchContext context.Context,
 	outcome ReloadOutcome,

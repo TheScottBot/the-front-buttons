@@ -2058,3 +2058,147 @@ FAIL
 | Warnings | 0 |
 | **Author gate, outstanding** | a real workflow turning red then green on the deck at work, with a press opening the failing run; the credential contract run with consent on both machines |
 | Not run | anything against real GitHub; anything on the Dell; CI |
+
+## TE9: editor
+
+Started 12 November 2026, after rereading datum Part 0 and 0.17.
+
+### What was built
+
+- **The guard** (`internal/editor/server.go`): every request must name the
+  editor's own address (or `localhost` on the same port) as its Host, which
+  defeats DNS rebinding; any Origin must be the editor's own, and every change
+  must carry one; every change must carry the token minted for this launch (256
+  bits, compared in constant time); bodies are bounded at 64 KiB before parsing.
+  Each refusal is counted and logged by reason, method and path, never body or
+  query. Every response carries a strict Content Security Policy (only the
+  editor's own files), no framing, no sniffing, no referrer and no caching.
+- **Pages** (`internal/editor/pages.go`, `templates/`): the page list and the key
+  grid, each key a link named by row, column and contents, the two navigation
+  keys shown as reserved; adding, renaming and deleting pages; the key form, its
+  type list (every kind and every preset, from the registry and the preset table)
+  and its controls generated from the schema, with labels, required marks,
+  bounds, help text and errors linked by `aria-describedby`; removing a key;
+  write only credential entry and a list of the credentials the configuration
+  names, each Stored or Missing; the diagnostics counters and the last refused
+  configuration; a preview of each key from the renderer.
+- **Saving** goes through the store's `Save`, which validates by encoding and
+  decoding and writes atomically; the watcher then reloads it like any other
+  change. The store gained `OnDisk`, which decodes the file without consuming the
+  change, so the editor shows what it just saved.
+- **htmx** 2.0.11, vendored with its digest (`PROVENANCE.md`), only switches the
+  key form when its type changes. Every form works by keyboard with no JavaScript.
+- **`open_editor`** (TD9): a key that opens the editor at its current address.
+- **The composition root** opens the editor on a loopback port, prints its
+  address, gives it to `open_editor`, and shuts it down with the daemon.
+
+### Decisions taken by the agent under DV2
+
+1. **A new port every launch.** The operating system picks the port, so it never
+   collides with something already running; the printed address and the
+   `open_editor` key always have the current one. A bookmark does not survive a
+   restart.
+2. **Editing waits while the file on disk is invalid.** Saving from the editor
+   then would overwrite the hand edit with the last good configuration plus the
+   change; instead the problems are listed and the edit is refused.
+3. **Saving from the editor drops hand written comments**, the question 11.3 left
+   for TE9. Keeping them through the YAML node tree is a contained change in
+   `internal/config` if the author wants it.
+4. **There is no drag and drop**, so the keyboard alternative the specification
+   asks for is the whole interface: a grid of links reached with Tab and followed
+   with Enter, and forms.
+5. **The preview shows the key as last saved**, without live state or unsaved
+   edits; a live preview of the form is a later refinement.
+6. **Text fields are trimmed** of surrounding spaces, which pasted URLs and IDs
+   often carry.
+7. **`brick.Ports` joins the exhaustive struct exemptions**, with the reason in
+   the configuration: every kind refuses to construct without its ports.
+
+### Tests first
+
+Written against stubs and run first (go test prefixes written in brackets).
+`OnDisk`:
+
+```text
+[FAIL] TestStore_OnDisk_ReportsAnInvalidFile (0.00s)
+[FAIL] TestStore_OnDisk_ReadsTheFileWithoutChangingWhatIsRunning (0.00s)
+panic: runtime error: index out of range [1] with length 0 [recovered, repanicked]
+panic({0x102dd4fb8?, 0x67795e29f1b8?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/config	0.246s
+FAIL
+```
+
+The editor, against a handler that answered everything with 404 (the label test
+passed against it trivially, finding no controls):
+
+```text
+[FAIL] TestEditor_AddingAKindAddsItsForm_WithNoEditorChange (0.00s)
+[FAIL] TestEditor_SetsProtectiveHeaders (0.00s)
+[FAIL] TestEditor_AddsRenamesAndDeletesPages (0.00s)
+[FAIL] TestEditor_ShowsAValidationErrorAtItsField (0.00s)
+[FAIL] TestEditor_RefusesAChangeWithNoOrigin (0.00s)
+[FAIL] TestEditor_RefusesARequestFromAnotherOrigin (0.00s)
+[FAIL] TestEditor_RefusesAChangeWithAMissingOrWrongToken (0.00s)
+[FAIL] TestEditor_DeletesAKey (0.00s)
+[FAIL] TestEditor_SavesAPresetKey_ByItsPresetAndFields (0.00s)
+[FAIL] TestEditor_RefusesAKeyOnANavigationPosition (0.00s)
+[FAIL] TestEditor_RefusesAnOversizedRequest (0.01s)
+[FAIL] TestEditor_GeneratesAFormForEveryKindAndPreset_FromTheirSchemas (0.00s)
+[FAIL] TestEditor_StoresACredential_AndNeverShowsItBack (0.00s)
+[FAIL] TestEditor_GridIsOperableFromTheKeyboard (0.00s)
+[FAIL] TestEditor_EveryPageHasASkipLinkAMainLandmarkAndALiveRegion (0.00s)
+[FAIL] TestEditor_ShowsTheGrid_WithTheNavigationKeysReserved (0.00s)
+[FAIL] TestEditor_RefusesARequestForAnotherHost (0.00s)
+[FAIL] TestEditor_PreviewsAKeyWithTheRenderer (0.00s)
+[FAIL] TestEditor_ExplainsAHandEditTheStoreRefused (0.00s)
+[FAIL] TestEditor_ShowsTheDiagnosticCounters (0.00s)
+[FAIL] TestEditor_SavesAKindKey_AndTheFileRoundTrips (0.00s)
+[FAIL] TestEditor_StylesShowFocusRespectReducedMotionAndNeverUseColourAlone (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/editor	0.270s
+FAIL
+```
+
+`open_editor`, against a stub kind that constructed an empty value:
+
+```text
+[FAIL] TestOpenEditor_OpensTheEditorsAddressWhenPressed (0.00s)
+FAIL	github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor	0.182s
+FAIL
+```
+
+One editor test was corrected before it went green: it assumed a control's
+`name` attribute came before its `id`, which is no requirement; it now finds the
+control by name and reads its id from the same tag.
+
+### Smoke run against the live editor
+
+The built daemon was started with a sample configuration and probed with curl
+on the port it printed:
+
+```text
+editor printed: http://127.0.0.1:(a port the operating system chose)/
+GET /page, own host: 200
+GET /page, forged host: 403
+POST /page/add, own origin, no token: 403
+POST /page/add, hostile origin: 403
+daemon exit 0
+```
+
+Each refusal was also logged by reason (three `editor request refused` lines).
+
+### Reproduction report, 12 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; Apple clang 21.0.0; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| Windows type check | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet` over every package except the cgo adapter and the composition root: clean |
+| `go test -race -count=1 ./...` | every package ok; 393 tests and subtests passed, 0 failed, 2 skipped (the device and real credential contracts) |
+| `golangci-lint config verify`, then `run ./...` | valid; 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Memory analysis | race detector, clean |
+| Warnings | 0 |
+| **Author gate, outstanding** | building a full page from scratch in the editor on each machine, including once using the keyboard only. Automated label, landmark, live region, focus and keyboard checks pass; they are not the gate |
+| Not run | a screen reader; anything on the Dell; CI |

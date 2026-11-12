@@ -17,6 +17,9 @@ type Ports struct {
 	URLOpener           platform.URLOpener
 	ApplicationLauncher platform.ApplicationLauncher
 	PipelineProvider    pipeline.Provider
+	// EditorAddress returns the local editor's address, known only once the
+	// editor's port is open.
+	EditorAddress func() string
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

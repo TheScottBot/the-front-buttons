@@ -23,6 +23,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 	"github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
+	"github.com/TheScottBot/the-front-buttons/internal/editor"
 	"github.com/TheScottBot/the-front-buttons/internal/githubactions"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/pipeline"
@@ -50,6 +51,12 @@ const (
 	// githubRequestTimeout bounds one GitHub poll, so a stalled connection
 	// shows as a network error on the key instead of a key that never updates.
 	githubRequestTimeout = 20 * time.Second
+	// The editor server's timeouts: generous for a person on this machine,
+	// bounded so a stalled connection cannot hold the server open.
+	editorHeaderTimeout   = 10 * time.Second
+	editorRequestTimeout  = 30 * time.Second
+	editorIdleTimeout     = time.Minute
+	editorShutdownTimeout = 5 * time.Second
 )
 
 // developmentVersion is reported when the binary was not built from a tagged
@@ -163,11 +170,72 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 	counters := diagnostics.NewCounters()
 	credentials := systemadapter.NewKeyringCredentialStore()
 
+	editorAddress, stopEditor, editorError := startEditor(runContext, logger, built, store, credentials, counters)
+	if editorError != nil {
+		return editorError
+	}
+	defer stopEditor()
+
 	runner := daemon.New(daemonOptions(built, logger, counters, credentials,
 		githubactions.NewClient(newGitHubHTTPClient(), credentials, counters),
-		hidtransport.NewWatcher()))
+		hidtransport.NewWatcher(), editorAddress))
 
 	return runner.Run(runContext, configurations) //nolint:wrapcheck // the daemon's errors already say what failed
+}
+
+// startEditor opens the editor on a loopback port with a token minted for this
+// launch, prints its address (TD9), and returns the address and a function that
+// shuts it down.
+func startEditor(
+	runContext context.Context,
+	logger *slog.Logger,
+	built core,
+	store *config.Store,
+	credentials platform.CredentialStore,
+	counters *diagnostics.Counters,
+) (string, func(), error) {
+	listener, listenError := editor.Listen(runContext)
+	if listenError != nil {
+		return "", nil, fmt.Errorf("starting the editor: %w", listenError)
+	}
+
+	token, tokenError := editor.NewToken()
+	if tokenError != nil {
+		return "", nil, errors.Join(tokenError, listener.Close())
+	}
+
+	address := listener.Addr().String()
+	editorURL := "http://" + address + "/"
+
+	server := new(http.Server)
+	server.Handler = editor.NewHandler(editor.Options{
+		Address: address, Token: token, Store: store, Registry: built.registry, Presets: built.presetTable,
+		Grid: built.grid, Renderer: built.renderer, Credentials: credentials, Counters: counters, Logger: logger,
+	})
+	server.ReadHeaderTimeout = editorHeaderTimeout
+	server.ReadTimeout = editorRequestTimeout
+	server.WriteTimeout = editorRequestTimeout
+	server.IdleTimeout = editorIdleTimeout
+
+	go func() {
+		serveError := server.Serve(listener)
+		if serveError != nil && !errors.Is(serveError, http.ErrServerClosed) {
+			logger.ErrorContext(runContext, "editor stopped", slog.String("error", serveError.Error()))
+		}
+	}()
+
+	logger.InfoContext(runContext, "editor", slog.String("url", editorURL))
+	fmt.Fprintf(os.Stdout, "Editor: %s\n", editorURL) //nolint:errcheck // a closed standard output only loses the hint
+
+	stop := func() {
+		shutdownContext, cancel := context.WithTimeout(context.WithoutCancel(runContext), editorShutdownTimeout)
+		defer cancel()
+
+		// Shutting down; the daemon is already stopping, so a slow close is moot.
+		_ = server.Shutdown(shutdownContext)
+	}
+
+	return editorURL, stop, nil
 }
 
 // newGitHubHTTPClient is the HTTP client for GitHub: the standard transport with
@@ -188,6 +256,7 @@ func daemonOptions(
 	credentials platform.CredentialStore,
 	pipelineProvider pipeline.Provider,
 	watcher deck.DeckWatcher,
+	editorAddress string,
 ) daemon.Options {
 	return daemon.Options{
 		Watcher:  watcher,
@@ -197,6 +266,7 @@ func daemonOptions(
 			URLOpener:           systemadapter.NewURLOpener(),
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
 			PipelineProvider:    pipelineProvider,
+			EditorAddress:       func() string { return editorAddress },
 		},
 		Logger:          logger,
 		PollInterval:    deckPollInterval,

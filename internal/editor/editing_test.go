@@ -1,0 +1,301 @@
+package editor_test
+
+import (
+	"bytes"
+	"fmt"
+	"image/png"
+	"net/http"
+	"net/url"
+	"os"
+	"regexp"
+	"strings"
+	"testing"
+
+	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
+	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
+)
+
+func TestEditor_ShowsTheGrid_WithTheNavigationKeysReserved(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+
+	for _, want := range []string{
+		`aria-label="Row 4, column 1: reserved for paging back"`,
+		`aria-label="Row 4, column 8: reserved for paging forward"`,
+		`href="/key?page=0&amp;row=0&amp;column=0"`,
+		`Docs`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("want %s in the page", want)
+		}
+	}
+}
+
+// formFieldsFor fetches a key form for a type and returns its body.
+func formFieldsFor(t *testing.T, harness *editorHarness, typeChoice string) string {
+	t.Helper()
+
+	recorder := harness.get(t, "/key?page=0&row=1&column=1&type="+url.QueryEscape(typeChoice))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("%s: want 200, got %d", typeChoice, recorder.Code)
+	}
+
+	return recorder.Body.String()
+}
+
+func requireFieldsInForm(t *testing.T, typeChoice string, body string, schema brick.Schema) {
+	t.Helper()
+
+	for _, field := range schema.Fields() {
+		control := regexp.MustCompile(`<(input|select)\b[^>]*\bname="field\.` + field.Name + `"[^>]*>`).FindString(body)
+		if control == "" {
+			t.Errorf("%s: no control for field %s", typeChoice, field.Name)
+
+			continue
+		}
+
+		identifier := regexp.MustCompile(`\bid="([^"]+)"`).FindStringSubmatch(control)
+		if identifier == nil || !strings.Contains(body, `for="`+identifier[1]+`"`) {
+			t.Errorf("%s: field %s has no label", typeChoice, field.Name)
+		}
+
+		if field.Required && !strings.Contains(control, "required") {
+			t.Errorf("%s: required field %s is not marked required", typeChoice, field.Name)
+		}
+	}
+}
+
+func TestEditor_GeneratesAFormForEveryKindAndPreset_FromTheirSchemas(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	page := harness.get(t, "/key?page=0&row=1&column=1").Body.String()
+
+	optionPattern := regexp.MustCompile(`<option value="((?:kind|preset):[a-z_]+)"`)
+
+	for _, typeChoice := range optionPattern.FindAllStringSubmatch(page, -1) {
+		body := formFieldsFor(t, harness, typeChoice[1])
+
+		if !strings.Contains(body, `name="field.label"`) {
+			t.Errorf("%s: want the shared appearance fields", typeChoice[1])
+		}
+	}
+
+	offersEverything := strings.Contains(page, `value="kind:pipeline_status"`) &&
+		strings.Contains(page, `value="preset:discord_channel"`)
+	if !offersEverything {
+		t.Fatal("want every kind and preset offered")
+	}
+}
+
+func TestEditor_AddingAKindAddsItsForm_WithNoEditorChange(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, func(registry *brick.Registry) error {
+		return testsupport.RegisterButtonKind(registry, testsupport.NewPressRecorder())
+	})
+
+	schema, deriveError := brick.DeriveSchema[testsupport.ButtonParameters]()
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	body := formFieldsFor(t, harness, "kind:"+testsupport.ButtonKindName)
+	requireFieldsInForm(t, "kind:"+testsupport.ButtonKindName, body, schema)
+}
+
+func TestEditor_SavesAKindKey_AndTheFileRoundTrips(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	recorder := harness.post(t, "/key", url.Values{
+		pageField: {"0"}, rowField: {"1"}, columnField: {"2"}, typeField: {openURLType},
+		urlField: {"https://discord.com/channels/1/2"}, "field.label": {"Chat"},
+	})
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("want a redirect after saving, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+
+	saved := harness.onDisk(t).Pages[0].Keys
+
+	parameters, isOpenURL := saved[len(saved)-1].Parameters.(*openurl.Parameters)
+	if !isOpenURL || parameters.URL != "https://discord.com/channels/1/2" || parameters.Label != "Chat" ||
+		saved[len(saved)-1].Position != (layout.Position{Row: 1, Column: 2}) {
+		t.Fatalf("want the key saved at row 1 column 2, got %+v", saved[len(saved)-1])
+	}
+}
+
+func TestEditor_SavesAPresetKey_ByItsPresetAndFields(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	recorder := harness.post(t, "/key", url.Values{
+		pageField: {"0"}, rowField: {"0"}, columnField: {"3"}, typeField: {"preset:discord_channel"},
+		"field.server_id": {"123"}, "field.channel_id": {"456"}, "field.label": {"Party"},
+	})
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("want a redirect after saving, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+
+	fileContent, readError := os.ReadFile(harness.configPath)
+	if readError != nil || !bytes.Contains(fileContent, []byte("preset: discord_channel")) {
+		t.Fatalf("want the preset saved by name, got:\n%s", fileContent)
+	}
+}
+
+func TestEditor_ShowsAValidationErrorAtItsField(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	recorder := harness.post(t, "/key", url.Values{
+		pageField: {"0"}, rowField: {"1"}, columnField: {"1"}, typeField: {openURLType},
+		urlField: {"http://insecure.test/"},
+	})
+
+	body := recorder.Body.String()
+	if recorder.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("want 422, got %d", recorder.Code)
+	}
+
+	urlInput := regexp.MustCompile(`<input[^>]*name="field\.url"[^>]*>`).FindString(body)
+	describedBy := regexp.MustCompile(`aria-describedby="([^"]*)"`).FindStringSubmatch(urlInput)
+
+	if !strings.Contains(urlInput, `aria-invalid="true"`) || describedBy == nil {
+		t.Fatalf("want the url input marked invalid and described, got %s", urlInput)
+	}
+
+	errorPattern := regexp.MustCompile(`id="` + regexp.QuoteMeta(strings.Fields(describedBy[1])[0]) + `"[^>]*>[^<]*Error:`)
+	if !errorPattern.MatchString(body) {
+		t.Fatal("want the field's error text, starting Error:, linked from the input")
+	}
+}
+
+func TestEditor_RefusesAKeyOnANavigationPosition(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	recorder := harness.post(t, "/key", url.Values{
+		pageField: {"0"}, rowField: {"3"}, columnField: {"0"}, typeField: {openURLType},
+		urlField: {"https://example.test/"},
+	})
+
+	if recorder.Code != http.StatusUnprocessableEntity || !strings.Contains(recorder.Body.String(), "navigation") {
+		t.Fatalf("want 422 explaining the position is for navigation, got %d", recorder.Code)
+	}
+}
+
+func TestEditor_DeletesAKey(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	recorder := harness.post(t, "/key/delete", url.Values{pageField: {"0"}, rowField: {"0"}, columnField: {"0"}})
+
+	if recorder.Code != http.StatusSeeOther || len(harness.onDisk(t).Pages[0].Keys) != 0 {
+		t.Fatalf("want the key deleted, got %d", recorder.Code)
+	}
+}
+
+func TestEditor_AddsRenamesAndDeletesPages(t *testing.T) {
+	t.Parallel()
+
+	const gamesPage = "Games"
+
+	harness := newHarness(t, nil)
+
+	steps := []struct {
+		path      string
+		form      url.Values
+		wantPages []string
+	}{
+		{"/page/add", url.Values{nameField: {"Play"}}, []string{"Work", "Play"}},
+		{"/page/rename", url.Values{pageField: {"1"}, nameField: {gamesPage}}, []string{"Work", gamesPage}},
+		{"/page/delete", url.Values{pageField: {"0"}}, []string{gamesPage}},
+	}
+
+	for _, step := range steps {
+		recorder := harness.post(t, step.path, step.form)
+		if recorder.Code != http.StatusSeeOther {
+			t.Fatalf("%s: want a redirect, got %d: %s", step.path, recorder.Code, recorder.Body.String())
+		}
+
+		pagesOnDisk := harness.onDisk(t).Pages
+
+		names := make([]string, 0, len(pagesOnDisk))
+		for _, page := range pagesOnDisk {
+			names = append(names, page.Name)
+		}
+
+		if fmt.Sprint(names) != fmt.Sprint(step.wantPages) {
+			t.Fatalf("%s: want pages %v, got %v", step.path, step.wantPages, names)
+		}
+	}
+}
+
+func TestEditor_StoresACredential_AndNeverShowsItBack(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	const secret = "github_pat_SHOWN_TO_NO_ONE_0123" //nolint:gosec // made up, to catch a secret shown back
+
+	recorder := harness.post(t, "/credentials", url.Values{nameField: {"github-work"}, "secret": {secret}})
+	page := harness.get(t, "/credentials")
+
+	stored, readError := harness.credentials.ReadCredential("github-work")
+	if readError != nil || stored != secret {
+		t.Fatalf("want the secret stored, got an error %v", readError)
+	}
+
+	if strings.Contains(recorder.Body.String(), secret) || strings.Contains(page.Body.String(), secret) ||
+		strings.Contains(recorder.Header().Get("Location"), secret) {
+		t.Fatal("the secret must never be shown back")
+	}
+}
+
+func TestEditor_ShowsTheDiagnosticCounters(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+	harness.counters.Increment("key_presses.open_url")
+
+	body := harness.get(t, "/diagnostics").Body.String()
+	if !strings.Contains(body, "key_presses.open_url") {
+		t.Fatalf("want the counter listed, got:\n%s", body)
+	}
+}
+
+func TestEditor_PreviewsAKeyWithTheRenderer(t *testing.T) {
+	t.Parallel()
+
+	recorder := newHarness(t, nil).get(t, "/preview.png?page=0&row=0&column=0")
+
+	preview, decodeError := png.Decode(recorder.Body)
+	if decodeError != nil || recorder.Header().Get("Content-Type") != "image/png" || preview.Bounds().Dx() != 96 {
+		t.Fatalf("want a 96 pixel PNG, got %v (%v)", recorder.Header().Get("Content-Type"), decodeError)
+	}
+}
+
+func TestEditor_ExplainsAHandEditTheStoreRefused(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	writeError := os.WriteFile(harness.configPath, []byte("schema_version: 1\npages: [\n"), 0o600)
+	if writeError != nil {
+		t.Fatal(writeError)
+	}
+
+	body := harness.get(t, "/page?page=0").Body.String()
+	if !strings.Contains(body, `role="alert"`) || !strings.Contains(body, "malformed") {
+		t.Fatalf("want the refusal shown with its reason, got:\n%s", body)
+	}
+}

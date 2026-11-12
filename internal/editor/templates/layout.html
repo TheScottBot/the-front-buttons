@@ -1,0 +1,35 @@
+{{define "head"}}<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false}'>
+<title>{{.Title}}: {{.Product}}</title>
+<link rel="stylesheet" href="/static/editor.css">
+<script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the editor</a>
+<header>
+<p class="product">{{.Product}}</p>
+<nav aria-label="Editor sections">
+<ul>
+<li><a href="/page?page=0">Pages</a></li>
+<li><a href="/credentials">Credentials</a></li>
+<li><a href="/diagnostics">Diagnostics</a></li>
+</ul>
+</nav>
+</header>
+<div class="announcement" role="status" aria-live="polite">{{.Message}}</div>
+{{if .Problems}}<div class="problems" role="alert">
+<p>Error: there are problems to fix.</p>
+<ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul>
+</div>{{end}}
+<main id="main" tabindex="-1">
+{{end}}
+
+{{define "foot"}}
+</main>
+</body>
+</html>
+{{end}}

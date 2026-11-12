@@ -6,6 +6,7 @@ package allbricks
 import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus"
 )
@@ -16,6 +17,7 @@ func Register(registry *brick.Registry) error {
 		openurl.Register,
 		openapplication.Register,
 		pipelinestatus.Register,
+		openeditor.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

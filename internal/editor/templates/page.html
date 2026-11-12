@@ -1,0 +1,30 @@
+{{template "head" .}}
+<h1>Pages</h1>
+{{if .Pages}}<nav aria-label="Pages">
+<ol class="pages">{{range .Pages}}<li><a href="/page?page={{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ol>
+</nav>{{end}}
+{{if .HasPage}}
+<table class="grid">
+<caption>Page {{.PageIndex}} plus one of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
+{{range .Rows}}<tr>{{range .}}<td>{{if .Reserved}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{end}}</td>{{end}}</tr>
+{{end}}</table>
+<form method="post" action="/page/rename" class="inline">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<label for="rename-name">Rename this page</label>
+<input id="rename-name" name="name" type="text" value="{{.PageName}}" required minlength="1" maxlength="24">
+<button type="submit">Rename</button>
+</form>
+<form method="post" action="/page/delete" class="inline">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<button type="submit">Delete this page and its keys</button>
+</form>
+{{else}}<p>There are no pages yet. Add one below.</p>{{end}}
+<form method="post" action="/page/add" class="inline">
+<input type="hidden" name="token" value="{{.Token}}">
+<label for="add-name">New page name</label>
+<input id="add-name" name="name" type="text" required minlength="1" maxlength="24">
+<button type="submit">Add page</button>
+</form>
+{{template "foot" .}}

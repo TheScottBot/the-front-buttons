@@ -1,0 +1,10 @@
+{{template "head" .}}
+<h1>Diagnostics</h1>
+{{if .Rejection}}<h2>Last refused configuration</h2>
+<p>{{.Rejection}}</p>{{end}}
+<table>
+<caption>Counts since the daemon started</caption>
+<thead><tr><th scope="col">Counter</th><th scope="col">Value</th></tr></thead>
+<tbody>{{range .Counters}}<tr><td>{{.Name}}</td><td>{{.Value}}</td></tr>{{else}}<tr><td colspan="2">Nothing counted yet.</td></tr>{{end}}</tbody>
+</table>
+{{template "foot" .}}

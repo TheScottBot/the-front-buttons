@@ -28,3 +28,25 @@ To verify:
 ```bash
 shasum -a 256 internal/render/tablericons/tabler-icons.ttf internal/render/tablericons/tabler-icons.css internal/render/tablericons/LICENSE
 ```
+
+## htmx
+
+Vendored on 12 November 2026 for TD6, into `internal/editor/static/`.
+
+| Item | Value |
+|---|---|
+| Upstream | `htmx.org` on npm, from `https://github.com/bigskysoftware/htmx` |
+| Version | 2.0.11, published to npm 22 September 2026 (the 2.x line TD6 chose; the Plan stage's 1 November date was from GitHub's release list, not npm) |
+| Fetched from | `https://unpkg.com/htmx.org@2.0.11/` |
+| Licence | Zero Clause BSD; vendored beside the script as `htmx-LICENSE` |
+
+| File | Upstream path | Bytes | SHA-256 |
+|---|---|---|---|
+| `htmx.min.js` | `dist/htmx.min.js` | 52,182 | `d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717` |
+| `htmx-LICENSE` | `LICENSE` | 642 | `d3d2456f76414f2456104660ebd65aff1c04cd7966b942bdabd63f3cdb316a38` |
+
+Neither file contains CR characters, so the stored and upstream bytes match.
+
+```bash
+shasum -a 256 internal/editor/static/htmx.min.js internal/editor/static/htmx-LICENSE
+```

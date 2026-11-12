@@ -3,6 +3,7 @@ package config_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -292,5 +293,39 @@ func TestStore_Current_ReturnsACopy_SoParameterEditsCannotLeakIn(t *testing.T) {
 	runningLink, _ := running.Pages[0].Keys[0].Parameters.(*testsupport.LinkParameters)
 	if runningLink.Label != "Docs" {
 		t.Fatalf("want the running parameters untouched, got label %q", runningLink.Label)
+	}
+}
+
+func TestStore_OnDisk_ReadsTheFileWithoutChangingWhatIsRunning(t *testing.T) {
+	t.Parallel()
+
+	store, configPath := newStoreWithFile(t, validConfiguration)
+	requireOutcome(t, store, config.ReloadAccepted)
+
+	writeConfigFile(t, configPath, strings.Replace(validConfiguration, "name: Play", "name: Draft", 1))
+
+	onDisk, diskError := store.OnDisk()
+	if diskError != nil || onDisk.Pages[1].Name != "Draft" {
+		t.Fatalf("want the file's new page name, got %+v (%v)", onDisk, diskError)
+	}
+
+	running, _ := store.Current()
+	if running.Pages[1].Name != "Play" {
+		t.Fatalf("want the running configuration unchanged, got %q", running.Pages[1].Name)
+	}
+
+	// The watcher must still see the change, so OnDisk must not consume it.
+	requireOutcome(t, store, config.ReloadAccepted)
+}
+
+func TestStore_OnDisk_ReportsAnInvalidFile(t *testing.T) {
+	t.Parallel()
+
+	store, configPath := newStoreWithFile(t, validConfiguration)
+	writeConfigFile(t, configPath, "schema_version: 1\npages: [\n")
+
+	_, diskError := store.OnDisk()
+	if _, isRejection := errors.AsType[*config.RejectionError](diskError); !isRejection {
+		t.Fatalf("want a rejection, got %v", diskError)
 	}
 }
