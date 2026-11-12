@@ -5,7 +5,7 @@
 </nav>{{end}}
 {{if .HasPage}}
 <table class="grid">
-<caption>Page {{.PageIndex}} plus one of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
+<caption>Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
 {{range .Rows}}<tr>{{range .}}<td>{{if .Reserved}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
 <form method="post" action="/page/rename" class="inline">

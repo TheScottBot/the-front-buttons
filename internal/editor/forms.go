@@ -56,6 +56,7 @@ type fieldView struct {
 	MaximumLength string
 	Minimum       string
 	Maximum       string
+	Autofocus     bool
 }
 
 // DescribedBy lists the ids a control's aria-describedby names: its error
@@ -153,6 +154,7 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			MaximumLength: "",
 			Minimum:       "",
 			Maximum:       "",
+			Autofocus:     false,
 		}
 
 		applyBounds(&view, field)
@@ -327,4 +329,20 @@ func problemsByField(rejection *config.RejectionError) (map[string]string, []str
 	}
 
 	return fieldErrors, general
+}
+
+// focusFirstError marks the first field in error to take focus when the page
+// opens, so a refused save lands a keyboard or screen reader user on the
+// problem, which then reads its label and its error. It reports whether any
+// field is in error.
+func focusFirstError(fields []fieldView) bool {
+	for index := range fields {
+		if fields[index].Error != "" {
+			fields[index].Autofocus = true
+
+			return true
+		}
+	}
+
+	return false
 }

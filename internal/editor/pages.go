@@ -169,12 +169,13 @@ type pageLink struct {
 type pageView struct {
 	baseView
 
-	PageIndex int
-	PageCount int
-	PageName  string
-	HasPage   bool
-	Pages     []pageLink
-	Rows      [][]cellView
+	PageIndex  int
+	PageNumber int
+	PageCount  int
+	PageName   string
+	HasPage    bool
+	Pages      []pageLink
+	Rows       [][]cellView
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
@@ -192,13 +193,14 @@ func (pages *pageHandlers) renderPage(
 	problems []string,
 ) {
 	view := pageView{
-		baseView:  pages.base("Pages", request, problems),
-		PageIndex: 0,
-		PageCount: len(configuration.Pages),
-		PageName:  "",
-		HasPage:   false,
-		Pages:     nil,
-		Rows:      nil,
+		baseView:   pages.base("Pages", request, problems),
+		PageIndex:  0,
+		PageNumber: 0,
+		PageCount:  len(configuration.Pages),
+		PageName:   "",
+		HasPage:    false,
+		Pages:      nil,
+		Rows:       nil,
 	}
 
 	for index, page := range configuration.Pages {
@@ -208,6 +210,7 @@ func (pages *pageHandlers) renderPage(
 	if pageIndex >= 0 && pageIndex < len(configuration.Pages) {
 		view.HasPage = true
 		view.PageIndex = pageIndex
+		view.PageNumber = pageIndex + 1
 		view.PageName = configuration.Pages[pageIndex].Name
 		view.Rows = pages.gridRows(configuration.Pages[pageIndex], pageIndex)
 	}
@@ -349,8 +352,13 @@ func (pages *pageHandlers) renderKey(
 	status int,
 	context keyContext,
 ) {
+	title := "Key"
+	if focusFirstError(context.fields) || len(context.errors) > 0 {
+		title = errorPrefix + title
+	}
+
 	pages.render(writer, status, "key.html", keyView{
-		baseView:      pages.base("Key", request, context.problems),
+		baseView:      pages.base(title, request, context.problems),
 		PageIndex:     context.pageIndex,
 		Row:           context.position.Row,
 		Column:        context.position.Column,

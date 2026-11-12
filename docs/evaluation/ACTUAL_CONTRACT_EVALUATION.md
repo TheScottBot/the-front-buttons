@@ -2522,7 +2522,33 @@ the key on the deck and the Discord app opened.
 
 Not yet seen: the `discord://` form on the Dell.
 
+### A keyboard only dry run of the editor, before the author's TE9 gate
+
+The agent ran a throwaway daemon on a scratch configuration (the login agent
+kept the deck, so the throwaway served only an editor) and, in the desktop app's
+browser pane, added a page and a Discord preset key by keyboard: Tab, Enter and
+typing. The skip link, the labelled grid of keys, the "(required)" marks and the
+saved message all worked. This is not the gate, which stays the author's.
+
+The browser pane cannot drive a native drop down on macOS by key, so the type
+list was set directly; it is a plain `<select>`, which the browser makes
+keyboard operable, and the author's run covers it.
+
+Two findings, each with a test first:
+
+- The grid's caption read "Page 0 plus one of 1": the template held the words
+  where the sum belonged. `TestEditor_CaptionCountsPagesFromOne` failed on it;
+  the caption now reads "Page 2 of 2: Games", seen in the pane.
+- A refused save opened with focus at the top of the page and an unchanged
+  title, so nothing told a keyboard or screen reader user that it had failed or
+  where. `TestEditor_TakesARejectedFormToItsFirstError` failed on both. Now the
+  title starts "Error:" and the first field in error, only that one, carries
+  `autofocus`, so it reads its label and then its error. In the pane, the title
+  was seen and the served page marks only the server ID field; the pane was
+  hidden, so focus actually landing was not seen and is for the author's run.
+
 ### Still owed
 
-On the MacBook: logging out and in to see the daemon start at login (TE10). Everything on the Dell, including real
+On the MacBook: logging out and in to see the daemon start at login (TE10);
+the keyboard only editor run (TE9). Everything on the Dell, including real
 dock switches between the two machines.

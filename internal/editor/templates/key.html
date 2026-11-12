@@ -21,8 +21,8 @@
 <input type="hidden" name="type" value="{{.TypeChoice}}">
 {{range .Fields}}<div class="field">
 <label for="{{.ID}}">{{.Label}}{{if .Required}} (required){{end}}</label>
-{{if eq .Control "checkbox"}}<input id="{{.ID}}" name="{{.Name}}" type="checkbox"{{if .Checked}} checked{{end}} aria-describedby="{{.DescribedBy}}">
-{{else}}<input id="{{.ID}}" name="{{.Name}}" type="{{.Control}}" value="{{.Value}}"{{if .Required}} required{{end}}{{if .MinimumLength}} minlength="{{.MinimumLength}}"{{end}}{{if .MaximumLength}} maxlength="{{.MaximumLength}}"{{end}}{{if .Minimum}} min="{{.Minimum}}"{{end}}{{if .Maximum}} max="{{.Maximum}}"{{end}}{{if .Error}} aria-invalid="true"{{end}} aria-describedby="{{.DescribedBy}}">
+{{if eq .Control "checkbox"}}<input id="{{.ID}}" name="{{.Name}}" type="checkbox"{{if .Checked}} checked{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
+{{else}}<input id="{{.ID}}" name="{{.Name}}" type="{{.Control}}" value="{{.Value}}"{{if .Required}} required{{end}}{{if .MinimumLength}} minlength="{{.MinimumLength}}"{{end}}{{if .MaximumLength}} maxlength="{{.MaximumLength}}"{{end}}{{if .Minimum}} min="{{.Minimum}}"{{end}}{{if .Maximum}} max="{{.Maximum}}"{{end}}{{if .Error}} aria-invalid="true"{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
 {{end}}{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}
 <p class="help" id="{{.DescriptionID}}">{{.Description}}{{if .Secret}} This names a stored credential; set its secret on the <a href="/credentials">credentials page</a>.{{end}}</p>
 </div>

@@ -48,6 +48,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The Discord preset opened the browser; it now emits Discord's discord:// app
   link, and `open_url` accepts that one app scheme besides https (the author's
   decision amending TD13).
+- The editor's grid caption read "Page 0 plus one of 1"; it now counts from
+  one.
+- A refused save in the editor now starts its title with "Error:" and focuses
+  the first field in error.
 - Icons sat near the top of their keys; an icon and label without a status word
   are now centred together, and an icon alone is centred.
 

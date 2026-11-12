@@ -299,3 +299,47 @@ func TestEditor_ExplainsAHandEditTheStoreRefused(t *testing.T) {
 		t.Fatalf("want the refusal shown with its reason, got:\n%s", body)
 	}
 }
+
+// TestEditor_TakesARejectedFormToItsFirstError checks where a keyboard or
+// screen reader user lands after a refused save. In a dry run of the keyboard
+// gate the error page opened with focus at the top and an unchanged title, so
+// nothing said a save had failed (evaluation, deck testing). Now the title
+// starts "Error:" and the first field in error, and only that one, is focused,
+// which reads its label and its error.
+func TestEditor_TakesARejectedFormToItsFirstError(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	recorder := harness.post(t, "/key", url.Values{
+		pageField: {"0"}, rowField: {"1"}, columnField: {"1"}, typeField: {"preset:discord_channel"},
+		"field.server_id": {"abc"}, "field.channel_id": {"xyz"},
+	})
+
+	body := recorder.Body.String()
+	if recorder.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("want 422, got %d", recorder.Code)
+	}
+
+	if !regexp.MustCompile(`<title>Error: `).MatchString(body) {
+		t.Error("want the title to start Error:")
+	}
+
+	focused := regexp.MustCompile(`<input[^>]*\sautofocus[^>]*>`).FindAllString(body, -1)
+	if len(focused) != 1 || !strings.Contains(focused[0], `name="field.server_id"`) {
+		t.Fatalf("want only the first field in error focused, got %q", focused)
+	}
+}
+
+// TestEditor_CaptionCountsPagesFromOne pins the grid's caption. It read "Page
+// 0 plus one of 1": the template held the words where the sum belonged.
+func TestEditor_CaptionCountsPagesFromOne(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+
+	if !regexp.MustCompile(`<caption>Page 1 of \d+: `).MatchString(body) {
+		t.Fatalf("want the caption to count from one, got %s",
+			regexp.MustCompile(`<caption>[^<]*</caption>`).FindString(body))
+	}
+}
