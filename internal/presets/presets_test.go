@@ -65,7 +65,7 @@ func TestExpand_RendersTemplateIntoTargetParameters_AndPassesAppearanceThrough(t
 	}
 
 	channelRow, _ := table.Row(testsupport.ChannelPresetName)
-	fields := assignFields(t, channelRow, map[string]any{"server_id": "123", "channel_id": "456", "label": "Party"})
+	fields := assignFields(t, channelRow, map[string]any{"server_id": "123", channelIDField: "456", "label": "Party"})
 
 	expanded, expandError := table.Expand(channelRow, fields)
 	if expandError != nil {

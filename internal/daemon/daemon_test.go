@@ -113,7 +113,7 @@ func startHarness(t *testing.T) *harness {
 		Watcher:      running.watcher,
 		Renderer:     renderer,
 		Registry:     registry,
-		Ports:        brick.Ports{},
+		Ports:        brick.Ports{URLOpener: nil, ApplicationLauncher: nil},
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
 		PollInterval: testPollInterval,
 		ReadTimeout:  testReadTimeout,

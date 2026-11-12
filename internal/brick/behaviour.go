@@ -52,3 +52,22 @@ func AppearanceOf(parameters any) (Appearance, bool) {
 
 	return Appearance{Label: "", Icon: "", Background: ""}, false
 }
+
+// ErrPortMissing reports a kind constructed without a port it needs, which only
+// a wiring mistake in the composition root can cause.
+var ErrPortMissing = errors.New("brick port missing")
+
+// categorisedError carries a reason category with the error that caused it.
+type categorisedError struct {
+	category string
+	cause    error
+}
+
+func (failure categorisedError) Error() string          { return failure.cause.Error() }
+func (failure categorisedError) Unwrap() error          { return failure.cause }
+func (failure categorisedError) ReasonCategory() string { return failure.category }
+
+// Categorised wraps an error with the reason category its key shows.
+func Categorised(category string, cause error) error {
+	return categorisedError{category: category, cause: cause}
+}

@@ -88,3 +88,31 @@ without the device are complete, whichever is first.
 **Decisions taken on the author's behalf under this permission** are recorded
 in `docs/evaluation/ACTUAL_CONTRACT_EVALUATION.md` under the phase that took
 them, each marked "decided by the agent under DV2".
+
+## DV3: Windows packaged applications launch through the Apps folder, not COM
+
+Recorded 12 November 2026, during TE7, by the agent under DV2.
+
+**Decision departed from:** TD11 as the author accepted it, which recommended
+calling COM's `IApplicationActivationManager::ActivateApplication` directly for
+an application user model ID.
+
+**What is done instead:** `ShellExecuteW` with the verb `open` on
+`shell:AppsFolder\` followed by the ID, the form Microsoft documents for
+publishing new Teams as a RemoteApp (evaluation 6.6). Desktop applications by
+path and URLs still use `ShellExecuteW` directly, as TD11 said.
+
+**Reason:** calling the COM interface directly needs its class and interface
+GUIDs. They were not read from any source in the Plan stage (the Microsoft Learn
+page read gives the method signature, not the GUIDs), and the Windows SDK header
+that defines them is not on this Mac. Writing them from memory would break datum
+0.2. The Apps folder form is documented by Microsoft for exactly the application
+the presets launch.
+
+**Author's decision:** taken by the agent under DV2 while the author is away;
+the author may reverse it. If COM is wanted, the GUIDs are read from
+`shobjidl_core.h` on the Dell and the change is one function in
+`internal/platform/systemadapter`.
+
+**Covering test:** `TestWindowsApplicationLauncher_UsesAppsFolderForAppIDs_AndPathsDirectly`;
+the launch itself is part of the TE7 author gate on the Dell.

@@ -3,14 +3,19 @@ package brick
 import (
 	"fmt"
 	"slices"
+
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
 // Ports carries the port interfaces a brick constructor may use. Constructors
 // receive ports, never adapters, so a brick can be tested against test doubles
 // (specification section 2). Fields are added as the phases that own each port
 // arrive: URL opening and application launching in TE7, credentials and the
-// pipeline provider in TE8.
-type Ports struct{}
+// pipeline provider in TE8. A kind whose port is missing refuses to construct.
+type Ports struct {
+	URLOpener           platform.URLOpener
+	ApplicationLauncher platform.ApplicationLauncher
+}
 
 // Kind is one registered brick kind: its name, its derived schema and its
 // constructor.

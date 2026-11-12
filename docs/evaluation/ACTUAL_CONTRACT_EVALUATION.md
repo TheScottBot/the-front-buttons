@@ -1696,3 +1696,148 @@ now measures a reload as one more repaint of every key.
 | Warnings | 0 |
 | **Author gate, outstanding** | on both machines, pressing keys, paging both ways, and switching the dock ten times without restarting. The automated ten switch test passes against doubles; that is not the gate and is not claimed as it |
 | Not run | the device contract; experiments 1 and 2; CI; anything on the Dell |
+
+## TE7: platform ports and simple bricks
+
+Started 11 November 2026, after rereading datum Part 0 and 0.17.
+
+### What was built
+
+- **Ports** (`internal/platform`): `URLOpener`, `ApplicationLauncher` and
+  `ConfigLocation`, the product's names from TD1 written once, and
+  `CheckLaunchTarget`, the one rule every launch adapter applies before running
+  anything (refuses empty, over 4,096 bytes, a leading hyphen, or a control
+  character).
+- **Adapters** (`internal/platform/systemadapter`): the decisions in an untagged
+  file tested on every machine, with the real runner and shell call in build
+  tagged files. macOS runs `/usr/bin/open -u URL`, `open -b BUNDLE_ID` or
+  `open -a NAME` as discrete arguments with no shell, discarding output that could
+  echo a URL. Windows calls `ShellExecuteW` on a thread with COM initialised,
+  never through cmd. One `ConfigLocation` adapter serves both, from
+  `os.UserConfigDir`. `ShutdownSignals` adds terminate to interrupt.
+- **Bricks**: `open_url` (an https URL) and `open_application` (an identifier the
+  adapter interprets), sharing their press behaviour in `internal/bricks/launching`,
+  showing `open_failed` or `refused` on the key. `internal/bricks/allbricks`
+  registers every kind.
+- **Built in presets** (`internal/presets/builtin.go`): `discord_channel`,
+  `teams_chat`, `teams_chat_by_id`, `teams_channel`, `teams_private_channel`,
+  `teams_shared_channel`, `dndbeyond_character`, all over `open_url`, each tested
+  against the documented URL. A `uri_component` template function encodes as
+  Microsoft's Teams examples do.
+- **Contract suites and doubles** for both launch ports, run by all four
+  adapters (with process spies, so nothing launches) and by the doubles.
+- **The composition root** (`cmd/the-front-buttons`): builds the model's grid,
+  the registry, the presets, the icon set and renderer, the configuration store
+  at the per machine path (or `-config`), the HID watcher, the launch adapters
+  and the daemon, logs the start up facts, and stops cleanly on interrupt or
+  terminate.
+
+### Decisions taken by the agent under DV2
+
+1. **DV3**: Windows packaged applications launch through `shell:AppsFolder`
+   rather than COM, because the COM GUIDs were never read from a source.
+2. **`open_url` accepts https only**, matching TD13's https presets. An
+   `msteams://` desktop link can be added if experiment 3 shows its form.
+3. **macOS identifiers**: reverse DNS (two or more dot separated parts, no
+   spaces) is a bundle identifier, unless it ends in `.app`; anything else is an
+   application name.
+4. **Teams encoding**: channel and chat IDs and names are encoded as
+   `encodeURIComponent` does (a colon as `%3A`, an at sign as `%40`, a space as
+   `%20`), as Microsoft's examples show; the participants list is query encoded,
+   so its commas become `%2C`. Whether Teams accepts the encoded commas is
+   experiment 3's to confirm.
+5. **Three Teams channel presets** (standard, private, shared) rather than one
+   with a type field, keeping presets as data with no enumerated field type.
+6. **No Roll20 preset**, as TD13 settled, until the author copies one real Launch
+   Game link.
+7. **Shared launch behaviour** in `internal/bricks/launching`, after the
+   duplicate code check found the two bricks repeating it.
+8. **Logs go to standard error only** for now. The rotating log file in the state
+   folder (specification section 7) is not built yet.
+9. **Two earlier tests were edited mechanically**: `brick.Ports{}` literals in
+   `internal/brick/registry_test.go` (TE2) and `internal/daemon/daemon_test.go`
+   (TE6) now name the two new nil ports, because the struct gained fields. No
+   assertion changed.
+
+### Tests first
+
+Each piece was written against stubs and run first (go test prefixes written in
+brackets). The launch target rule:
+
+```text
+[FAIL] TestCheckLaunchTarget_RefusesTargetsACommandCouldMisread (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/platform	0.207s
+FAIL
+```
+
+The adapters (the stubs ran nothing, so the first assertion on a recorded
+command panicked on an empty record):
+
+```text
+ok  	github.com/TheScottBot/the-front-buttons/internal/platform	0.201s
+[FAIL] TestMacOSURLOpener_RunsOpenWithTheURLAsOneArgument_AndNoShell (0.00s)
+panic: runtime error: index out of range [0] with length 0 [recovered, repanicked]
+panic({0x10064e078?, 0xa2167a4000?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter	0.177s
+FAIL
+```
+
+The bricks and built in presets:
+
+```text
+[FAIL] TestOpenApplication_RefusesToConstructWithoutALauncher (0.00s)
+panic: reflect: New(nil) [recovered, repanicked]
+panic({0x10049cb08?, 0x100468b00?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication	0.242s
+[FAIL] TestOpenURL_OpensItsURLWhenPressed (0.00s)
+panic: reflect: New(nil) [recovered, repanicked]
+panic({0x1042e0b00?, 0x1042acb00?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/bricks/openurl	0.239s
+[FAIL] TestBuiltIn_ExpandsEveryPresetIntoTheDocumentedURL (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/presets	0.223s
+FAIL
+```
+
+The shutdown signals:
+
+```text
+[FAIL] TestShutdownSignals_IncludeInterruptAndTerminate (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter	0.226s
+FAIL
+```
+
+### Smoke run of the built binary
+
+Built with `go build ./cmd/the-front-buttons`, started with `-config` pointing at a
+two key sample configuration, interrupted after two seconds, no deck attached:
+
+```text
+{"time":"2026-11-11T23:59:35.477617Z","level":"INFO","msg":"starting","product":"The Front Buttons","version":"v0.0.0-20261111235139-53a6b82eddfa+dirty","config":"SCRATCH/config.yaml","kinds":["open_application","open_url"],"presets":["discord_channel","dndbeyond_character","teams_channel","teams_chat","teams_chat_by_id","teams_private_channel","teams_shared_channel"]}
+{"time":"2026-11-11T23:59:35.478899Z","level":"INFO","msg":"configuration reload","result":"accepted"}
+{"time":"2026-11-11T23:59:35.483418Z","level":"INFO","msg":"deck","state":"waiting"}
+exit 0
+```
+
+It starts, accepts the configuration including a preset, waits for a deck, and
+exits 0 on interrupt.
+
+### Reproduction report, 12 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; Apple clang 21.0.0; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| Windows type check | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet` over every package except the cgo adapter and the composition root that imports it: clean |
+| `go test -race -count=1 ./...` | every package ok; 316 tests and subtests passed, 0 failed, 1 skipped (the TE6 device contract) |
+| `golangci-lint config verify`, then `run ./...` | valid; 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens (after the fix above) |
+| Memory analysis | race detector, clean |
+| Warnings | 0 |
+| **Author gate, outstanding** | every preset and both bricks working on each machine; with DV3, launching new Teams by its app ID on the Dell |
+| Not run | experiment 3; anything on the Dell; CI |

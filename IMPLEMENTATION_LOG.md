@@ -14,7 +14,7 @@ a later change is a dated note.
 | TE4 | Automated criteria green on this Mac | Legibility on the physical deck at arm's length, both machines |
 | TE5 | Automated criteria green on this Mac, fuzz runs recorded | None; every value awaits experiment 1 (DV1) |
 | TE6 | Automated criteria green on this Mac; device contract skipped without a deck | Device contract, keys, paging and ten dock switches on both machines |
-| TE7 | Not started | Every preset and both bricks on each machine |
+| TE7 | Automated criteria green on this Mac; binary smoke run | Every preset and both bricks on each machine |
 | TE8 | Not started | A real workflow red then green, press opening the failing run |
 | TE9 | Not started | A full page built in the editor, once keyboard only |
 | TE10 | Not started | Start at login on both machines |
@@ -42,4 +42,5 @@ commit, since a commit cannot name its own hash.
 |---|---|---|
 | TE4 | feat(render): add key renderer, status glyphs and bundled icons | `f11a68d` |
 | TE5 | feat(deck): add Stream Deck XL model table and protocol codec | `fa6a3f4` |
-| TE6 | feat(daemon): add HID transport, deck watching and the main loop | recorded in the next commit |
+| TE6 | feat(daemon): add HID transport, deck watching and the main loop | `d36a8ac` |
+| TE7 | feat(bricks): add URL and application bricks, presets and the composition root | recorded in the next commit |

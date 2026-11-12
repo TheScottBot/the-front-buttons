@@ -45,7 +45,7 @@ func TestRegister_DerivesSchemaAndConstructsWithTypedParameters(t *testing.T) {
 		t.Fatalf("assigning: %v", assignError)
 	}
 
-	constructed, constructError := kind.Construct(parameters, brick.Ports{})
+	constructed, constructError := kind.Construct(parameters, brick.Ports{URLOpener: nil, ApplicationLauncher: nil})
 	if constructError != nil {
 		t.Fatalf("constructing: %v", constructError)
 	}
@@ -132,7 +132,9 @@ func TestKindConstruct_RejectsParametersOfTheWrongType(t *testing.T) {
 
 	kind, _ := registry.Kind("sample_kind")
 
-	_, constructError := kind.Construct(&missingDescription{Address: ""}, brick.Ports{})
+	noPorts := brick.Ports{URLOpener: nil, ApplicationLauncher: nil}
+
+	_, constructError := kind.Construct(&missingDescription{Address: ""}, noPorts)
 	if constructError == nil {
 		t.Fatal("want an error for parameters of another kind")
 	}

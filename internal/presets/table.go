@@ -26,9 +26,17 @@ var presetNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 // structure, only fill its slot.
 func templateFunctions() template.FuncMap {
 	return template.FuncMap{
-		"path_segment": url.PathEscape,
-		"query":        url.QueryEscape,
+		"path_segment":  url.PathEscape,
+		"query":         url.QueryEscape,
+		"uri_component": uriComponent,
 	}
+}
+
+// uriComponent escapes a value as JavaScript's encodeURIComponent does, the
+// encoding Microsoft's Teams deep link examples show (a colon as %3A, an at sign
+// as %40, a space as %20). url.PathEscape leaves those characters as they are.
+func uriComponent(value string) string {
+	return strings.ReplaceAll(url.QueryEscape(value), "+", "%20")
 }
 
 // Row is one preset: friendly fields, declared with the same tag mechanism as a
