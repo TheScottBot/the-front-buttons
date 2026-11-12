@@ -33,6 +33,12 @@ TD1 to TD13 answered by the author. The settled description line was corrected t
 read: This is for the lions living in the wiry frames of my peripherals' bodies.
 Plan exited under DV1 with experiments 1 to 5 outstanding.
 
+### 12 November 2026
+
+The deck arrived. Experiment 1 and the device contract ran on the MacBook; two
+defects were found and fixed (an abort when two watchers initialised hidapi at
+once, and paging taking seconds), recorded in the evaluation under deck testing.
+
 ### Commits made by the agent under DV2
 
 Each phase's commit is listed here by its subject; its hash is added by the next

@@ -50,8 +50,10 @@ const elgatoVendorID = 0x0FD9
 
 // The XL's protocol facts, read from python-elgato-streamdeck at commit
 // 064f6cf7a83146316b76cf84c946952302182091 (src/StreamDeck/Devices/StreamDeckXL.py)
-// on 11 November 2026. Every value is read from source and not confirmed on
-// hardware until experiment 1 (deviation DV1).
+// on 11 November 2026. On 12 November 2026 experiment 1 on a Stream Deck XL V2
+// (0x008F) on macOS confirmed the key order, image orientation, output and
+// feature lengths, brightness and the serial read; the deck sends 512 byte input
+// reports, of which hidapi returns the 36 asked for (evaluation, deck testing).
 const (
 	xlKeyPixels           = 96
 	xlJPEGQuality         = 100

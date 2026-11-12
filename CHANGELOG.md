@@ -32,10 +32,20 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - Start at login for both systems without administrator rights, the rotating log
   file, the generated brick reference and the remaining documents (TE10).
 
+### Fixed
+
+- Two watchers initialising hidapi at once aborted the process; hidapi is now
+  initialised once per process, behind one lock (first run on a real deck).
+- Paging took seconds and keys drew one at a time: every write waited out the
+  key read in progress, and macOS's occasional general IOKit error on a write was
+  taken for an unplugging. Reads no longer wait holding the device's lock, and a
+  write is tried three times before it counts as failed. A full page draws in
+  about 33 milliseconds.
+
 ### Known limitations
 
-- Every protocol value is read from source and unconfirmed on a deck until
-  experiment 1; the key order and the input report header in particular.
+- The protocol is confirmed on the MacBook only; the Dell and a replug are
+  still owed.
 - No Roll20 preset until its launch URL is known (TD13).
 - Saving from the editor drops hand written comments.
 - Windows packaged applications launch through the Apps folder rather than COM

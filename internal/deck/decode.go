@@ -33,7 +33,8 @@ type KeyChange struct {
 }
 
 // DecodeKeyStates reads an input report: the model's header, which is not
-// interpreted (its content is unknown until experiment 1), then one byte per key,
+// interpreted (on the XL it read 01 00 20 00 in experiment 1: report ID 1, then
+// the key count, 32, little endian), then one byte per key,
 // non zero meaning pressed as in the reference. Only a report of exactly the
 // model's input length is accepted, and the parser never reads past it.
 func DecodeKeyStates(model Model, report []byte) ([]bool, error) {

@@ -2,6 +2,7 @@ package hidtransport_test
 
 import (
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
@@ -18,6 +19,34 @@ func TestWatcher_PassesTheDeckWatcherContract_WithOrWithoutADeck(t *testing.T) {
 	t.Parallel()
 
 	testsupport.RunDeckWatcherContract(t, hidtransport.NewWatcher())
+}
+
+// TestWatcher_SeveralWatchersAtOnce_DoNotCrashHIDAPI enumerates from several
+// watchers on several goroutines at once. hidapi keeps process wide state that
+// is not safe to initialise or enumerate from two threads together; when each
+// watcher initialised it separately, the device contract aborted the test
+// process on the first run against a real deck (evaluation, deck testing).
+func TestWatcher_SeveralWatchersAtOnce_DoNotCrashHIDAPI(t *testing.T) {
+	t.Parallel()
+
+	const watcherCount = 8
+
+	var group sync.WaitGroup
+
+	for range watcherCount {
+		group.Go(func() {
+			watcher := hidtransport.NewWatcher()
+
+			for range 4 {
+				_, enumerateError := watcher.Enumerate()
+				if enumerateError != nil {
+					t.Errorf("want enumeration to succeed, got %v", enumerateError)
+				}
+			}
+		})
+	}
+
+	group.Wait()
 }
 
 func TestDevice_PassesTheDeckDeviceContract_OnAnAttachedDeck(t *testing.T) {

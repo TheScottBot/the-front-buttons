@@ -2313,3 +2313,113 @@ refusal of a missing binary is checked only by the CI step on windows-2025.
 | Warnings | 0 |
 | **Author gate, outstanding** | on each machine, install with the script, log out and in, and find the daemon running and the deck live without a terminal open |
 | Not run | either install script for real (it would change this login); the Windows scripts at all; anything on the Dell; CI |
+
+## Deck testing, 12 November 2026, the MacBook
+
+The deck arrived. Everything below ran on the MacBook with the author at the
+deck; nothing has been run on the Dell.
+
+### What the deck reported
+
+| Item | Reading |
+|---|---|
+| USB | Stream Deck XL, vendor 0x0FD9, product 0x008F (the XL V2 row of the model table), firmware 0x0130 |
+| HID | usage page 0x0C, usage 0x01; input reports up to 512 bytes, output 1,024, feature 32 |
+| Elgato software | not running |
+
+### Defect 1: two watchers aborted the process
+
+The first run of the device contract aborted the test process with SIGABRT
+inside `hid_init`: the watcher contract and the device contract ran in parallel,
+each with its own watcher, and each watcher initialised hidapi behind its own
+`sync.Once`. hidapi's process wide state is not safe from two threads. The
+daemon has one watcher, so it may never have met this, but nothing prevented it.
+
+Test first: `TestWatcher_SeveralWatchersAtOnce_DoNotCrashHIDAPI` enumerates from
+eight watchers at once. It needs no deck, so it runs in CI. Before the fix it
+aborted three runs out of three:
+
+```text
+SIGABRT: abort
+FAIL	github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport	0.169s
+```
+
+Fix: one process wide lock held around every hidapi call that touches its global
+state (initialise, enumerate, open, close), with initialisation once per process.
+Then three runs out of three passed under the race detector, and the device
+contract passed on the deck.
+
+### Experiment 1
+
+A temporary probe, not committed, painted each key with its index and logged
+every raw input report while the author pressed keys:
+
+```text
+REPORT length=512 header=01002000 pressed=[0]
+REPORT length=512 header=01002000 pressed=[7]
+REPORT length=512 header=01002000 pressed=[24]
+REPORT length=512 header=01002000 pressed=[31]
+REPORT length=512 header=01002000 pressed=[3 4]
+```
+
+| Question | Answer |
+|---|---|
+| Key order | row by row from the top left, as built: top left 0, top right 7, bottom left 24, bottom right 31 |
+| Several keys at once | reported together |
+| Image orientation | upright, by the author's eye |
+| Input header | 01 00 20 00 on every report: report ID 1, then the key count, 32, little endian. Not interpreted, as built |
+| Input length | 512 bytes, zero after the 36th. The driver asks for 36 and hidapi returns those 36, so the exact length check holds; seen working in the daemon |
+| Brightness and the macOS feature read | accepted, and the serial number decodes (device contract) |
+| Replug | not yet done |
+
+### Defect 2: paging took seconds and drew keys one at a time
+
+The author reported that paging took a few seconds each way, that keys drew one
+at a time with each press, and that presses seemed lost. The daemon's log showed
+about twenty `write failed` disconnects in thirty seconds, each dropping the half
+drawn page and reconnecting. A temporary probe painted full pages (128 writes)
+and timed them:
+
+| | Full page | Write failures |
+|---|---|---|
+| Writing alone | 36 ms | 1 in 1,280 |
+| With a reader running, as the daemon does | 3.0 s | 6 in 384 |
+
+Every failure read `IOHIDDeviceSetReport failed: (0xE00002BC) (iokit/common)
+general error`, with the deck still attached.
+
+Two causes. The adapter held the device's lock for the whole of each timed read,
+so every write waited out a 50 millisecond read. And the daemon took any write
+error for an unplugging.
+
+Tests first. A new device contract clause, "a write is not held up by a read in
+progress", which the test double already met and the real adapter did not:
+
+```text
+deckcontract.go:52: want a write within 100ms while a read waits, took 484.11725ms
+[FAIL] TestDevice_PassesTheDeckDeviceContract_OnAnAttachedDeck/a_write_is_not_held_up_by_a_read_in_progress (0.51s)
+```
+
+and three unit tests for a retry rule, which failed to build before it existed.
+
+Fix, decided by the agent and described here for the author's review: a timed
+read now asks hidapi without waiting, holding the lock only for that, and sleeps
+5 milliseconds unlocked between asks, as the reference library polls. A write is
+tried up to three times, 2 milliseconds apart, before it counts as failed. The
+retry covers output writes only; feature reports were not seen to fail.
+
+After the fix:
+
+| | Full page | Write failures |
+|---|---|---|
+| Writing alone | 37 ms | 0 in 1,280 (one write took 2.7 ms: a retry that succeeded) |
+| With a reader running | 33 ms | 0 in 384 |
+
+The device contract, now six clauses, passes on the deck. The author paged both
+ways and pressed keys and reported paging as snappy; the daemon logged no
+disconnects in that run.
+
+### Still owed
+
+On the MacBook: a replug, ten dock switches without a restart, legibility at
+arm's length (TE4), start at login (TE10). Everything on the Dell.

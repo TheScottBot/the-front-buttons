@@ -17,6 +17,16 @@ const contractReadTimeout = 50 * time.Millisecond
 // person would notice on a real deck.
 const contractBrightness = 50
 
+// A read left waiting this long, with no key pressed, must not hold up a write:
+// the daemon reads keys on one goroutine and draws on another, and on the first
+// run against a real deck every write waited out the read in progress, so a page
+// took seconds to draw (evaluation, deck testing).
+const (
+	contractPendingReadTimeout = 500 * time.Millisecond
+	contractReadStartPause     = 20 * time.Millisecond
+	contractWriteBound         = 100 * time.Millisecond
+)
+
 // RunDeckDeviceContract is the one contract suite for the DeckDevice port. The
 // adapter and the test double both run it (specification section 2), so the
 // double cannot promise behaviour the real deck does not have. openDevice must
@@ -34,6 +44,7 @@ func RunDeckDeviceContract(
 		"returns a decodable serial number feature report":   contractReturnsSerial,
 		"reads nothing or exactly one whole input report":    contractReadsWholeReports,
 		"refuses use after close, and closing twice is safe": contractRefusesUseAfterClose,
+		"a write is not held up by a read in progress":       contractWriteDuringRead,
 	}
 
 	for clauseName, clause := range clauses {
@@ -96,6 +107,39 @@ func contractReadsWholeReports(t *testing.T, model deck.Model, device deck.DeckD
 
 	if readLength != 0 && readLength != model.Protocol.InputReportLength {
 		t.Fatalf("want 0 or %d bytes, got %d", model.Protocol.InputReportLength, readLength)
+	}
+}
+
+func contractWriteDuringRead(t *testing.T, model deck.Model, device deck.DeckDevice) {
+	t.Helper()
+	defer closeQuietly(t, device)
+
+	readDone := make(chan error, 1)
+
+	go func() {
+		buffer := make([]byte, model.Protocol.InputReportLength)
+
+		_, readError := device.ReadInputReport(buffer, contractPendingReadTimeout)
+		readDone <- readError
+	}()
+
+	time.Sleep(contractReadStartPause)
+
+	writeStart := time.Now()
+	writeError := device.Write(deck.EncodeResetKeyStream(model))
+	writeTook := time.Since(writeStart)
+
+	if writeError != nil {
+		t.Fatalf("want the write accepted, got %v", writeError)
+	}
+
+	if writeTook > contractWriteBound {
+		t.Errorf("want a write within %v while a read waits, took %v", contractWriteBound, writeTook)
+	}
+
+	readError := <-readDone
+	if readError != nil {
+		t.Fatalf("want the pending read to end cleanly, got %v", readError)
 	}
 }
 
