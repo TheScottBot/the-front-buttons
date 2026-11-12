@@ -16,7 +16,7 @@ root with Go 1.27.3; nothing here needs a Stream Deck attached.
 | Fuzzing the deck's input report and feature text decoders: never panic, accept only exact lengths | `go test -run '^$' -fuzz '^FuzzDecodeKeyStates$' -fuzztime 30s ./internal/deck/`, and the same for `^FuzzDecodeSerialNumber$` | locally; CI on both runners, 30 seconds each |
 | README brick reference matches the registry and preset table; regenerate with `UPDATE_README=1 go test ./internal/reference/` | included in `go test ./...`, as `internal/reference` | locally; CI on both runners |
 | Start at login: the macOS install script refuses a missing binary and the printed agent passes `plutil -lint`; the Windows install script exits 2 on a missing binary and the printed task parses as XML | the two steps in `.github/workflows/ci.yml`; locally on macOS, `go run ./cmd/the-front-buttons -print-launch-agent \| plutil -lint -` | CI on both runners; the Windows script only in CI |
-| The editor's drag script matches its TypeScript: rebuilt with the pinned esbuild and compared, line endings ignored | `scripts/check-editor-script.sh`; regenerate with `go generate ./internal/editor/` | locally; CI on both runners, under Bash |
+| The editor's script (`static/editor.js`) matches its TypeScript in `web/`: rebuilt with the pinned esbuild and compared, line endings ignored | `scripts/check-editor-script.sh`; regenerate with `go generate ./internal/editor/` | locally; CI on both runners, under Bash |
 | Duplicate code across packages: standalone mibk/dupl, threshold 100 tokens | `scripts/check-duplicate-code.sh` | locally; CI on both runners, under Bash |
 
 golangci-lint v2.15.0, mibk/dupl v1.1.0 and esbuild v0.28.2 are pinned in `tools/go.mod`, a

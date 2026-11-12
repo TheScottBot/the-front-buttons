@@ -499,3 +499,43 @@ input[type="search"] {
   outline-offset: -5px;
   box-shadow: 4px 4px 0 var(--cyan);
 }
+
+/* The key dialog: the key's editor over the grid, a black framed slab with a
+   hard shadow on a darkened page. The browser keeps focus inside it and
+   closes it on Escape. */
+
+#key-dialog {
+  width: min(52rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+  padding: 0 1.5rem 1.5rem;
+  color: var(--ink);
+  background: var(--pink);
+  border: 5px solid var(--ink);
+  box-shadow: 10px 10px 0 var(--yellow);
+}
+
+#key-dialog::backdrop {
+  background: rgba(18, 8, 15, 0.75);
+}
+
+.dialog-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 0.5rem;
+  background: var(--pink);
+  border-bottom: 3px solid var(--ink);
+}
+
+.dialog-head h2 {
+  margin: 0;
+}
+
+.dialog-close {
+  margin: 0;
+}

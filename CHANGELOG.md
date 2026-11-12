@@ -60,6 +60,13 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   built by esbuild pinned as a Go tool; a check fails if the served script
   drifts from it.
 
+- Clicking a key in the editor's grid edits it in a popup over the grid
+  rather than on a page of its own; the key's page still works without the
+  script.
+
+- Preset keys are named by their action in the editor (`open_server`,
+  `open_character`, `open_chat`, `open_channel`) rather than by `open_url`.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

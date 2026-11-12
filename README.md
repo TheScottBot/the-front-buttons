@@ -224,7 +224,7 @@ A brick kind.
 
 ### `discord_channel`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_server`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -237,7 +237,7 @@ A preset that expands into `open_url`.
 
 ### `dndbeyond_character`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_character`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -249,7 +249,7 @@ A preset that expands into `open_url`.
 
 ### `teams_channel`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_channel`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -264,7 +264,7 @@ A preset that expands into `open_url`.
 
 ### `teams_chat`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_chat`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -276,7 +276,7 @@ A preset that expands into `open_url`.
 
 ### `teams_chat_by_id`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_chat`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -288,7 +288,7 @@ A preset that expands into `open_url`.
 
 ### `teams_private_channel`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_channel`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -303,7 +303,7 @@ A preset that expands into `open_url`.
 
 ### `teams_shared_channel`
 
-A preset that expands into `open_url`.
+A preset that expands into `open_url`. Its action, which the editor shows, is `open_channel`.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|

@@ -52,6 +52,7 @@ func TestMarkdown_DescribesEveryKindFieldAndPreset_FromTheirSchemas(t *testing.T
 	for _, want := range []string{
 		"### `test_link`", "### `test_poller`", "| `address` | text | required |", "| `every` | duration |",
 		"30s to 1h", "Where the fake link goes.", "### `test_channel`", "expands into `test_link`",
+		"Its action, which the editor shows, is `open_test_channel`.",
 		"| `credential` | text, secret |",
 	} {
 		if !strings.Contains(generated, want) {

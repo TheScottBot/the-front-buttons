@@ -17,8 +17,9 @@ import (
 // before any configuration is read.
 var ErrInvalidPreset = errors.New("invalid preset")
 
-// presetNamePattern is the spelling a preset name must use, the same as a brick
-// kind's, so the two read alike in configuration.
+// presetNamePattern is the spelling a preset name and its action must use, the
+// same as a brick kind's, so the three read alike in configuration and the
+// editor.
 var presetNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 // templateFunctions are the only functions a preset template may call. Each
@@ -42,19 +43,28 @@ func uriComponent(value string) string {
 // Row is one preset: friendly fields, declared with the same tag mechanism as a
 // brick's parameters, and templates that expand them into a target kind's
 // parameters. A row is data, so adding a preset adds no code path.
+//
+// The action names what the preset does, such as open_server. Most presets
+// expand into open_url, which tells an author nothing, so the editor shows the
+// action in its place.
 type Row struct {
 	name         string
+	action       string
 	targetKind   string
 	fieldsSchema brick.Schema
 	templates    map[string]*template.Template
 }
 
-// Define declares a preset whose friendly fields are the struct F. Each template
-// is keyed by the target field it fills and refers to F's fields by name, as in
-// {{path_segment .server_id}}.
-func Define[F any](presetName string, targetKind string, templates map[string]string) (Row, error) {
+// Define declares a preset whose friendly fields are the struct F and whose
+// action is what the editor calls it. Each template is keyed by the target field
+// it fills and refers to F's fields by name, as in {{path_segment .server_id}}.
+func Define[F any](presetName string, action string, targetKind string, templates map[string]string) (Row, error) {
 	if !presetNamePattern.MatchString(presetName) {
 		return Row{}, fmt.Errorf("%w: name %q must be lower snake case", ErrInvalidPreset, presetName)
+	}
+
+	if !presetNamePattern.MatchString(action) {
+		return Row{}, fmt.Errorf("%w: %s: action %q must be lower snake case", ErrInvalidPreset, presetName, action)
 	}
 
 	fieldsSchema, schemaError := brick.DeriveSchema[F]()
@@ -76,11 +86,21 @@ func Define[F any](presetName string, targetKind string, templates map[string]st
 		parsedTemplates[targetField] = parsedTemplate
 	}
 
-	return Row{name: presetName, targetKind: targetKind, fieldsSchema: fieldsSchema, templates: parsedTemplates}, nil
+	return Row{
+		name:         presetName,
+		action:       action,
+		targetKind:   targetKind,
+		fieldsSchema: fieldsSchema,
+		templates:    parsedTemplates,
+	}, nil
 }
 
 // Name is the preset's name as written in configuration.
 func (row Row) Name() string { return row.name }
+
+// Action is what the preset does, which the editor shows in place of the
+// target kind.
+func (row Row) Action() string { return row.action }
 
 // TargetKind is the brick kind the preset expands into.
 func (row Row) TargetKind() string { return row.targetKind }

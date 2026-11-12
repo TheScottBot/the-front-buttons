@@ -24,7 +24,7 @@ func defineChannelRow(t *testing.T) presets.Row {
 	t.Helper()
 
 	row, defineError := presets.Define[testsupport.ChannelFields](
-		testsupport.ChannelPresetName, testsupport.LinkKindName, testsupport.ChannelTemplates())
+		testsupport.ChannelPresetName, testsupport.ChannelAction, testsupport.LinkKindName, testsupport.ChannelTemplates())
 	if defineError != nil {
 		t.Fatalf("defining the channel preset: %v", defineError)
 	}
@@ -88,7 +88,7 @@ func TestExpand_EscapesFieldValuesPlacedInAPath(t *testing.T) {
 	registry := fakeRegistry(t)
 
 	row, defineError := presets.Define[testsupport.SegmentFields](
-		testsupport.SegmentPresetName, testsupport.LinkKindName, testsupport.SegmentTemplates())
+		testsupport.SegmentPresetName, testsupport.SegmentAction, testsupport.LinkKindName, testsupport.SegmentTemplates())
 	if defineError != nil {
 		t.Fatalf("defining: %v", defineError)
 	}
@@ -115,7 +115,7 @@ func TestDefine_RejectsTemplatesThatDoNotParse(t *testing.T) {
 	t.Parallel()
 
 	_, defineError := presets.Define[testsupport.ChannelFields](
-		testsupport.ChannelPresetName, testsupport.LinkKindName,
+		testsupport.ChannelPresetName, testsupport.ChannelAction, testsupport.LinkKindName,
 		map[string]string{testsupport.LinkAddressField: "https://x.test/{{.server_id"})
 
 	if !errors.Is(defineError, presets.ErrInvalidPreset) {
@@ -127,10 +127,33 @@ func TestDefine_RejectsBadPresetName(t *testing.T) {
 	t.Parallel()
 
 	_, defineError := presets.Define[testsupport.ChannelFields](
-		"Test Channel", testsupport.LinkKindName, testsupport.ChannelTemplates())
+		"Test Channel", testsupport.ChannelAction, testsupport.LinkKindName, testsupport.ChannelTemplates())
 
 	if !errors.Is(defineError, presets.ErrInvalidPreset) {
 		t.Fatalf("want ErrInvalidPreset, got %v", defineError)
+	}
+}
+
+func TestDefine_KeepsThePresetsAction(t *testing.T) {
+	t.Parallel()
+
+	row := defineChannelRow(t)
+
+	if row.Action() != testsupport.ChannelAction {
+		t.Fatalf("want action %q, got %q", testsupport.ChannelAction, row.Action())
+	}
+}
+
+func TestDefine_RejectsAMissingOrBadlySpeltAction(t *testing.T) {
+	t.Parallel()
+
+	for _, action := range []string{"", "Open Channel", "open-channel", "1open", "open channel"} {
+		_, defineError := presets.Define[testsupport.ChannelFields](
+			testsupport.ChannelPresetName, action, testsupport.LinkKindName, testsupport.ChannelTemplates())
+
+		if !errors.Is(defineError, presets.ErrInvalidPreset) {
+			t.Errorf("action %q: want ErrInvalidPreset, got %v", action, defineError)
+		}
 	}
 }
 
@@ -162,7 +185,7 @@ func TestNewTable_RejectsRowsThatCannotExpandIntoTheirTarget(t *testing.T) {
 			t.Parallel()
 
 			row, defineError := presets.Define[testsupport.ChannelFields](
-				testsupport.ChannelPresetName, rowCase.targetKind, rowCase.templates)
+				testsupport.ChannelPresetName, testsupport.ChannelAction, rowCase.targetKind, rowCase.templates)
 			if defineError != nil {
 				t.Fatalf("defining: %v", defineError)
 			}
@@ -193,7 +216,7 @@ func TestExpand_ReportsFieldError_WhenRenderedValueBreaksTargetRule(t *testing.T
 	registry := fakeRegistry(t)
 
 	row, defineError := presets.Define[testsupport.SegmentFields](
-		testsupport.SegmentPresetName, testsupport.LinkKindName,
+		testsupport.SegmentPresetName, testsupport.SegmentAction, testsupport.LinkKindName,
 		map[string]string{testsupport.LinkAddressField: "http://insecure.test/{{path_segment .name}}"})
 	if defineError != nil {
 		t.Fatalf("defining: %v", defineError)
@@ -218,7 +241,7 @@ func TestTable_NamesAreSorted(t *testing.T) {
 	registry := fakeRegistry(t)
 
 	segmentRow, defineError := presets.Define[testsupport.SegmentFields](
-		testsupport.SegmentPresetName, testsupport.LinkKindName, testsupport.SegmentTemplates())
+		testsupport.SegmentPresetName, testsupport.SegmentAction, testsupport.LinkKindName, testsupport.SegmentTemplates())
 	if defineError != nil {
 		t.Fatalf("defining: %v", defineError)
 	}

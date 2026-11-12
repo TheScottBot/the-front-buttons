@@ -72,18 +72,18 @@ func BuiltIn(registry *brick.Registry) (Table, error) {
 		rows = append(rows, row)
 	}
 
-	addRow(Define[DiscordChannelFields]("discord_channel", openurl.KindName, urlTemplate(
+	addRow(Define[DiscordChannelFields]("discord_channel", "open_server", openurl.KindName, urlTemplate(
 		"discord://discord.com/channels/{{path_segment .server_id}}/{{path_segment .channel_id}}")))
-	addRow(Define[TeamsChatFields]("teams_chat", openurl.KindName, urlTemplate(
+	addRow(Define[TeamsChatFields]("teams_chat", "open_chat", openurl.KindName, urlTemplate(
 		"https://teams.microsoft.com/l/chat/0/0?users={{query .participants}}")))
-	addRow(Define[TeamsChatByIDFields]("teams_chat_by_id", openurl.KindName, urlTemplate(
+	addRow(Define[TeamsChatByIDFields]("teams_chat_by_id", "open_chat", openurl.KindName, urlTemplate(
 		"https://teams.microsoft.com/l/chat/{{uri_component .chat_id}}/conversations")))
-	addRow(Define[TeamsChannelFields]("teams_channel", openurl.KindName, urlTemplate(teamsChannelBase)))
-	addRow(Define[TeamsChannelFields]("teams_private_channel", openurl.KindName, urlTemplate(
+	addRow(Define[TeamsChannelFields]("teams_channel", "open_channel", openurl.KindName, urlTemplate(teamsChannelBase)))
+	addRow(Define[TeamsChannelFields]("teams_private_channel", "open_channel", openurl.KindName, urlTemplate(
 		teamsChannelBase+"&ngc=true")))
-	addRow(Define[TeamsChannelFields]("teams_shared_channel", openurl.KindName, urlTemplate(
+	addRow(Define[TeamsChannelFields]("teams_shared_channel", "open_channel", openurl.KindName, urlTemplate(
 		teamsChannelBase+"&ngc=true&allowXTenantAccess=true")))
-	addRow(Define[DnDBeyondCharacterFields]("dndbeyond_character", openurl.KindName, urlTemplate(
+	addRow(Define[DnDBeyondCharacterFields]("dndbeyond_character", "open_character", openurl.KindName, urlTemplate(
 		"https://www.dndbeyond.com/characters/{{path_segment .character_id}}")))
 
 	for _, rowError := range rowErrors {

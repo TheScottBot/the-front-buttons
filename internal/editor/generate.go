@@ -1,5 +1,5 @@
 package editor
 
-// The drag and drop script is generated from web/drag.ts; never edit
-// static/drag.js by hand.
+// The editor's script is generated from the TypeScript in web/; never edit
+// static/editor.js by hand.
 //go:generate bash ../../scripts/build-editor-script.sh

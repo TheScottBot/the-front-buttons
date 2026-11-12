@@ -22,7 +22,7 @@ func TestEditor_GridMarksEveryTileForDragAndDrop(t *testing.T) {
 		`data-tile="0.1.1" data-state="empty"`,
 		`data-tile="0.3.0" data-state="reserved"`,
 		`data-tile="0.3.7" data-state="reserved"`,
-		`<script src="/static/drag.js" defer></script>`,
+		`<script src="/static/editor.js" defer></script>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("want %s in the page", want)
@@ -39,10 +39,10 @@ func TestEditor_GridMarksEveryTileForDragAndDrop(t *testing.T) {
 	}
 }
 
-func TestEditor_ServesTheDragScript(t *testing.T) {
+func TestEditor_ServesTheEditorScript(t *testing.T) {
 	t.Parallel()
 
-	recorder := newHarness(t, nil).get(t, "/static/drag.js")
+	recorder := newHarness(t, nil).get(t, "/static/editor.js")
 
 	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Header().Get("Content-Type"), "javascript") {
 		t.Fatalf("want the script served as JavaScript, got %d %s",
@@ -51,5 +51,51 @@ func TestEditor_ServesTheDragScript(t *testing.T) {
 
 	if !strings.Contains(recorder.Body.String(), "/key/move") {
 		t.Fatal("want the script to post moves to /key/move")
+	}
+}
+
+// TestEditor_PageHoldsTheKeyDialog: the author asked for a key to open over the
+// grid rather than on a page of its own (evaluation, deck testing). The page
+// carries an empty modal dialog, named by its heading and with a close button,
+// for the script to fill with the key's editor; without the script the grid's
+// links still open the key's own page.
+func TestEditor_PageHoldsTheKeyDialog(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+
+	dialog := regexp.MustCompile(`(?s)<dialog[^>]*id="key-dialog"[^>]*>.*?</dialog>`).FindString(body)
+	if dialog == "" {
+		t.Fatal("want a key dialog on the page")
+	}
+
+	for _, want := range []string{
+		`aria-labelledby="key-dialog-title"`,
+		`<h2 id="key-dialog-title">`,
+		`<button type="button" class="dialog-close">Close</button>`,
+		`<div id="key-dialog-body"></div>`,
+	} {
+		if !strings.Contains(dialog, want) {
+			t.Errorf("want %s in the key dialog", want)
+		}
+	}
+
+	if !strings.Contains(body, `href="/key?page=0&amp;row=0&amp;column=0"`) {
+		t.Error("want the grid's links to still open the key's own page")
+	}
+}
+
+// TestEditor_KeyPageWrapsEveryFormInItsEditor checks the part the dialog lifts
+// out: the key's forms and preview all sit inside #key-editor.
+func TestEditor_KeyPageWrapsEveryFormInItsEditor(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, "/key?page=0&row=0&column=0").Body.String()
+
+	editor := regexp.MustCompile(`(?s)<div id="key-editor">.*</figure>\s*</div>`).FindString(body)
+	for _, form := range []string{`id="type-form"`, `id="key-form"`, `action="/key/delete"`, `action="/key/move"`} {
+		if !strings.Contains(editor, form) {
+			t.Errorf("want %s inside #key-editor", form)
+		}
 	}
 }

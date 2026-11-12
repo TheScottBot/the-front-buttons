@@ -42,7 +42,8 @@ func Markdown(registry *brick.Registry, presetTable presets.Table) string {
 	for _, presetName := range presetTable.Names() {
 		row, _ := presetTable.Row(presetName)
 
-		fmt.Fprintf(&generated, "\n### `%s`\n\nA preset that expands into `%s`.\n\n", presetName, row.TargetKind())
+		fmt.Fprintf(&generated, "\n### `%s`\n\nA preset that expands into `%s`.", presetName, row.TargetKind())
+		fmt.Fprintf(&generated, " Its action, which the editor shows, is `%s`.\n\n", row.Action())
 		writeFieldTable(&generated, row.FieldsSchema())
 	}
 

@@ -2793,6 +2793,67 @@ sent no request. Copying with Option held was not tried by hand, since the
 pane cannot hold a key during a drag; it is the same request with `action`
 copy, which the move tests cover.
 
+### Editing a key in a popup over the grid
+
+The author asked for a key to open "in a pseudo popup instead of punching out
+to another screen". The page gains an empty modal `<dialog>`, named by its
+heading and with a close button; the script fetches the key's own page, lifts
+its `#key-editor` part into the dialog and shows it modal, so the browser keeps
+focus inside, closes it on Escape and leaves the grid inert. Every form inside
+is sent from the script and its answer lands in the dialog: a refusal shows its
+errors with focus on the field in error, and a change the server accepts
+answers with its usual redirect, which is followed, so the grid reloads with
+the saved message. htmx is handed the new content so the key type list still
+swaps the fields in place. A click with a modifier, or no script at all, still
+opens the key's own page. Closing returns focus to the tile and restores the
+page title, which htmx otherwise takes from the swapped key page.
+
+The script became one bundle, `web/editor.ts`, importing `web/drag.ts` and
+`web/dialog.ts`, served as `static/editor.js`; the build and drift scripts and
+the CI step were renamed to match. Restructuring it, the agent's own edit
+emptied `drag.ts`; esbuild then only warned that the import was undefined,
+which would have shipped a dead drag feature, so the build now makes that
+warning an error, and `drag.ts` was restored from the last commit and edited
+again. The agent also ran `git rm --cached` on the old `static/drag.js`,
+staging its deletion: a git write the datum forbids, reported to the author.
+
+Tests first, failing before the change: the page holds the dialog with its
+name, heading, close button and empty body, the grid's links still go to each
+key's page, and the editor script is served. In the browser pane on a scratch
+configuration: a click on a tile opened its editor over the grid with the
+address unchanged and focus on the type list; a bad URL kept the dialog open
+with the error shown and focus on the field; Escape closed it with focus back
+on the tile; Enter on the tile reopened it; changing the type to a preset
+swapped the fields in the dialog; and saving wrote the key and reloaded the
+grid with the saved message.
+
+Seen in passing and not changed: a format error reads like "must be link_url",
+naming the format rather than saying what is allowed.
+
+### Presets named by their action
+
+The grid named a preset key by its target kind, `open_url`, which told the
+author nothing; the author asked for names such as `open_server` and
+`open_character`, keeping `pipeline_status`. At the author's request the work
+went to a subagent, briefed with the datum's rules and kept clear of the
+popup's files, while the agent built the popup.
+
+Each preset now declares its action with its definition: `Define` takes it and
+refuses an empty or non lower snake case name, so the built in and test
+presets are covered by one check. discord_channel is `open_server`,
+dndbeyond_character `open_character`, teams_chat and teams_chat_by_id
+`open_chat`, and the three Teams channel presets `open_channel`. The grid's kind
+line and accessible name, the key form's type list and the README's generated
+reference all name the action; a key without a preset is unchanged, and a
+preset the table no longer knows falls back to its kind.
+
+The subagent's report gave its failing runs before the code and six new or
+extended tests. The agent reran every check independently (all tests, 0 lint
+issues, no duplicate code, no new lint exceptions), read the lookup, and after
+reinstalling read the author's own grid: Main as `open_server`, Yeku, Uri and
+Foli as `open_character`, CI as `pipeline_status` and plain links as
+`open_url`.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

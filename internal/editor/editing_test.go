@@ -343,3 +343,59 @@ func TestEditor_CaptionCountsPagesFromOne(t *testing.T) {
 			regexp.MustCompile(`<caption>[^<]*</caption>`).FindString(body))
 	}
 }
+
+func TestEditor_GridNamesAPresetKeyByItsAction_AndAKindKeyByItsKind(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	for _, form := range []url.Values{
+		{
+			pageField: {"0"}, rowField: {"0"}, columnField: {"3"}, typeField: {"preset:" + discordPreset},
+			serverIDField: {"123"}, channelIDField: {"456"}, labelField: {"Raid"},
+		},
+		{
+			pageField: {"0"}, rowField: {"0"}, columnField: {"4"}, typeField: {"preset:teams_chat_by_id"},
+			"field.chat_id": {"19:abc@thread.v2"},
+		},
+	} {
+		recorder := harness.post(t, "/key", form)
+		if recorder.Code != http.StatusSeeOther {
+			t.Fatalf("want a redirect after saving, got %d: %s", recorder.Code, recorder.Body.String())
+		}
+	}
+
+	body := harness.get(t, "/page?page=0").Body.String()
+
+	for _, want := range []string{
+		`aria-label="Row 1, column 4: Raid (open_server)"`,
+		`Raid<span class="kind">open_server</span>`,
+		`aria-label="Row 1, column 5: open_chat"`,
+		`aria-label="Row 1, column 1: Docs (open_url)"`,
+		`Docs<span class="kind">open_url</span>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("want %s in the page", want)
+		}
+	}
+
+	if strings.Contains(body, "Raid (open_url)") || strings.Contains(body, `Raid<span class="kind">open_url`) {
+		t.Error("want a preset key named by its action, not its target kind")
+	}
+}
+
+func TestEditor_TypeListNamesEachPresetsAction(t *testing.T) {
+	t.Parallel()
+
+	page := newHarness(t, nil).get(t, "/key?page=0&row=1&column=1").Body.String()
+
+	for _, want := range []string{
+		`>Preset: discord_channel (open_server)</option>`,
+		`>Preset: teams_shared_channel (open_channel)</option>`,
+		`>Brick: open_url</option>`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("want %s in the type list", want)
+		}
+	}
+}

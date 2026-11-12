@@ -115,8 +115,10 @@ func (pages *pageHandlers) typeOptions(selected string) []typeOption {
 	}
 
 	for _, presetName := range pages.options.Presets.Names() {
+		row, _ := pages.options.Presets.Row(presetName)
 		value := presetChoicePrefix + presetName
-		options = append(options, typeOption{Value: value, Label: "Preset: " + presetName, Selected: value == selected})
+		label := "Preset: " + presetName + " (" + row.Action() + ")"
+		options = append(options, typeOption{Value: value, Label: label, Selected: value == selected})
 	}
 
 	return options

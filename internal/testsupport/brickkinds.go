@@ -14,6 +14,8 @@ const (
 	PollerKindName     = "test_poller"
 	ChannelPresetName  = "test_channel"
 	SegmentPresetName  = "test_segment"
+	ChannelAction      = "open_test_channel"
+	SegmentAction      = "open_test_segment"
 	LinkAddressField   = "address"
 	PollerSourceField  = "source"
 	PollerEveryField   = "every"
@@ -104,12 +106,14 @@ func SegmentTemplates() map[string]string {
 
 // NewPresetTable returns a table of the fake presets over the given registry.
 func NewPresetTable(registry *brick.Registry) (presets.Table, error) {
-	channelRow, channelError := presets.Define[ChannelFields](ChannelPresetName, LinkKindName, ChannelTemplates())
+	channelRow, channelError := presets.Define[ChannelFields](ChannelPresetName, ChannelAction, LinkKindName,
+		ChannelTemplates())
 	if channelError != nil {
 		return presets.Table{}, channelError
 	}
 
-	segmentRow, segmentError := presets.Define[SegmentFields](SegmentPresetName, LinkKindName, SegmentTemplates())
+	segmentRow, segmentError := presets.Define[SegmentFields](SegmentPresetName, SegmentAction, LinkKindName,
+		SegmentTemplates())
 	if segmentError != nil {
 		return presets.Table{}, segmentError
 	}

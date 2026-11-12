@@ -96,7 +96,7 @@ function clearDropTargets(grid: HTMLElement): void {
   }
 }
 
-function enable(grid: HTMLTableElement): void {
+export function enableDrag(grid: HTMLTableElement): void {
   let source: Tile | null = null;
 
   grid.addEventListener("dragstart", (event: DragEvent) => {
@@ -145,9 +145,4 @@ function enable(grid: HTMLTableElement): void {
   });
 
   document.getElementById("drag-help")?.removeAttribute("hidden");
-}
-
-const grid = document.querySelector<HTMLTableElement>("table.grid");
-if (grid !== null) {
-  enable(grid);
 }

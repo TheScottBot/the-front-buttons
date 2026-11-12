@@ -123,3 +123,40 @@ func TestBuiltIn_HasNoRoll20Preset_UntilItsLaunchURLIsKnown(t *testing.T) {
 		}
 	}
 }
+
+func TestBuiltIn_DeclaresEachPresetsAction(t *testing.T) {
+	t.Parallel()
+
+	// The editor shows a preset's action rather than its target kind, which
+	// for every built in preset is open_url and tells the author nothing.
+	const openChannel = "open_channel"
+
+	wantActions := map[string]string{
+		"discord_channel":       "open_server",
+		"dndbeyond_character":   "open_character",
+		"teams_chat":            "open_chat",
+		"teams_chat_by_id":      "open_chat",
+		"teams_channel":         openChannel,
+		"teams_private_channel": openChannel,
+		"teams_shared_channel":  openChannel,
+	}
+
+	table := builtInTable(t)
+
+	if len(table.Names()) != len(wantActions) {
+		t.Fatalf("want an action for each of %d presets, have %v", len(wantActions), table.Names())
+	}
+
+	for presetName, wantAction := range wantActions {
+		row, found := table.Row(presetName)
+		if !found {
+			t.Errorf("want preset %s", presetName)
+
+			continue
+		}
+
+		if row.Action() != wantAction {
+			t.Errorf("%s: want action %q, got %q", presetName, wantAction, row.Action())
+		}
+	}
+}

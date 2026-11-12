@@ -17,6 +17,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
+	"github.com/TheScottBot/the-front-buttons/internal/presets"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
@@ -250,7 +251,7 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 			case position == grid.ForwardPosition():
 				cells = append(cells, reservedCell(place+"reserved for paging forward", "Forward", tile))
 			default:
-				text, kindName := describeKey(page, position)
+				text, kindName := describeKey(pages.options.Presets, page, position)
 
 				state := tileIsEmpty
 				if _, found := keyAt(page, position); found {
@@ -291,18 +292,36 @@ func reservedCell(name string, text string, tile string) cellView {
 // describeKey names a grid cell: its label and, apart, its kind, which the grid
 // shows on a smaller line of its own; a key with no label is named by its kind
 // alone, and a free position is "empty".
-func describeKey(page config.Page, position layout.Position) (string, string) {
+func describeKey(presetTable presets.Table, page config.Page, position layout.Position) (string, string) {
 	key, found := keyAt(page, position)
 	if !found {
 		return "empty", ""
 	}
 
+	kindName := shownKind(presetTable, key)
+
 	appearance, _ := brick.AppearanceOf(key.Parameters)
 	if appearance.Label != "" {
-		return appearance.Label, key.Kind
+		return appearance.Label, kindName
 	}
 
-	return key.Kind, ""
+	return kindName, ""
+}
+
+// shownKind is what the grid calls a key's kind. A preset key's kind is its
+// target, usually open_url, which says nothing of what the key does, so the
+// preset's action is shown instead.
+func shownKind(presetTable presets.Table, key config.Key) string {
+	if key.Preset == nil {
+		return key.Kind
+	}
+
+	row, found := presetTable.Row(key.Preset.Name)
+	if !found {
+		return key.Kind
+	}
+
+	return row.Action()
 }
 
 func keyAt(page config.Page, position layout.Position) (config.Key, bool) {
