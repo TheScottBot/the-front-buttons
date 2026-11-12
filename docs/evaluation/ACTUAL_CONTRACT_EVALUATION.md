@@ -3117,6 +3117,28 @@ checks the blend failed against a planted hard edge (one sample a pixel). The
 author liked the look of a smooth, rounded tile: little buttons. Installed,
 the author looked on the deck and approved it.
 
+### Dark mode, after Thyme
+
+At the author's request, late at night, the editor gained a dark mode in the
+colours of the author's Thyme clock (its theme package): the panel #12131c,
+the time text #f894f8 and the outline #f59ef3, with lilacs for quieter text
+and shadows. It follows the system's setting; there is no switch of its own.
+
+A plain swap of the punk palette could not work: ink is both the text and
+the background of tags, tiles and buttons, and yellow is both a background
+under ink text and text on ink. So every rule now names a role (page, text,
+block, text on a block, highlight, notice, field, rule, accent and so on),
+the light :root sets each role to the punk colour it had, and the dark
+:root sets Thyme's. The tilts become none and the heading's misprint a glow.
+
+Tests first, all three failing before the stylesheet changed: dark mode's
+page, text and rule are Thyme's colours; every text pair meets 4.5 to 1 and
+focus (outline or halo) 3 to 1 on every surface, in both palettes; and no
+rule outside :root names a palette colour. Planted violations (a dim dark
+text, a rule naming ink directly) failed them. In the browser, with the
+colour scheme emulated, the pages grid and the key dialog read in both
+modes, and light looks as it did.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

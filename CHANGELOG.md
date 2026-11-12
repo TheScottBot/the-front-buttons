@@ -93,6 +93,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   with smooth, blended edges, bulged slightly so they look straight through
   the key caps.
 
+- The editor follows the system into a dark mode in the colours of the author's
+  Thyme clock: its near black panel, pink text and pink outlines, with the tilts
+  straightened. Every rule names a colour role, and each role pair meets WCAG AA
+  contrast in both palettes.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now
