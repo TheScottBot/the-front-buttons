@@ -43,6 +43,7 @@ type pageHandlers struct {
 	templates *template.Template
 	icons     iconIndex
 	apps      *applicationCache
+	removals  *removalMemory
 }
 
 func newPageHandlers(options Options) *pageHandlers {
@@ -52,7 +53,7 @@ func newPageHandlers(options Options) *pageHandlers {
 
 	return &pageHandlers{
 		options: options, templates: templates, icons: newIconIndex(options.Icons),
-		apps: newApplicationCache(options.Apps),
+		apps: newApplicationCache(options.Apps), removals: newRemovalMemory(),
 	}
 }
 
@@ -64,14 +65,18 @@ type baseView struct {
 	Token    string
 	Message  string
 	Problems []string
+	// Undo offers to put back the key just removed.
+	Undo bool
 }
 
 func (pages *pageHandlers) base(title string, request *http.Request, problems []string) baseView {
-	message := ""
+	message, undo := "", false
 
 	switch request.URL.Query().Get("saved") {
 	case "key":
 		message = savedMessage
+	case "removed":
+		message, undo = removedMessage, pages.removals.holding()
 	case "credential":
 		message = credentialMessage
 	}
@@ -82,6 +87,7 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		Token:    pages.options.Token,
 		Message:  message,
 		Problems: problems,
+		Undo:     undo,
 	}
 }
 
@@ -571,18 +577,6 @@ func (pages *pageHandlers) changeConfiguration(change func(configuration *config
 	}
 
 	return pages.options.Store.Save(configuration) //nolint:wrapcheck // the store's rejection is shown field by field
-}
-
-func (pages *pageHandlers) deleteKey(writer http.ResponseWriter, request *http.Request) {
-	form := request.PostForm
-	pageIndex := integerParameter(form, "page")
-	position := layout.Position{Row: integerParameter(form, "row"), Column: integerParameter(form, "column")}
-
-	saveError := pages.changePage(pageIndex, func(page *config.Page) {
-		page.Keys = slices.DeleteFunc(page.Keys, func(existing config.Key) bool { return existing.Position == position })
-	})
-
-	pages.afterPageChange(writer, request, pageIndex, saveError)
 }
 
 func (pages *pageHandlers) addPage(writer http.ResponseWriter, request *http.Request) {

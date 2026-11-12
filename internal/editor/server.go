@@ -140,6 +140,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("GET /key", pages.showKey)
 	mux.HandleFunc("POST /key", pages.saveKey)
 	mux.HandleFunc("POST /key/delete", pages.deleteKey)
+	mux.HandleFunc("POST /key/undo", pages.undoRemoval)
 	mux.HandleFunc("POST /key/move", pages.moveKey)
 	mux.HandleFunc("GET /preview.png", pages.preview)
 	mux.HandleFunc("GET /icons", pages.showIcons)

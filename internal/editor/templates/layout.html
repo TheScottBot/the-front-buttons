@@ -22,7 +22,8 @@
 </ul>
 </nav>
 </header>
-<div class="announcement" role="status" aria-live="polite">{{.Message}}</div>
+<div class="announcement" role="status" aria-live="polite">{{.Message}}{{if .Undo}}
+<form method="post" action="/key/undo" class="undo-form"><input type="hidden" name="token" value="{{.Token}}"><button type="submit">Undo</button></form>{{end}}</div>
 {{if .Problems}}<div class="problems" role="alert">
 <p>Error: there are problems to fix.</p>
 <ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul>

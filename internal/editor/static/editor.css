@@ -565,3 +565,60 @@ label[for$="-picker"] {
   border-style: dashed;
   background: var(--pink);
 }
+
+/* The bin: shown only while a key is dragged, a black key with the trash icon
+   in the window's bottom right corner (top right when the grid reaches it),
+   away from the tiles. Over it, it turns yellow and says what a drop does. */
+
+.key-bin {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 9rem;
+  padding: 0.9rem 0.6rem;
+  color: var(--yellow);
+  font-weight: 700;
+  text-align: center;
+  background: var(--ink);
+  border: 4px dashed var(--yellow);
+  box-shadow: 6px 6px 0 var(--paper);
+}
+
+.key-bin[hidden] {
+  display: none;
+}
+
+.key-bin.key-bin-top {
+  top: 1.5rem;
+  bottom: auto;
+}
+
+.key-bin.armed {
+  color: var(--ink);
+  background: var(--yellow);
+  border-style: solid;
+  border-color: var(--ink);
+}
+
+.key-bin.armed span::after {
+  content: " (release to remove)";
+}
+
+.key-bin img {
+  pointer-events: none;
+}
+
+.undo-form {
+  display: inline;
+  margin: 0 0 0 0.75rem;
+}
+
+.undo-form button {
+  margin: 0;
+  padding: 0.2rem 0.8rem;
+}

@@ -175,22 +175,15 @@
     const alert = parsed.querySelector(".errors");
     return alert?.textContent?.trim() || "Error: the key could not be moved.";
   }
-  async function relocate(source, destination, copying) {
+  async function send(path, fields) {
     const token = document.querySelector('input[name="token"]')?.value;
     if (token === void 0) {
       announce("Error: this page has no editor token; reload it and try again.");
       return;
     }
-    const body = new URLSearchParams({
-      token,
-      page: source.page,
-      row: source.row,
-      column: source.column,
-      to: destination,
-      action: copying ? "copy" : "move"
-    });
+    const body = new URLSearchParams({ token, ...fields });
     try {
-      const response = await fetch("/key/move", { method: "POST", body, credentials: "same-origin" });
+      const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
       if (response.ok && response.redirected) {
         window.location.assign(response.url);
         return;
@@ -200,6 +193,34 @@
       announce("Error: the editor could not be reached; is the daemon running?");
     }
   }
+  function relocate(source, destination, copying) {
+    return send("/key/move", {
+      page: source.page,
+      row: source.row,
+      column: source.column,
+      to: destination,
+      action: copying ? "copy" : "move"
+    });
+  }
+  function remove(source) {
+    return send("/key/delete", { page: source.page, row: source.row, column: source.column });
+  }
+  var binArmedClass = "armed";
+  var binTopClass = "key-bin-top";
+  function overlaps(first, second) {
+    return first.left < second.right && second.left < first.right && first.top < second.bottom && second.top < first.bottom;
+  }
+  function showBin(bin, grid2) {
+    bin.classList.remove(binTopClass, binArmedClass);
+    bin.hidden = false;
+    if (overlaps(bin.getBoundingClientRect(), grid2.getBoundingClientRect())) {
+      bin.classList.add(binTopClass);
+    }
+  }
+  function hideBin(bin) {
+    bin.hidden = true;
+    bin.classList.remove(binArmedClass);
+  }
   function clearDropTargets(grid2) {
     for (const cell of grid2.querySelectorAll(`.${dropTargetClass}`)) {
       cell.classList.remove(dropTargetClass);
@@ -207,6 +228,27 @@
   }
   function enableDrag(grid2) {
     let source = null;
+    const bin = document.getElementById("key-bin");
+    if (bin !== null) {
+      bin.addEventListener("dragover", (event) => {
+        if (source === null || event.dataTransfer === null) {
+          return;
+        }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        bin.classList.add(binArmedClass);
+      });
+      bin.addEventListener("dragleave", () => bin.classList.remove(binArmedClass));
+      bin.addEventListener("drop", (event) => {
+        if (source === null) {
+          return;
+        }
+        event.preventDefault();
+        const carried = source;
+        hideBin(bin);
+        void remove(carried);
+      });
+    }
     grid2.addEventListener("dragstart", (event) => {
       const cell = cellOf(event.target);
       if (cell === null || stateOf(cell) !== "key" || event.dataTransfer === null) {
@@ -216,11 +258,17 @@
       event.dataTransfer.effectAllowed = "copyMove";
       event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
       cell.classList.add(draggingClass);
+      if (bin !== null) {
+        showBin(bin, grid2);
+      }
     });
     grid2.addEventListener("dragend", (event) => {
       cellOf(event.target)?.classList.remove(draggingClass);
       clearDropTargets(grid2);
       source = null;
+      if (bin !== null) {
+        hideBin(bin);
+      }
     });
     grid2.addEventListener("dragover", (event) => {
       const cell = cellOf(event.target);

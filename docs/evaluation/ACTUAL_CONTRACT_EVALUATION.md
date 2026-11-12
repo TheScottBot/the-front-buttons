@@ -3028,6 +3028,35 @@ just granted" at 22:25:28 with the new daemon starting the same second, and the
 author's F13 then working with no manual restart. The README's steps no longer
 mention restarting.
 
+### A bin to drag keys to, with undo
+
+The author asked for a bin to drag a key to, appearing only while dragging,
+"somewhere obvious but not in the way so you accidentally bin it". The page
+carries a hidden bin drawn like a key, the bundled trash icon on black with a
+dashed yellow edge and the words "Drop here to remove". The drag script shows
+it when a key is picked up, fixed in the window's bottom right corner, or its
+top right corner when the grid reaches the bottom one, so it never sits over a
+tile; over it, it turns yellow and adds "(release to remove)". A drop sends
+the same POST /key/delete as a key's Remove button, which stays the keyboard
+way to remove.
+
+The guard against a mistaken drop is undo rather than a confirmation: the
+editor remembers the last removed key, deep copied, and the page a removal
+returns to says "Removed" with an Undo button (POST /key/undo, guarded like
+every change), which puts the key back exactly if its page exists and its tile
+is still free, and is refused otherwise or when there is nothing to undo. Only
+the last removal is kept, in memory.
+
+Tests first, failing before the change: the hidden bin on the page, a removal
+returning to the removed message with an undo form carrying the token, undo
+restoring the key exactly and refusing a second time, refusing while the tile
+is taken, and needing the token. In the browser pane, a recorded real mouse
+drag fired dragstart on the tile and dragenter, dragover and drop on the bin,
+which had appeared top right because the grid reached the bottom corner; the
+key left the file and the page offered Undo, and Undo put the key back. Two
+first attempts missed: one aimed before the saved message moved the grid down,
+and one checked the file before the removal had saved.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

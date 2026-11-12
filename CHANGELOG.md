@@ -85,6 +85,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   permission takes effect without a manual restart; the install script signs
   the binary as io.github.thescottbot.the-front-buttons.
 
+- Dragging a key shows a bin, out of the way of the tiles; dropping a key on
+  it removes it, and the page offers Undo.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

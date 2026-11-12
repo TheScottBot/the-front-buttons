@@ -59,7 +59,9 @@ function refusalFrom(page: string): string {
   return alert?.textContent?.trim() || "Error: the key could not be moved.";
 }
 
-async function relocate(source: Tile, destination: string, copying: boolean): Promise<void> {
+// send posts one change the way the editor's own forms do, with the page's
+// token, and follows the redirect a change the server accepted answers with.
+async function send(path: string, fields: Record<string, string>): Promise<void> {
   const token = document.querySelector<HTMLInputElement>('input[name="token"]')?.value;
   if (token === undefined) {
     announce("Error: this page has no editor token; reload it and try again.");
@@ -67,17 +69,10 @@ async function relocate(source: Tile, destination: string, copying: boolean): Pr
     return;
   }
 
-  const body = new URLSearchParams({
-    token,
-    page: source.page,
-    row: source.row,
-    column: source.column,
-    to: destination,
-    action: copying ? "copy" : "move",
-  });
+  const body = new URLSearchParams({ token, ...fields });
 
   try {
-    const response = await fetch("/key/move", { method: "POST", body, credentials: "same-origin" });
+    const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
     if (response.ok && response.redirected) {
       window.location.assign(response.url);
 
@@ -90,6 +85,46 @@ async function relocate(source: Tile, destination: string, copying: boolean): Pr
   }
 }
 
+function relocate(source: Tile, destination: string, copying: boolean): Promise<void> {
+  return send("/key/move", {
+    page: source.page,
+    row: source.row,
+    column: source.column,
+    to: destination,
+    action: copying ? "copy" : "move",
+  });
+}
+
+// remove is the same POST /key/delete as a key's Remove button; the page it
+// returns to offers Undo.
+function remove(source: Tile): Promise<void> {
+  return send("/key/delete", { page: source.page, row: source.row, column: source.column });
+}
+
+// The bin the author asked for: shown only while a key is carried, in the
+// window's bottom right corner, away from the tiles, or its top right corner
+// when the grid reaches the bottom one, so it never sits over a key.
+const binArmedClass = "armed";
+const binTopClass = "key-bin-top";
+
+function overlaps(first: DOMRect, second: DOMRect): boolean {
+  return first.left < second.right && second.left < first.right && first.top < second.bottom && second.top < first.bottom;
+}
+
+function showBin(bin: HTMLElement, grid: HTMLElement): void {
+  bin.classList.remove(binTopClass, binArmedClass);
+  bin.hidden = false;
+
+  if (overlaps(bin.getBoundingClientRect(), grid.getBoundingClientRect())) {
+    bin.classList.add(binTopClass);
+  }
+}
+
+function hideBin(bin: HTMLElement): void {
+  bin.hidden = true;
+  bin.classList.remove(binArmedClass);
+}
+
 function clearDropTargets(grid: HTMLElement): void {
   for (const cell of grid.querySelectorAll(`.${dropTargetClass}`)) {
     cell.classList.remove(dropTargetClass);
@@ -98,6 +133,32 @@ function clearDropTargets(grid: HTMLElement): void {
 
 export function enableDrag(grid: HTMLTableElement): void {
   let source: Tile | null = null;
+  const bin = document.getElementById("key-bin");
+
+  if (bin !== null) {
+    bin.addEventListener("dragover", (event: DragEvent) => {
+      if (source === null || event.dataTransfer === null) {
+        return;
+      }
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      bin.classList.add(binArmedClass);
+    });
+
+    bin.addEventListener("dragleave", () => bin.classList.remove(binArmedClass));
+
+    bin.addEventListener("drop", (event: DragEvent) => {
+      if (source === null) {
+        return;
+      }
+
+      event.preventDefault();
+      const carried = source;
+      hideBin(bin);
+      void remove(carried);
+    });
+  }
 
   grid.addEventListener("dragstart", (event: DragEvent) => {
     const cell = cellOf(event.target);
@@ -109,12 +170,20 @@ export function enableDrag(grid: HTMLTableElement): void {
     event.dataTransfer.effectAllowed = "copyMove";
     event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
     cell.classList.add(draggingClass);
+
+    if (bin !== null) {
+      showBin(bin, grid);
+    }
   });
 
   grid.addEventListener("dragend", (event: DragEvent) => {
     cellOf(event.target)?.classList.remove(draggingClass);
     clearDropTargets(grid);
     source = null;
+
+    if (bin !== null) {
+      hideBin(bin);
+    }
   });
 
   grid.addEventListener("dragover", (event: DragEvent) => {
