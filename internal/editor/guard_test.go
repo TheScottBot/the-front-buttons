@@ -103,7 +103,6 @@ func TestEditor_SetsProtectiveHeaders(t *testing.T) {
 	headers := map[string]string{
 		"Content-Security-Policy": "default-src 'self'",
 		"X-Content-Type-Options":  "nosniff",
-		"Referrer-Policy":         "no-referrer",
 		"Cache-Control":           "no-store",
 	}
 
@@ -111,5 +110,21 @@ func TestEditor_SetsProtectiveHeaders(t *testing.T) {
 		if !strings.HasPrefix(recorder.Header().Get(name), wantPrefix) {
 			t.Errorf("%s: want %q, got %q", name, wantPrefix, recorder.Header().Get(name))
 		}
+	}
+}
+
+// TestEditor_ReferrerPolicyLetsTheBrowserSendItsOwnOrigin pins the referrer
+// policy exactly. Under no-referrer a browser sends Origin: null on a plain form
+// submit, even to the same site (the Fetch standard's origin serialisation), and
+// the guard rightly refuses null, so every plain save was refused on the first
+// run in a real browser (evaluation, deck testing). same-origin keeps the
+// editor's own origin on its own requests and sends nothing to other sites.
+func TestEditor_ReferrerPolicyLetsTheBrowserSendItsOwnOrigin(t *testing.T) {
+	t.Parallel()
+
+	recorder := newHarness(t, nil).get(t, "/page?page=0")
+
+	if got := recorder.Header().Get("Referrer-Policy"); got != "same-origin" {
+		t.Fatalf("want Referrer-Policy same-origin, got %q", got)
 	}
 }

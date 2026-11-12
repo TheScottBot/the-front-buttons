@@ -190,11 +190,13 @@ func (requestGuard guard) refuse(writer http.ResponseWriter, request *http.Reque
 
 // setProtectiveHeaders keeps the editor's pages from running anything but its
 // own files, from being framed, and from being cached or leaking their address.
+// The referrer policy is same-origin, not no-referrer: under no-referrer a
+// browser sends Origin: null on a plain form submit, which the guard refuses.
 func setProtectiveHeaders(header http.Header) {
 	header.Set("Content-Security-Policy",
 		"default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'; form-action 'self'")
 	header.Set("X-Content-Type-Options", "nosniff")
-	header.Set("Referrer-Policy", "no-referrer")
+	header.Set("Referrer-Policy", "same-origin")
 	header.Set("Cache-Control", "no-store")
 	header.Set("X-Frame-Options", "DENY")
 }

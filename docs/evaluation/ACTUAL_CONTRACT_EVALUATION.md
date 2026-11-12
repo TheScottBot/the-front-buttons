@@ -2419,7 +2419,84 @@ The device contract, now six clauses, passes on the deck. The author paged both
 ways and pressed keys and reported paging as snappy; the daemon logged no
 disconnects in that run.
 
+### Replug and legibility
+
+With the daemon running, the author unplugged and replugged the deck four times
+and then pressed a key. The daemon logged each one and needed no restart:
+
+```text
+19:32:32.459 deck disconnected, reason read failed
+19:32:33.452 deck waiting
+19:32:35.455 deck connected, Stream Deck XL V2
+19:32:37.548 deck disconnected, reason read failed
+19:32:42.455 deck connected, Stream Deck XL V2
+19:32:47.698 deck disconnected, reason read failed
+19:32:50.455 deck connected, Stream Deck XL V2
+19:32:55.375 deck disconnected, reason read failed
+19:32:59.454 deck connected, Stream Deck XL V2
+19:33:02.369 key press, open_url, page 0, row 2, column 6
+```
+
+An unplugging is seen at once as a failed read; the deck reconnects on the
+watcher's next one second poll after it reappears. The author reported the
+deck coming back as expected, and the labels, icons, chevrons and page
+indicator legible at arm's length in normal desk light.
+
+### Start at login, installed
+
+With the author's go ahead, the binary was built to `~/.local/bin`, the test
+configuration copied to the default location, and `scripts/install-macos.sh`
+run. launchd reported the agent running and never exited, and the daemon's own
+log showed it starting from the default configuration and the deck connected,
+with no terminal involved. The log out and log in that clears the gate waits
+for the author.
+
+### Defect 3: every plain save from the editor was Forbidden
+
+Adding a key in the editor, in the author's own browser, gave Forbidden. The log
+read `editor request refused, reason origin, POST /key`. The editor sent
+`Referrer-Policy: no-referrer`, under which a browser sends `Origin: null` on a
+plain form submit even to the same site, and the guard rightly refuses null.
+Every earlier probe and test set the Origin by hand, so none could see it.
+
+Test first, `TestEditor_ReferrerPolicyLetsTheBrowserSendItsOwnOrigin`, pinning
+the policy exactly:
+
+```text
+guard_test.go:128: want Referrer-Policy same-origin, got "no-referrer"
+```
+
+Fix: `same-origin`, which keeps the editor's own origin on its own requests and
+sends nothing to other sites. The guard still refuses null. The author then
+added a Discord key from the editor and saw it on the deck.
+
+### Defect 4: reinstalling the login agent failed
+
+Running `scripts/install-macos.sh` over a running agent failed with
+`Bootstrap failed: 5: Input/output error`, leaving no agent loaded until the next
+login: `launchctl bootout` returns before launchd has removed the service. The
+script now waits up to ten seconds for the old copy to go, and fails plainly if
+it does not. After the change one fresh install and two reinstalls in a row all
+succeeded.
+
+### Defect 5: icons sat high on their keys
+
+The author's photographs showed icons close to the top edge. A plain icon key
+used the status key's layout, which keeps a line free for a status word it never
+shows. Test first, measuring the space above and below the drawn content:
+
+```text
+render_test.go:272: {Label:Build Icon:test-circle ...}: 5 pixels above the content and 23 below, want within 4 of each other
+```
+
+Fix, decided by the agent: with no status word, the icon and label are centred
+as a group, the icon starting at 15 hundredths and the label's baseline at 84;
+an icon with no label is centred alone. Status, error, label only and navigation
+keys are unchanged, and their golden images are identical. Seven golden images
+of icon keys were regenerated. The author's verdict on the deck: "Muuuuuch
+better".
+
 ### Still owed
 
-On the MacBook: a replug, ten dock switches without a restart, legibility at
-arm's length (TE4), start at login (TE10). Everything on the Dell.
+On the MacBook: logging out and in to see the daemon start at login (TE10). Everything on the Dell, including real
+dock switches between the two machines.

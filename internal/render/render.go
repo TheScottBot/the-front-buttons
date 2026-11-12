@@ -37,6 +37,12 @@ const (
 	navigationNameBaseline   = 92
 	navigationChevronSize    = 30
 	questionBaselineFraction = 47
+	// A key with an icon and no status word centres the icon and label as one
+	// group, and an icon alone is centred, rather than leaving room for a word
+	// line they never show (evaluation, deck testing).
+	iconGroupTopHundredths = 15
+	iconGroupBaseline      = 84
+	iconAloneTopHundredths = (percent - glyphSizeHundredths) / centringDivisor
 )
 
 // Status is a live brick's state. Each has its own glyph shape and word.
@@ -156,11 +162,7 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 
 		word = StatusWord(appearance.Status)
 	default:
-		if !renderer.drawIcon(key, box, appearance, foreground) {
-			renderer.drawLabel(key, appearance.Label, foreground, renderer.scaled(soloLabelBaseline))
-
-			return key
-		}
+		return renderer.renderPlain(key, appearance, foreground)
 	}
 
 	renderer.drawLabel(key, appearance.Label, foreground, renderer.scaled(labelBaselineHundredths))
@@ -177,4 +179,23 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 // (specification section 2).
 func (renderer *Renderer) RenderBlank() image.Image {
 	return renderer.newKey(defaultBackground())
+}
+
+// renderPlain draws a key with no status and no error: its icon and label
+// centred together, an icon alone centred, or a label alone.
+func (renderer *Renderer) renderPlain(key *image.RGBA, appearance Appearance, foreground color.RGBA) *image.RGBA {
+	top := iconGroupTopHundredths
+	if appearance.Label == "" {
+		top = iconAloneTopHundredths
+	}
+
+	if !renderer.drawIcon(key, renderer.glyphBoxAt(key, glyphSizeHundredths, top), appearance, foreground) {
+		renderer.drawLabel(key, appearance.Label, foreground, renderer.scaled(soloLabelBaseline))
+
+		return key
+	}
+
+	renderer.drawLabel(key, appearance.Label, foreground, renderer.scaled(iconGroupBaseline))
+
+	return key
 }

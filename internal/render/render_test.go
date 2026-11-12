@@ -224,3 +224,54 @@ func TestNewRenderer_RefusesImplausibleKeySizes(t *testing.T) {
 		}
 	}
 }
+
+// inkRows returns the first and last rows holding a pixel that differs from the
+// key's background, the drawn content's vertical extent.
+func inkRows(rendered image.Image) (int, int) {
+	bounds := rendered.Bounds()
+	background := rendered.At(bounds.Min.X, bounds.Min.Y)
+	first, last := -1, -1
+
+	for row := bounds.Min.Y; row < bounds.Max.Y; row++ {
+		for column := bounds.Min.X; column < bounds.Max.X; column++ {
+			if rendered.At(column, row) != background {
+				if first < 0 {
+					first = row
+				}
+
+				last = row
+
+				break
+			}
+		}
+	}
+
+	return first, last
+}
+
+// TestRender_CentresAnIconAndLabelVertically_WhenThereIsNoStatusWord checks the
+// space above an icon key's content against the space below it. The first icons
+// seen on a real deck sat high, about a sixteenth of the key from the top and a
+// quarter from the bottom, because their layout kept room for a status word
+// they never show (evaluation, deck testing).
+func TestRender_CentresAnIconAndLabelVertically_WhenThereIsNoStatusWord(t *testing.T) {
+	t.Parallel()
+
+	const allowedImbalancePixels = 4
+
+	renderer := newTestRenderer(t)
+
+	for _, appearance := range []render.Appearance{
+		{Label: buildLabel, Icon: knownTestIconName},
+		{Label: "Lost", Icon: "no-such-icon"},
+		{Icon: knownTestIconName},
+	} {
+		first, last := inkRows(renderer.Render(appearance))
+		above, below := first, testKeyPixels-1-last
+
+		if above-below > allowedImbalancePixels || below-above > allowedImbalancePixels {
+			t.Errorf("%+v: %d pixels above the content and %d below, want within %d of each other",
+				appearance, above, below, allowedImbalancePixels)
+		}
+	}
+}

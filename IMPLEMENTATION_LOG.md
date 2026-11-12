@@ -52,4 +52,7 @@ commit, since a commit cannot name its own hash.
 | TE7 | feat(bricks): add URL and application bricks, presets and the composition root | `ec1820f` |
 | TE8 | feat(live): add live hub, GitHub Actions pipeline status and credentials | `5643a74` |
 | TE9 | feat(editor): add the local editor and the open_editor brick | `6c543d1` |
-| TE10 | docs(release): add start at login, generated brick reference and project documents | recorded in the next commit |
+| TE10 | docs(release): add start at login, generated brick reference and project documents | `90e8ce8` |
+
+DV2 closed on 12 November 2026 when the author took back control of commits;
+no commit after `90e8ce8` is the agent's.

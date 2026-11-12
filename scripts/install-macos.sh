@@ -35,6 +35,19 @@ mkdir -p "$agents_directory" "$(dirname "$log_path")"
 # after rebuilding.
 if launchctl print "$domain/$label" >/dev/null 2>&1; then
 	launchctl bootout "$domain/$label"
+
+	# bootout returns before launchd has finished removing the service, and a
+	# bootstrap straight after it fails with error 5. Wait up to ten seconds for
+	# the old copy to go.
+	for _ in $(seq 1 100); do
+		launchctl print "$domain/$label" >/dev/null 2>&1 || break
+		sleep 0.1
+	done
+
+	if launchctl print "$domain/$label" >/dev/null 2>&1; then
+		echo "error: the running copy of $label did not stop" >&2
+		exit 1
+	fi
 fi
 
 printf '%s\n' "$plist_text" >"$plist_path"

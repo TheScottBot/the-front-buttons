@@ -41,11 +41,16 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   taken for an unplugging. Reads no longer wait holding the device's lock, and a
   write is tried three times before it counts as failed. A full page draws in
   about 33 milliseconds.
+- Every plain save from the editor was refused as Forbidden: its no-referrer
+  policy made browsers send Origin: null. The policy is now same-origin.
+- Reinstalling the macOS login agent could fail with launchd error 5; the
+  script now waits for the old copy to stop.
+- Icons sat near the top of their keys; an icon and label without a status word
+  are now centred together, and an icon alone is centred.
 
 ### Known limitations
 
-- The protocol is confirmed on the MacBook only; the Dell and a replug are
-  still owed.
+- The protocol is confirmed on the MacBook only; the Dell is still owed.
 - No Roll20 preset until its launch URL is known (TD13).
 - Saving from the editor drops hand written comments.
 - Windows packaged applications launch through the Apps folder rather than COM

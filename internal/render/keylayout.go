@@ -20,12 +20,16 @@ func (renderer *Renderer) newKey(background color.RGBA) *image.RGBA {
 }
 
 func (renderer *Renderer) glyphBox(key *image.RGBA, sizeHundredths int) glyphBox {
+	return renderer.glyphBoxAt(key, sizeHundredths, glyphTopHundredths)
+}
+
+func (renderer *Renderer) glyphBoxAt(key *image.RGBA, sizeHundredths int, topHundredths int) glyphBox {
 	size := renderer.scaled(sizeHundredths)
 
 	return glyphBox{
 		destination: key,
 		left:        float32(renderer.keyPixels-size) / centringDivisor,
-		top:         float32(renderer.scaled(glyphTopHundredths)),
+		top:         float32(renderer.scaled(topHundredths)),
 		size:        float32(size),
 	}
 }

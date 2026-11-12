@@ -89,6 +89,11 @@ without the device are complete, whichever is first.
 in `docs/evaluation/ACTUAL_CONTRACT_EVALUATION.md` under the phase that took
 them, each marked "decided by the agent under DV2".
 
+**Closed 12 November 2026** by the author, in their words: "I'm taking back
+control of commits. So the temporary allowance is officially expired". The last
+commit under it is the TE10 commit, `90e8ce8`. Datum 0.1 applies again in full:
+the agent makes no git write of any kind, and proposes commit messages only.
+
 ## DV3: Windows packaged applications launch through the Apps folder, not COM
 
 Recorded 12 November 2026, during TE7, by the agent under DV2.
