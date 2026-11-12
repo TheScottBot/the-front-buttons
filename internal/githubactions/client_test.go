@@ -18,9 +18,10 @@ import (
 
 // The GitHub status and conclusion values the tests write, named once.
 const (
-	completed = "completed"
-	succeeded = "success"
-	failed    = "failure"
+	completed  = "completed"
+	inProgress = "in_progress"
+	succeeded  = "success"
+	failed     = "failure"
 )
 
 const (
@@ -142,7 +143,7 @@ func TestLatestRun_ReportsSuccessFailureAndInProgress(t *testing.T) {
 		"success": {runsJSON([3]string{completed, succeeded, "7"}), pipeline.StateSuccess, runURL("7")},
 		"failure": {runsJSON([3]string{completed, failed, "7"}), pipeline.StateFailure, runURL("7")},
 		"in progress": {
-			runsJSON([3]string{"in_progress", "", "8"}, [3]string{completed, succeeded, "7"}),
+			runsJSON([3]string{inProgress, "", "8"}, [3]string{completed, succeeded, "7"}),
 			pipeline.StateInProgress, runURL("8"),
 		},
 	}
@@ -178,7 +179,7 @@ func TestLatestRun_SendsTheDocumentedRequest(t *testing.T) {
 	checks := map[string][2]string{
 		"path":          {request.URL.Path, runsPath},
 		"branch":        {request.URL.Query().Get("branch"), "main"},
-		"per page":      {request.URL.Query().Get("per_page"), "20"},
+		"per page":      {request.URL.Query().Get("per_page"), "1"},
 		"authorisation": {request.Header.Get("Authorization"), "Bearer " + fakeToken},
 		"api version":   {request.Header.Get("X-Github-Api-Version"), "2022-11-28"},
 		"accept":        {request.Header.Get("Accept"), "application/vnd.github+json"},
@@ -343,5 +344,105 @@ func TestLatestRun_HonoursTheDocumentedPollInterval(t *testing.T) {
 
 	if counters.Snapshot()["github.rate_limit_remaining"] != 4321 {
 		t.Fatalf("want the remaining rate limit recorded, got %v", counters.Snapshot())
+	}
+}
+
+// jobsJSON writes a run's jobs response, each job given as status and
+// conclusion.
+func jobsJSON(jobs ...[2]string) string {
+	entries := make([]string, 0, len(jobs))
+	for _, job := range jobs {
+		conclusion := "null"
+		if job[1] != "" {
+			conclusion = `"` + job[1] + `"`
+		}
+
+		entries = append(entries, fmt.Sprintf(`{"status":"%s","conclusion":%s}`, job[0], conclusion))
+	}
+
+	return fmt.Sprintf(`{"total_count":%d,"jobs":[%s]}`, len(jobs), strings.Join(entries, ","))
+}
+
+// answerRunsAndJobs answers the runs endpoint with runs and any run's jobs
+// endpoint with jobs.
+func answerRunsAndJobs(runs string, jobs string) func(http.ResponseWriter, *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		if strings.HasSuffix(request.URL.Path, "/jobs") {
+			_, _ = writer.Write([]byte(jobs))
+
+			return
+		}
+
+		_, _ = writer.Write([]byte(runs))
+	}
+}
+
+// TestLatestRun_PressOpensTheNewestRun_EvenWhileItRuns: the key shows the
+// newest run, so a press opens that run. Opening the last failure instead
+// while a fix ran (TD10 part b) looked on the real deck like the key reporting
+// the wrong run; the author amended TD10 (evaluation, deck testing).
+func TestLatestRun_PressOpensTheNewestRun_EvenWhileItRuns(t *testing.T) {
+	t.Parallel()
+
+	fake := newFakeGitHub(t, answerRunsAndJobs(
+		runsJSON([3]string{inProgress, "", "9"}, [3]string{completed, failed, "8"}),
+		jobsJSON([2]string{inProgress, ""}, [2]string{"queued", ""})))
+	client, _ := newClient(t, fake)
+
+	result, pollError := client.LatestRun(t.Context(), fake.query())
+	if pollError != nil {
+		t.Fatal(pollError)
+	}
+
+	if result.Run.State != pipeline.StateInProgress || result.Run.TargetURL != runURL("9") {
+		t.Fatalf("want run 9 in progress and opened, got %+v", result.Run)
+	}
+}
+
+// TestLatestRun_ShowsAFailedJob_BeforeTheRunFinishes: with one job failed and
+// another still running, GitHub still calls the run in progress, which on the
+// real deck hid a known failure for minutes (evaluation, deck testing). The
+// author chose to show the failure at once.
+func TestLatestRun_ShowsAFailedJob_BeforeTheRunFinishes(t *testing.T) {
+	t.Parallel()
+
+	for _, failedConclusion := range []string{failed, "timed_out"} {
+		fake := newFakeGitHub(t, answerRunsAndJobs(
+			runsJSON([3]string{inProgress, "", "9"}),
+			jobsJSON([2]string{completed, succeeded}, [2]string{completed, failedConclusion},
+				[2]string{inProgress, ""})))
+		client, _ := newClient(t, fake)
+
+		result, pollError := client.LatestRun(t.Context(), fake.query())
+		if pollError != nil {
+			t.Fatal(pollError)
+		}
+
+		if result.Run.State != pipeline.StateFailure || result.Run.TargetURL != runURL("9") {
+			t.Errorf("%s: want run 9 shown as failed already, got %+v", failedConclusion, result.Run)
+		}
+
+		if path := fake.lastRequest().URL.Path; path != "/repos/octo-org/hello-world/actions/runs/9/jobs" {
+			t.Errorf("want the run's jobs asked for, got %s", path)
+		}
+	}
+}
+
+// TestLatestRun_AsksForJobsOnlyWhileTheRunIsActive keeps the extra request to
+// runs that have not finished: a finished run's own conclusion is final.
+func TestLatestRun_AsksForJobsOnlyWhileTheRunIsActive(t *testing.T) {
+	t.Parallel()
+
+	fake := newFakeGitHub(t, answerRunsAndJobs(
+		runsJSON([3]string{completed, succeeded, "9"}), jobsJSON([2]string{completed, failed})))
+	client, _ := newClient(t, fake)
+
+	result, pollError := client.LatestRun(t.Context(), fake.query())
+	if pollError != nil || result.Run.State != pipeline.StateSuccess {
+		t.Fatalf("want run 9 succeeded, got %+v (%v)", result.Run, pollError)
+	}
+
+	if count := fake.requestCount(); count != 1 {
+		t.Fatalf("want one request for a finished run, got %d", count)
 	}
 }

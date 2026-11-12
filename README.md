@@ -190,7 +190,7 @@ A brick kind.
 | `workflow` | text | required | 1 to 255 characters | token | The workflow's file name, such as ci.yml, or its numeric ID. |
 | `branch` | text | required | 1 to 255 characters | branch | The branch whose runs the key shows. |
 | `credential` | text, secret | required | 1 to 64 characters | identifier | The name of the stored GitHub token, a fine grained token with read access to Actions. |
-| `interval` | duration | optional | 30s to 1h |  | How often to poll; a minute if left out. GitHub may ask for longer, and is obeyed. |
+| `interval` | duration | optional | 30s to 1h |  | How often to poll when no run is active; a minute if left out. Every 15 seconds while a run is queued or in progress. GitHub may ask for longer, and is obeyed. |
 | `api_base_url` | text | optional | 9 to 2048 characters | https_url | The GitHub API address for GitHub Enterprise; api.github.com if left out. |
 
 ### `discord_channel`

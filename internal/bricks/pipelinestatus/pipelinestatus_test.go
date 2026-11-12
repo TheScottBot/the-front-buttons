@@ -247,3 +247,29 @@ func TestPipelineStatus_IdentityChangesWithAnyPartOfTheDefinition(t *testing.T) 
 		}
 	}
 }
+
+// TestPipelineStatus_PollsEveryFifteenSeconds_WhileARunIsActive: a minute
+// between polls left a finished or failing run showing as running for too long
+// on the real deck; the author chose 15 seconds while a run is queued or in
+// progress, and the configured interval otherwise (evaluation, deck testing).
+func TestPipelineStatus_PollsEveryFifteenSeconds_WhileARunIsActive(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		provider := testsupport.NewPipelineProviderTestDouble(
+			ranWith(pipeline.StateQueued, failedRunURL, 0),
+			ranWith(pipeline.StateInProgress, failedRunURL, 0),
+			ranWith(pipeline.StateInProgress, failedRunURL, 0),
+			ranWith(pipeline.StateSuccess, failedRunURL, 0),
+		)
+		source, _ := construct(t, baseParameters(), provider, testsupport.NewLaunchRecorder()).(brick.LiveSource)
+
+		watchFor(t, source, 2*time.Minute)
+
+		// Polls at 0, 15, 30 and 45 seconds while active, then a minute after
+		// the success: 1:45, which is inside two minutes.
+		if queries := provider.Queries(); len(queries) != 5 {
+			t.Fatalf("want polls at 0, 15, 30, 45 seconds and 1:45, got %d", len(queries))
+		}
+	})
+}

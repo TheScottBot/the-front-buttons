@@ -20,6 +20,7 @@ func NewApplicationLauncher() WindowsLauncher { return NewWindowsApplicationLaun
 // thread, so the goroutine is pinned to its thread for the call.
 func shellExecute(request ShellRequest) error {
 	runtime.LockOSThread()
+
 	defer runtime.UnlockOSThread()
 
 	comError := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED|windows.COINIT_DISABLE_OLE1DDE)
@@ -34,7 +35,8 @@ func shellExecute(request ShellRequest) error {
 	verb, verbError := windows.UTF16PtrFromString(request.Verb)
 	file, fileError := windows.UTF16PtrFromString(request.File)
 
-	if conversionError := errors.Join(verbError, fileError); conversionError != nil {
+	conversionError := errors.Join(verbError, fileError)
+	if conversionError != nil {
 		return fmt.Errorf("converting a shell request: %w", conversionError)
 	}
 

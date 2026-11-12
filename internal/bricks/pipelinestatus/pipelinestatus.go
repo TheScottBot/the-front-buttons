@@ -25,6 +25,11 @@ const KindName = "pipeline_status"
 const (
 	defaultAPIBaseURL = "https://api.github.com"
 	defaultInterval   = time.Minute
+	// activeInterval is how often a key polls while its run is queued or in
+	// progress, whatever its interval: a minute left a finished or failing run
+	// showing as running for too long on the real deck, and the author chose
+	// 15 seconds (evaluation, deck testing). GitHub's own longer waits still win.
+	activeInterval = 15 * time.Second
 )
 
 // noRunCategory is shown when a press finds no run to open yet.
@@ -42,11 +47,11 @@ type Parameters struct {
 	brick.Appearance
 
 	Repository string        `brick:"repository,required"        bounds:"3,140"  description:"The GitHub repository, written owner/name."`
-	Workflow   string        `brick:"workflow,required"          bounds:"1,255"  format:"token"                                                                                   description:"The workflow's file name, such as ci.yml, or its numeric ID."`
-	Branch     string        `brick:"branch,required"            bounds:"1,255"  format:"branch"                                                                                  description:"The branch whose runs the key shows."`
-	Credential string        `brick:"credential,required,secret" bounds:"1,64"   format:"identifier"                                                                              description:"The name of the stored GitHub token, a fine grained token with read access to Actions."`
-	Interval   time.Duration `brick:"interval"                   bounds:"30s,1h" description:"How often to poll; a minute if left out. GitHub may ask for longer, and is obeyed."`
-	APIBaseURL string        `brick:"api_base_url"               bounds:"9,2048" format:"https_url"                                                                               description:"The GitHub API address for GitHub Enterprise; api.github.com if left out."`
+	Workflow   string        `brick:"workflow,required"          bounds:"1,255"  format:"token"                                                                                                                                                                description:"The workflow's file name, such as ci.yml, or its numeric ID."`
+	Branch     string        `brick:"branch,required"            bounds:"1,255"  format:"branch"                                                                                                                                                               description:"The branch whose runs the key shows."`
+	Credential string        `brick:"credential,required,secret" bounds:"1,64"   format:"identifier"                                                                                                                                                           description:"The name of the stored GitHub token, a fine grained token with read access to Actions."`
+	Interval   time.Duration `brick:"interval"                   bounds:"30s,1h" description:"How often to poll when no run is active; a minute if left out. Every 15 seconds while a run is queued or in progress. GitHub may ask for longer, and is obeyed."`
+	APIBaseURL string        `brick:"api_base_url"               bounds:"9,2048" format:"https_url"                                                                                                                                                            description:"The GitHub API address for GitHub Enterprise; api.github.com if left out."`
 }
 
 // Register adds the kind to a registry.
@@ -117,6 +122,11 @@ func (watcher pipelineBrick) Watch(watchContext context.Context, publish func(st
 			}
 		} else {
 			publish(brick.LiveState{Status: statusOf(result.Run.State), ErrorReason: "", TargetURL: result.Run.TargetURL})
+
+			if result.Run.State == pipeline.StateQueued || result.Run.State == pipeline.StateInProgress {
+				wait = min(wait, activeInterval)
+			}
+
 			wait = max(wait, result.PollAfter)
 		}
 

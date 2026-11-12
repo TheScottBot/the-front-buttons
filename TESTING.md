@@ -29,6 +29,19 @@ of those runs is in `docs/evaluation/ACTUAL_CONTRACT_EVALUATION.md`, under TE1.
 The repository checks also carry permanent unit tests that plant each violation
 in memory, so a regression in a check fails the build.
 
+Code built only for Windows (`internal/platform/systemadapter/system_windows.go`)
+is invisible to the linters run on a Mac; CI lints it on windows-2025. To lint
+it from the Mac first, build the linter for the Mac, then point it at Windows,
+leaving out the two cgo packages, which have no Windows only code:
+
+```bash
+go build -modfile=tools/go.mod -o bin/golangci-lint github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+```
+
+```bash
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 bin/golangci-lint run $(go list ./... | grep -v -e hidtransport -e cmd/the-front-buttons | sed 's#github.com/TheScottBot/the-front-buttons#.#')
+```
+
 ## Testing deviations
 
 - The `DeckDevice` contract against the real adapter runs only with a deck

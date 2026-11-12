@@ -52,6 +52,13 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   one.
 - A refused save in the editor now starts its title with "Error:" and focuses
   the first field in error.
+- A press error on a live key, such as pressing before any run was known, hid
+  the newer run state; a newer publish now replaces it.
+- The pipeline key now opens the newest run, the one it shows, shows a failure
+  as soon as any job fails, and polls every 15 seconds while a run is active
+  (the author's decisions, amending TD10).
+- CI runs every step under Bash, so Windows no longer splits arguments at dots,
+  and the Windows only code passes lint.
 - Icons sat near the top of their keys; an icon and label without a status word
   are now centred together, and an icon alone is centred.
 

@@ -2547,8 +2547,69 @@ Two findings, each with a test first:
   was seen and the served page marks only the server ID field; the pane was
   hidden, so focus actually landing was not seen and is for the author's run.
 
+### TE8 on the deck: the pipeline key against this repository's own CI
+
+The author merged `working-title` into `main` and pushed, which started the
+first CI run. A `pipeline_status` key watching `ci.yml` on `main` was added to
+the author's configuration, and the author stored a fine grained token (Actions
+read only, this repository only) through the editor's credentials page. The key
+showed `credential_missing` until the token was stored.
+
+**Defect 6: a press error hid newer live news.** The author pressed the key
+before the token was stored; the press failed with `no_run`, and that error
+stayed on the key after the poll found the failed run, because a press error
+outranked the live state and nothing cleared it. Test first,
+`TestDaemon_NewerLiveNewsReplacesAnOlderPressError` (the fake live key now
+fails an early press as the real one does):
+
+```text
+live_test.go:284: want the published failure shown over the older press error
+```
+
+Fix: a source's publish clears the press errors of its keys on every page. The
+author then saw the key show the failure, and a press open the failed run.
+
+**The first CI run failed on Windows only**, at the linter configuration step:
+`go: -modfile=tools/go: file does not have .mod extension`. PowerShell, the
+Windows default shell, split the argument at its dot. Every step now runs under
+Bash unless it names its own shell. The second run passed build and the race
+detector tests on Windows for the first time, then failed lint on two findings
+in `system_windows.go`, which only builds for Windows and so was never linted on
+the Mac. Both are fixed, a Windows lint of every non cgo package from the Mac
+now reports none, and TESTING.md gives the command.
+
+**TD10 amended by the author, with two further decisions.** During the second
+run the key said in progress, and a press opened the previous failed run, as
+TD10 part b specified; to the author that read as the key reporting the wrong
+run. And with `fail-fast: false`, a run stays in progress until its last job
+ends, hiding a known failure for minutes, made worse by a minute between polls.
+The author chose, from the agent's options:
+
+1. A press opens the newest run, the one the key shows (amending TD10 part b).
+   The client now asks for one run, not twenty.
+2. A failed job shows as a failure at once: while the newest run is queued or
+   in progress, the client also reads that run's jobs, and any job concluded
+   failure or timed out makes the key a failure. If the jobs cannot be read,
+   the run's own state stands.
+3. A key polls every 15 seconds while its run is queued or in progress, and at
+   its interval otherwise; GitHub's own longer waits still win. This goes below
+   the interval field's 30 second minimum only while a run is active.
+
+Tests first, each seen failing:
+
+```text
+client_test.go:397: want run 9 in progress and opened, got {State:in_progress TargetURL:.../runs/8}
+client_test.go:421: failure: want run 9 shown as failed already, got {State:in_progress ...}
+client_test.go:425: want the run's jobs asked for, got /repos/octo-org/hello-world/actions/workflows/ci.yml/runs
+pipelinestatus_test.go:272: want polls at 0, 15, 30, 45 seconds and 1:45, got 3
+```
+
+and a third, that a finished run costs one request only. The test that opened
+the last failure while a fix ran is removed with the rule.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
-the keyboard only editor run (TE9). Everything on the Dell, including real
+the keyboard only editor run (TE9); the pipeline key turning green, once CI
+passes on both runners (TE8). Everything on the Dell, including real
 dock switches between the two machines.

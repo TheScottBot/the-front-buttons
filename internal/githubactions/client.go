@@ -24,9 +24,12 @@ import (
 const (
 	apiVersion   = "2022-11-28"
 	acceptHeader = "application/vnd.github+json"
-	// runsPerPage is enough runs to find the most recent completed one behind a
-	// run in progress (TD10 part b) in one request.
-	runsPerPage = 20
+	// runsPerPage asks for the newest run only: the key shows it and a press
+	// opens it (TD10 as the author amended it, evaluation, deck testing).
+	runsPerPage = 1
+	// jobsPerPage covers every job of a run in one request; a matrix of two is
+	// the usual case.
+	jobsPerPage = 100
 )
 
 // MaximumResponseBytes bounds a response before it is parsed (datum 0.10).
@@ -57,6 +60,7 @@ const (
 // The counter names this client keeps (specification section 7).
 const (
 	pollCounterPrefix     = "pipeline.polls."
+	jobsCounterPrefix     = "pipeline.jobs."
 	pollResultOK          = "ok"
 	pollResultNotModified = "not_modified"
 	rateLimitReading      = "github.rate_limit_remaining"
@@ -79,6 +83,9 @@ var errNotModifiedWithoutCache = errors.New("not modified, but nothing was cache
 type cachedRun struct {
 	entityTag string
 	run       pipeline.Run
+	// activeRunID is the newest run's ID while it is queued or in progress,
+	// whose jobs are then read for an early failure; zero once it finishes.
+	activeRunID int64
 }
 
 // Client is the PipelineProvider adapter for GitHub Actions.
@@ -130,7 +137,82 @@ func (client *Client) LatestRun(pollContext context.Context, query pipeline.Quer
 
 	client.recordRateLimit(response.Header)
 
-	return client.interpret(requestURL, response)
+	result, interpretError := client.interpret(requestURL, response)
+	if interpretError != nil {
+		return result, interpretError
+	}
+
+	return client.withEarlyFailure(pollContext, query, requestURL, token, result), nil
+}
+
+// withEarlyFailure shows an active run as failed as soon as any of its jobs has
+// failed. GitHub calls a run in progress until every job ends, which with a
+// matrix hid a known failure for minutes on the real deck; the author chose to
+// show it at once (evaluation, deck testing). If the jobs cannot be read, the
+// run's own state stands.
+func (client *Client) withEarlyFailure(
+	pollContext context.Context,
+	query pipeline.Query,
+	requestURL string,
+	token string,
+	result pipeline.Result,
+) pipeline.Result {
+	client.mutex.Lock()
+	activeRunID := client.cache[requestURL].activeRunID
+	client.mutex.Unlock()
+
+	if activeRunID > 0 && client.anyJobFailed(pollContext, query, activeRunID, token) {
+		result.Run.State = pipeline.StateFailure
+	}
+
+	return result
+}
+
+// githubJobsResponse is the part of a run's jobs this client reads.
+type githubJobsResponse struct {
+	Jobs []struct {
+		Conclusion *string `json:"conclusion"`
+	} `json:"jobs"`
+}
+
+func (client *Client) anyJobFailed(pollContext context.Context, query pipeline.Query, runID int64, token string) bool {
+	parameters := url.Values{}
+	parameters.Set("per_page", strconv.Itoa(jobsPerPage))
+
+	jobsURL := strings.TrimRight(query.APIBaseURL, "/") + "/repos/" + query.Repository +
+		"/actions/runs/" + strconv.FormatInt(runID, 10) + "/jobs?" + parameters.Encode()
+
+	response, requestError := client.send(pollContext, jobsURL, token)
+	if requestError != nil {
+		client.counters.Increment(jobsCounterPrefix + categoryNetwork)
+
+		return false
+	}
+
+	defer func() { _ = response.Body.Close() }()
+
+	client.recordRateLimit(response.Header)
+
+	body, readError := io.ReadAll(io.LimitReader(response.Body, MaximumResponseBytes+1))
+
+	var decoded githubJobsResponse
+
+	if response.StatusCode != http.StatusOK || readError != nil || len(body) > MaximumResponseBytes ||
+		json.Unmarshal(body, &decoded) != nil {
+		client.counters.Increment(jobsCounterPrefix + categoryUnexpectedStatus)
+
+		return false
+	}
+
+	client.counters.Increment(jobsCounterPrefix + pollResultOK)
+
+	for _, job := range decoded.Jobs {
+		if job.Conclusion != nil && StateOf(statusCompleted, *job.Conclusion) == pipeline.StateFailure {
+			return true
+		}
+	}
+
+	return false
 }
 
 func runsURL(query pipeline.Query) (string, error) {
@@ -243,6 +325,7 @@ func (client *Client) rateLimitWait(header http.Header) time.Duration {
 //nolint:tagliatelle // the names are GitHub's, not this project's
 type githubRunsResponse struct {
 	WorkflowRuns []struct {
+		ID         int64   `json:"id"`
 		Status     string  `json:"status"`
 		Conclusion *string `json:"conclusion"`
 		HTMLURL    string  `json:"html_url"`
@@ -270,25 +353,22 @@ func (client *Client) readRuns(requestURL string, response *http.Response) (pipe
 		return client.fail(categoryNoRuns, 0, nil)
 	}
 
-	summaries := make([]RunSummary, 0, len(decoded.WorkflowRuns))
+	newest := decoded.WorkflowRuns[0]
 
-	for _, run := range decoded.WorkflowRuns {
-		conclusion := ""
-		if run.Conclusion != nil {
-			conclusion = *run.Conclusion
-		}
-
-		summaries = append(summaries, RunSummary{
-			State:     StateOf(run.Status, conclusion),
-			Completed: run.Status == statusCompleted,
-			URL:       httpsOnly(run.HTMLURL),
-		})
+	conclusion := ""
+	if newest.Conclusion != nil {
+		conclusion = *newest.Conclusion
 	}
 
-	run := pipeline.Run{State: summaries[0].State, TargetURL: PressTarget(summaries)}
+	run := pipeline.Run{State: StateOf(newest.Status, conclusion), TargetURL: httpsOnly(newest.HTMLURL)}
+
+	activeRunID := int64(0)
+	if newest.Status != statusCompleted && newest.ID > 0 {
+		activeRunID = newest.ID
+	}
 
 	client.mutex.Lock()
-	client.cache[requestURL] = cachedRun{entityTag: response.Header.Get("ETag"), run: run}
+	client.cache[requestURL] = cachedRun{entityTag: response.Header.Get("ETag"), run: run, activeRunID: activeRunID}
 	client.mutex.Unlock()
 
 	client.counters.Increment(pollCounterPrefix + pollResultOK)
