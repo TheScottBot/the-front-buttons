@@ -39,7 +39,7 @@ func ReasonCategoryOf(failure error) string {
 func AppearanceOf(parameters any) (Appearance, bool) {
 	value := reflect.ValueOf(parameters)
 	if value.Kind() != reflect.Pointer || value.IsNil() || value.Elem().Kind() != reflect.Struct {
-		return Appearance{Label: "", Icon: "", Background: ""}, false
+		return Appearance{Label: "", Icon: "", Background: "", IconFile: ""}, false
 	}
 
 	for structField := range value.Elem().Type().Fields() {
@@ -50,7 +50,7 @@ func AppearanceOf(parameters any) (Appearance, bool) {
 		}
 	}
 
-	return Appearance{Label: "", Icon: "", Background: ""}, false
+	return Appearance{Label: "", Icon: "", Background: "", IconFile: ""}, false
 }
 
 // ErrPortMissing reports a kind constructed without a port it needs, which only

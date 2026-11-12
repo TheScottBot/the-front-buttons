@@ -24,7 +24,7 @@
 {{if eq .Control "checkbox"}}<input id="{{.ID}}" name="{{.Name}}" type="checkbox"{{if .Checked}} checked{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
 {{else}}<input id="{{.ID}}" name="{{.Name}}" type="{{.Control}}" value="{{.Value}}"{{if .Required}} required{{end}}{{if .MinimumLength}} minlength="{{.MinimumLength}}"{{end}}{{if .MaximumLength}} maxlength="{{.MaximumLength}}"{{end}}{{if .Minimum}} min="{{.Minimum}}"{{end}}{{if .Maximum}} max="{{.Maximum}}"{{end}}{{if .Error}} aria-invalid="true"{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
 {{end}}{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}
-<p class="help" id="{{.DescriptionID}}">{{.Description}}{{if .Secret}} This names a stored credential; set its secret on the <a href="/credentials">credentials page</a>.{{end}}</p>
+<p class="help" id="{{.DescriptionID}}">{{if eq .Name "field.icon"}}<a href="/icons" target="_blank" rel="noopener">Browse the icons</a> in a new tab. {{end}}{{.Description}}{{if .Secret}} This names a stored credential; set its secret on the <a href="/credentials">credentials page</a>.{{end}}</p>
 </div>
 {{end}}<button type="submit">Save key</button>
 </form>
@@ -34,6 +34,36 @@
 <input type="hidden" name="row" value="{{.Row}}">
 <input type="hidden" name="column" value="{{.Column}}">
 <button type="submit">Remove this key</button>
+</form>
+<form method="post" action="/key/move" class="move-form">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="hidden" name="row" value="{{.Row}}">
+<input type="hidden" name="column" value="{{.Column}}">
+<fieldset aria-describedby="move-help">
+<legend>Move or copy this key</legend>
+<p class="help" id="move-help">Choose a free tile. Rows count from 1 at the top, columns from 1 at the left. {{.Move.ReservedNote}}</p>
+<div class="field">
+<label for="move-page">Destination page</label>
+<select id="move-page" name="to_page"{{if .Move.Focus}} autofocus{{end}}>
+{{range .Move.Pages}}<option value="{{.Index}}"{{if .Current}} selected{{end}}>Page {{.Number}}: {{.Name}}</option>{{end}}
+</select>
+</div>
+<div class="field">
+<label for="move-row">Destination row</label>
+<select id="move-row" name="to_row">
+{{range .Move.Rows}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+</select>
+</div>
+<div class="field">
+<label for="move-column">Destination column</label>
+<select id="move-column" name="to_column">
+{{range .Move.Columns}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+</select>
+</div>
+<button type="submit" name="action" value="move">Move key</button>
+<button type="submit" name="action" value="copy">Copy key</button>
+</fieldset>
 </form>{{end}}
 <figure>
 <img src="/preview.png?page={{.PageIndex}}&amp;row={{.Row}}&amp;column={{.Column}}" width="96" height="96" alt="Preview of the key as last saved">

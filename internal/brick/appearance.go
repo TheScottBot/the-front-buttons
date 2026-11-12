@@ -16,6 +16,7 @@ type Appearance struct {
 	Label      string `brick:"label"      bounds:"0,24"   description:"Text shown on the key."`
 	Icon       string `brick:"icon"       bounds:"1,64"   format:"identifier"                                   description:"Name of a bundled icon."`
 	Background string `brick:"background" format:"colour" description:"Key background colour, written #RRGGBB."`
+	IconFile   string `brick:"icon_file"  bounds:"5,128"  format:"png_file"                                     description:"A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB."`
 }
 
 // AppearanceFieldNames lists the names of the shared appearance fields, read

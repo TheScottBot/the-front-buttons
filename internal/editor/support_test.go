@@ -68,6 +68,12 @@ type noIcons struct{}
 
 func (noIcons) IconMask(string, int) (*image.Alpha, bool) { return nil, false }
 
+// galleryIcons names a handful of icons for the gallery's tests, out of order,
+// as a real icon set's map would give them.
+type galleryIcons struct{}
+
+func (galleryIcons) Names() []string { return []string{"sword", "dice-5", "dragon", "brand-discord"} }
+
 func harnessRegistry(t *testing.T, registerExtra func(registry *brick.Registry) error) *brick.Registry {
 	t.Helper()
 
@@ -133,6 +139,8 @@ func newHarness(t *testing.T, registerExtra func(registry *brick.Registry) error
 		Presets:     presetTable,
 		Grid:        grid,
 		Renderer:    renderer,
+		Icons:       galleryIcons{},
+		IconFiles:   nil,
 		Credentials: harness.credentials,
 		Counters:    harness.counters,
 		Logger:      slog.New(slog.DiscardHandler),

@@ -132,7 +132,7 @@ func TestDecode_AcceptsEveryFieldType(t *testing.T) {
 	}
 
 	wantPoller := testsupport.PollerParameters{
-		Icon: "brand-github", Label: "", Background: "",
+		Icon: "brand-github", Label: "", Background: "", IconFile: "",
 		Source: "main-build", Every: 90 * time.Second, Enabled: true, Retries: 3, Credential: "github-work",
 	}
 	if *poller != wantPoller {

@@ -1,0 +1,15 @@
+{{template "head" .}}
+<h1>Icons</h1>
+<p>{{.Total}} icons are bundled, from Tabler Icons. Put an icon's name in a key's Icon field.</p>
+<form method="get" action="/icons" role="search" class="icon-search">
+<label for="icon-query">Search icon names</label>
+<input id="icon-query" name="q" type="search" value="{{.Query}}" maxlength="64" autocomplete="off" hx-get="/icons" hx-trigger="input changed delay:250ms, search" hx-target="#icon-results" hx-select="#icon-results" hx-swap="outerHTML" hx-replace-url="true">
+<button type="submit">Search</button>
+</form>
+<div id="icon-results">
+<p class="summary">{{.Summary}}</p>
+{{if .Icons}}<ul class="icon-gallery">
+{{range .Icons}}<li><img src="/icon.png?name={{.}}" alt="" width="72" height="72" loading="lazy"><code>{{.}}</code></li>
+{{end}}</ul>{{end}}
+</div>
+{{template "foot" .}}

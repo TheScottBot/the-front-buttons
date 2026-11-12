@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"image"
 	"log/slog"
 	"net"
 	"net/http"
@@ -62,6 +63,16 @@ type ConfigurationStore interface {
 	LastRejection() error
 }
 
+// IconFileLoader reads a key's own icon file by its name, for the preview.
+type IconFileLoader interface {
+	Load(fileName string) (image.Image, error)
+}
+
+// IconCatalogue lists the bundled icons' names, for the editor's icon gallery.
+type IconCatalogue interface {
+	Names() []string
+}
+
 // Options are the editor's collaborators, supplied by the composition root.
 type Options struct {
 	Address     string
@@ -71,6 +82,8 @@ type Options struct {
 	Presets     presets.Table
 	Grid        layout.Grid
 	Renderer    *render.Renderer
+	Icons       IconCatalogue
+	IconFiles   IconFileLoader
 	Credentials platform.CredentialStore
 	Counters    *diagnostics.Counters
 	Logger      *slog.Logger
@@ -125,7 +138,10 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("GET /key", pages.showKey)
 	mux.HandleFunc("POST /key", pages.saveKey)
 	mux.HandleFunc("POST /key/delete", pages.deleteKey)
+	mux.HandleFunc("POST /key/move", pages.moveKey)
 	mux.HandleFunc("GET /preview.png", pages.preview)
+	mux.HandleFunc("GET /icons", pages.showIcons)
+	mux.HandleFunc("GET /icon.png", pages.iconPreview)
 	mux.HandleFunc("GET /credentials", pages.showCredentials)
 	mux.HandleFunc("POST /credentials", pages.storeCredential)
 	mux.HandleFunc("GET /diagnostics", pages.showDiagnostics)

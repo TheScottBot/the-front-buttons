@@ -2647,6 +2647,77 @@ zero lets the system choose, and the default is 48080. After two reinstalls in
 a row the log read `http://127.0.0.1:48080/` both times and the page answered
 200. README and SECURITY.md, including its note for IT, now name the port.
 
+### The D&D Beyond preset on the deck
+
+The author added three `dndbeyond_character` keys from the editor, one per
+character, and pressed each: all three opened the right character sheet. With
+the Discord app link, that is experiment 3 run for both presets the author
+uses on the Mac; Teams is owed.
+
+### The icon gallery and keys' own icons, at the author's request
+
+The author asked to use the D&D Beyond logo. The agent declined to bundle it:
+it is Wizards of the Coast's trademark and artwork, and this repository is
+public under the MIT licence. Two features followed instead.
+
+**The icon gallery.** The author had "no clue what icons are available". The
+editor gains an Icons page listing every bundled icon (5,247), each drawn by the
+key renderer as it would be on a key, filtered by a search that needs every
+word typed to appear in the name, showing at most 120 at a time with the count,
+and linked from every key form's Icon field. Only a known icon's name is drawn;
+any other name is not found. Tests first, failing to build before the page
+existed: the list in order with previews and a count, the search, the preview's
+404 for an unknown or path like name, and the link from the Icon field. Seen in
+the pane on the real set: a search for "dice" showed seven icons.
+
+**`icon_file`.** TD5 settled that a person's own icons are PNG, and the renderer
+could already decode one within bounds, but nothing connected a key to a file:
+that half of TD5 had never been built. Every key's appearance gains
+`icon_file`, a plain PNG file name (format `png_file`: dot separated parts of
+letters, digits, underscores and hyphens, ending `.png`; no slash, no leading
+dot, no empty part), used instead of `icon`. The file is read only from the
+`icons` folder beside the configuration file, through `os.Root`, so neither a
+name nor a link in the folder can reach another file; at most one byte past the
+1 MB bound is read, and the existing decoder checks the size and dimensions
+before decoding. A file that cannot be loaded draws the missing icon marker,
+exactly as an unknown bundled icon does, and is logged once per configuration
+with the reason. The daemon and the editor's preview share the reader.
+
+Tests first, each failing before the code: the format's twelve accept and
+refuse cases; the folder reading a PNG, refusing traversal and non PNG names
+before touching the disk (with a planted file outside the folder left unread),
+reporting a missing file, and refusing an oversized one; the renderer drawing
+the missing marker for an unloadable file identically to an unknown icon; and
+the daemon drawing a key's own PNG, or the marker when its file is gone. The
+README's generated brick reference now lists `icon_file` on every kind and
+preset.
+
+### Moving and copying keys in the editor
+
+The author asked to move the Editor key without re-entering it. At the
+author's request the work went to a subagent, briefed with the datum's rules
+(tests first, no git writes, no documents, the running daemon left alone),
+while the agent finished `icon_file`. An existing key's page gains a "Move or
+copy this key" form (destination page, row and column, labelled, starting at
+the key's place) posting to `POST /key/move` through the same guard and save
+path as every other change. The destination must be a free tile on the grid,
+not a paging position and not the key's own place; anything else is refused
+with a 422 naming why, the title starting "Error:" and focus on the destination
+page. A move or a copy carries the key's kind, parameters and preset over
+exactly, as a deep copy (`config.Key.Clone`, now also used by the configuration
+copy), so a copy and its original share nothing.
+
+The subagent's report gave its failing runs before the code (the route absent:
+404s, and no form on the page) and nine tests, covering a move, an independent
+copy, a preset moved across pages, every refusal, the token guard and a broken
+file on disk. The agent then reran every check independently (all tests, 0 lint
+issues, no duplicate code, no new lint exceptions), read the checks and the
+copy, and tried it in the browser pane against a scratch configuration: the
+Editor key moved from row 1, column 3 to row 0, column 4 in the file, and moving
+a key onto an occupied tile was refused with "that destination already has a
+key". The native selects were set directly, as the pane cannot drive them by
+key on macOS.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

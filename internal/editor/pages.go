@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"image"
 	"image/png"
 	"net/http"
 	"net/url"
@@ -38,6 +39,7 @@ var errFileRefused = errors.New("configuration file on disk is invalid")
 type pageHandlers struct {
 	options   Options
 	templates *template.Template
+	icons     iconIndex
 }
 
 func newPageHandlers(options Options) *pageHandlers {
@@ -45,7 +47,7 @@ func newPageHandlers(options Options) *pageHandlers {
 	// failure here is a broken build, found at start up rather than on a request.
 	templates := template.Must(template.ParseFS(embeddedFiles, "templates/*.html"))
 
-	return &pageHandlers{options: options, templates: templates}
+	return &pageHandlers{options: options, templates: templates, icons: newIconIndex(options.Icons)}
 }
 
 // baseView is what every page shows: the product name, the token for its forms,
@@ -301,6 +303,7 @@ type keyView struct {
 	Types         []typeOption
 	Fields        []fieldView
 	Errors        []string
+	Move          moveView
 }
 
 func (pages *pageHandlers) showKey(writer http.ResponseWriter, request *http.Request) {
@@ -310,12 +313,30 @@ func (pages *pageHandlers) showKey(writer http.ResponseWriter, request *http.Req
 		Row: integerParameter(query, "row"), Column: integerParameter(query, "column"),
 	}
 
+	context, typeError := pages.storedKeyContext(configuration, pageIndex, position, query.Get("type"))
+	if typeError != nil {
+		http.Error(writer, "unknown key type", http.StatusBadRequest)
+
+		return
+	}
+
+	context.problems = problems
+	pages.renderKey(writer, request, http.StatusOK, context)
+}
+
+// storedKeyContext is the key form for a position as the configuration holds
+// it: the stored key's type and fields, or, for a free position, the chosen or
+// first type with an empty form.
+func (pages *pageHandlers) storedKeyContext(
+	configuration config.Configuration,
+	pageIndex int,
+	position layout.Position,
+	choice string,
+) (keyContext, error) {
 	existing, hasKey := config.Key{Position: position, Kind: "", Parameters: nil, Preset: nil}, false
 	if pageIndex >= 0 && pageIndex < len(configuration.Pages) {
 		existing, hasKey = keyAt(configuration.Pages[pageIndex], position)
 	}
-
-	choice := query.Get("type")
 
 	switch {
 	case choice == "" && hasKey:
@@ -326,24 +347,41 @@ func (pages *pageHandlers) showKey(writer http.ResponseWriter, request *http.Req
 
 	resolved, typeError := pages.resolveType(choice)
 	if typeError != nil {
-		http.Error(writer, "unknown key type", http.StatusBadRequest)
+		var unknown keyContext
 
-		return
+		return unknown, typeError
 	}
 
 	var filled any
 
 	if hasKey && typeChoiceOf(existing) == choice {
-		filled = existing.Parameters
-		if existing.Preset != nil {
-			filled = existing.Preset.Fields
-		}
+		filled = storedFields(existing)
 	}
 
-	pages.renderKey(writer, request, http.StatusOK, keyContext{
+	return keyContext{
 		pageIndex: pageIndex, position: position, hasKey: hasKey, resolved: resolved,
-		fields: fieldViews(resolved.schema, filled, nil), errors: nil, problems: problems,
-	})
+		fields: fieldViews(resolved.schema, filled, nil), errors: nil, problems: nil,
+		pageNames: pageNamesOf(configuration), moveFailed: false,
+	}, nil
+}
+
+// storedFields is what fills a stored key's form: a preset key's own fields,
+// not the parameters the preset expands them into.
+func storedFields(key config.Key) any {
+	if key.Preset != nil {
+		return key.Preset.Fields
+	}
+
+	return key.Parameters
+}
+
+func pageNamesOf(configuration config.Configuration) []string {
+	names := make([]string, 0, len(configuration.Pages))
+	for _, page := range configuration.Pages {
+		names = append(names, page.Name)
+	}
+
+	return names
 }
 
 // keyContext is everything the key form shows.
@@ -355,6 +393,10 @@ type keyContext struct {
 	fields    []fieldView
 	errors    []string
 	problems  []string
+	// pageNames lists every page, for the move form's destination; the form
+	// is shown only for a stored key.
+	pageNames  []string
+	moveFailed bool
 }
 
 func (pages *pageHandlers) renderKey(
@@ -380,6 +422,7 @@ func (pages *pageHandlers) renderKey(
 		Types:         pages.typeOptions(context.resolved.choice),
 		Fields:        context.fields,
 		Errors:        context.errors,
+		Move:          pages.moveChoices(context),
 	})
 }
 
@@ -405,7 +448,7 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 
 		pages.renderKey(writer, request, http.StatusUnprocessableEntity, keyContext{
 			pageIndex: pageIndex, position: position, hasKey: false, resolved: resolved,
-			fields: views, errors: general, problems: nil,
+			fields: views, errors: general, problems: nil, pageNames: nil, moveFailed: false,
 		})
 	}
 
@@ -437,6 +480,12 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
+	redirectToSavedPage(writer, request, pageIndex)
+}
+
+// redirectToSavedPage sends the browser to a page after a saved change, with
+// the saved message for its live region.
+func redirectToSavedPage(writer http.ResponseWriter, request *http.Request, pageIndex int) {
 	// The redirect's only variable part is a formatted integer, so it can only
 	// ever name one of the editor's own pages.
 	pageAddress := fmt.Sprintf("/page?page=%d&saved=key", pageIndex)
@@ -541,25 +590,29 @@ func (pages *pageHandlers) afterPageChange(
 	saveError error,
 ) {
 	if saveError == nil {
-		// The only variable part is a formatted integer: always the editor's own page.
-		pageAddress := fmt.Sprintf("/page?page=%d&saved=key", pageIndex)
-		http.Redirect(writer, request, pageAddress, http.StatusSeeOther) //nolint:gosec // see above
+		redirectToSavedPage(writer, request, pageIndex)
 
 		return
 	}
 
-	problems := []string{saveMessage(saveError)}
-	if rejection, isRejection := errors.AsType[*config.RejectionError](saveError); isRejection {
-		fieldProblems, general := problemsByField(rejection)
-		problems = general
+	configuration, _ := pages.configuration()
+	pages.renderPage(writer, request, http.StatusUnprocessableEntity, configuration, pageIndex, saveProblems(saveError))
+}
 
-		for _, message := range fieldProblems {
-			problems = append(problems, message)
-		}
+// saveProblems lists why a save was refused, in words: each of the store's
+// problems, or the one reason the save could not happen.
+func saveProblems(saveError error) []string {
+	rejection, isRejection := errors.AsType[*config.RejectionError](saveError)
+	if !isRejection {
+		return []string{saveMessage(saveError)}
 	}
 
-	configuration, _ := pages.configuration()
-	pages.renderPage(writer, request, http.StatusUnprocessableEntity, configuration, pageIndex, problems)
+	fieldProblems, problems := problemsByField(rejection)
+	for _, message := range fieldProblems {
+		problems = append(problems, message)
+	}
+
+	return problems
 }
 
 func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Request) {
@@ -571,13 +624,19 @@ func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Req
 	appearance := render.Appearance{
 		Label: query.Get(fieldPrefix + "label"), Icon: query.Get(fieldPrefix + "icon"),
 	}
+	iconFile := query.Get(fieldPrefix + "icon_file")
 
 	if query.Get("type") == "" && pageIndex >= 0 && pageIndex < len(configuration.Pages) {
 		if key, found := keyAt(configuration.Pages[pageIndex], position); found {
 			configured, _ := brick.AppearanceOf(key.Parameters)
-			appearance.Label, appearance.Icon = configured.Label, configured.Icon
+			appearance.Label, appearance.Icon, iconFile = configured.Label, configured.Icon, configured.IconFile
 			query.Set(fieldPrefix+"background", configured.Background)
 		}
+	}
+
+	if iconFile != "" {
+		appearance.IconImage = pages.loadIconFile(iconFile)
+		appearance.IconMissing = appearance.IconImage == nil
 	}
 
 	background, parseError := render.ParseColour(query.Get(fieldPrefix + "background"))
@@ -715,4 +774,19 @@ func (pages *pageHandlers) showDiagnostics(writer http.ResponseWriter, request *
 	}
 
 	pages.render(writer, http.StatusOK, "diagnostics.html", view)
+}
+
+// loadIconFile reads a key's own icon for the preview, or returns nil, drawn as
+// the missing marker, if there is no icons folder or the file will not load.
+func (pages *pageHandlers) loadIconFile(fileName string) image.Image {
+	if pages.options.IconFiles == nil {
+		return nil
+	}
+
+	icon, loadError := pages.options.IconFiles.Load(fileName)
+	if loadError != nil {
+		return nil
+	}
+
+	return icon
 }

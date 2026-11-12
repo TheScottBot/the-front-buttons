@@ -86,9 +86,12 @@ func StatusWord(status Status) string {
 // its error state, which outranks a status (specification section 2: a brick in
 // error shows that, never failing silently).
 type Appearance struct {
-	Label       string
-	Icon        string
-	IconImage   image.Image
+	Label     string
+	Icon      string
+	IconImage image.Image
+	// IconMissing marks a key whose own icon file could not be loaded; it is
+	// drawn with the missing icon marker, as an unknown bundled icon is.
+	IconMissing bool
 	Background  color.RGBA
 	Status      Status
 	ErrorReason string

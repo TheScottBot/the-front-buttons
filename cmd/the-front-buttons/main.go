@@ -34,6 +34,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/presets"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 	"github.com/TheScottBot/the-front-buttons/internal/render/tablericons"
+	"github.com/TheScottBot/the-front-buttons/internal/usericons"
 )
 
 // The daemon's timings and settings. Each is provisional until the author gates
@@ -46,6 +47,9 @@ const (
 	// keyReadTimeout bounds each wait for a key report. The adapter holds its
 	// lock while reading, so a short wait keeps key image writes from queueing.
 	keyReadTimeout = 50 * time.Millisecond
+	// iconsFolderName is the folder beside the configuration file that holds
+	// keys' own icons.
+	iconsFolderName = "icons"
 	// maximumPort is the highest TCP port number.
 	maximumPort = 65535
 	// usageExitStatus reports a command line the daemon cannot use.
@@ -227,6 +231,10 @@ type core struct {
 	registry    *brick.Registry
 	presetTable presets.Table
 	renderer    *render.Renderer
+	icons       *tablericons.IconSet
+	// iconFiles reads keys' own icons from the icons folder beside the
+	// configuration file; set once that file is chosen.
+	iconFiles usericons.Folder
 }
 
 func buildCore() (core, error) {
@@ -266,7 +274,10 @@ func buildCore() (core, error) {
 		return core{}, fmt.Errorf("building the renderer: %w", rendererError)
 	}
 
-	return core{model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer}, nil
+	return core{
+		model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer, icons: icons,
+		iconFiles: usericons.NewFolder(""),
+	}, nil
 }
 
 func start(runContext context.Context, logger *slog.Logger, configPathOverride string, editorPort int) error {
@@ -279,6 +290,8 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 	if pathError != nil {
 		return pathError
 	}
+
+	built.iconFiles = usericons.NewFolder(filepath.Join(filepath.Dir(configPath), iconsFolderName))
 
 	logger.InfoContext(runContext, "starting",
 		slog.String("product", platform.ProductDisplayName),
@@ -345,7 +358,8 @@ func startEditor(
 	server := new(http.Server)
 	server.Handler = editor.NewHandler(editor.Options{
 		Address: address, Token: token, Store: store, Registry: built.registry, Presets: built.presetTable,
-		Grid: built.grid, Renderer: built.renderer, Credentials: credentials, Counters: counters, Logger: logger,
+		Grid: built.grid, Renderer: built.renderer, Icons: built.icons, IconFiles: built.iconFiles,
+		Credentials: credentials, Counters: counters, Logger: logger,
 	})
 	server.ReadHeaderTimeout = editorHeaderTimeout
 	server.ReadTimeout = editorRequestTimeout
@@ -409,6 +423,7 @@ func daemonOptions(
 		Brightness:      deckBrightness,
 		Counters:        counters,
 		CredentialStore: credentials,
+		IconFiles:       built.iconFiles,
 	}
 }
 

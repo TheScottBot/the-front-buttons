@@ -101,9 +101,31 @@ pages:
 Rows count from 0 at the top and columns from 0 at the left, on the XL's 4 by 8
 grid. Row 3, columns 0 and 7 are the navigation keys and cannot be assigned. A
 key names exactly one of `kind` with `parameters`, or `preset` with `fields`.
-Quote values YAML would read as numbers or booleans, such as IDs. Icons are names
-from the bundled Tabler icon set. Saving from the editor rewrites the file and
-drops hand written comments.
+Quote values YAML would read as numbers or booleans, such as IDs. Saving from
+the editor rewrites the file and drops hand written comments.
+
+### Icons
+
+`icon` names one of the 5,000 or so bundled Tabler icons; the editor's **Icons**
+page lists them all, drawn as they look on a key, with a search. For a picture
+of your own, put a PNG in the `icons` folder beside the configuration file
+(`~/Library/Application Support/the-front-buttons/icons/` on macOS,
+`%AppData%\the-front-buttons\icons\` on Windows) and name it in `icon_file`,
+which is used instead of `icon`:
+
+```yaml
+      - row: 0
+        column: 3
+        preset: dndbeyond_character
+        fields:
+          character_id: "143332240"
+          label: Yeku
+          icon_file: yeku.png
+```
+
+The name is a plain file name ending `.png`, with no folders. The file must be a
+PNG of at most 512 pixels on each side and 1 MB. A key whose file is missing or
+refused shows the missing icon marker, and the log says why.
 
 ## Credentials
 
@@ -157,6 +179,7 @@ A brick kind.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `application` | text | required | 1 to 512 characters |  | The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows. |
 
 ### `open_editor`
@@ -168,6 +191,7 @@ A brick kind.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
 ### `open_url`
 
@@ -178,6 +202,7 @@ A brick kind.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `url` | text | required | 1 to 2048 characters | link_url | The address the key opens: https, or a discord:// link, which opens the Discord app. |
 
 ### `pipeline_status`
@@ -189,6 +214,7 @@ A brick kind.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `repository` | text | required | 3 to 140 characters |  | The GitHub repository, written owner/name. |
 | `workflow` | text | required | 1 to 255 characters | token | The workflow's file name, such as ci.yml, or its numeric ID. |
 | `branch` | text | required | 1 to 255 characters | branch | The branch whose runs the key shows. |
@@ -205,6 +231,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `server_id` | text | required | 1 to 32 characters | digits | The server ID, from Copy Server ID with Developer Mode on. |
 | `channel_id` | text | required | 1 to 32 characters | digits | The channel ID, from Copy Channel ID with Developer Mode on. |
 
@@ -217,6 +244,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `character_id` | text | required | 1 to 32 characters | digits | The number at the end of the character sheet's address. |
 
 ### `teams_channel`
@@ -228,6 +256,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `channel_id` | text | required | 4 to 256 characters |  | The channel ID beginning 19:, from the channel's URL. |
 | `channel_name` | text | required | 1 to 256 characters |  | The channel's name. |
 | `group_id` | text | required | 1 to 64 characters | identifier | The team's group ID, from the channel's URL. |
@@ -242,6 +271,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `participants` | text | required | 3 to 2048 characters |  | Comma separated user principal names, usually email addresses. |
 
 ### `teams_chat_by_id`
@@ -253,6 +283,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `chat_id` | text | required | 4 to 256 characters |  | The chat ID beginning 19:, from a message's Copy link. |
 
 ### `teams_private_channel`
@@ -264,6 +295,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `channel_id` | text | required | 4 to 256 characters |  | The channel ID beginning 19:, from the channel's URL. |
 | `channel_name` | text | required | 1 to 256 characters |  | The channel's name. |
 | `group_id` | text | required | 1 to 64 characters | identifier | The team's group ID, from the channel's URL. |
@@ -278,6 +310,7 @@ A preset that expands into `open_url`.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `channel_id` | text | required | 4 to 256 characters |  | The channel ID beginning 19:, from the channel's URL. |
 | `channel_name` | text | required | 1 to 256 characters |  | The channel's name. |
 | `group_id` | text | required | 1 to 64 characters | identifier | The team's group ID, from the channel's URL. |

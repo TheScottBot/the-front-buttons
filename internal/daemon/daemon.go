@@ -10,6 +10,7 @@ package daemon
 import (
 	"context"
 	"errors"
+	"image"
 	"log/slog"
 	"sync"
 	"time"
@@ -60,6 +61,14 @@ type Options struct {
 
 	Counters        *diagnostics.Counters
 	CredentialStore platform.CredentialStore
+	// IconFiles reads keys' own icon files; nil reads none, and a key naming
+	// one shows the missing icon marker.
+	IconFiles IconFileLoader
+}
+
+// IconFileLoader reads a key's own icon file by its name.
+type IconFileLoader interface {
+	Load(fileName string) (image.Image, error)
 }
 
 // Daemon runs the deck.
@@ -171,6 +180,9 @@ type loopState struct {
 	hub         *live.Hub
 	liveChanges *liveChangeSet
 	liveReasons map[string]string
+	// iconFiles holds each icon file loaded under the current configuration,
+	// nil for one that failed, so a file is read once per configuration.
+	iconFiles map[string]image.Image
 
 	pages                   [][]configuredKey
 	pageNames               []string
@@ -194,6 +206,7 @@ func newLoopState(options Options) *loopState {
 		hub:                     nil,
 		liveChanges:             newLiveChangeSet(),
 		liveReasons:             map[string]string{},
+		iconFiles:               map[string]image.Image{},
 		pages:                   nil,
 		pageNames:               nil,
 		paging:                  layout.NewPaging(0),
@@ -247,6 +260,7 @@ func (state *loopState) handle(runContext context.Context, received any) {
 
 func (state *loopState) applyConfiguration(runContext context.Context, configuration config.Configuration) {
 	state.configurationGeneration++
+	state.iconFiles = map[string]image.Image{}
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
 	state.pageNames = make([]string, 0, len(configuration.Pages))
 

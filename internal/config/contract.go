@@ -129,18 +129,24 @@ func (configuration Configuration) clone() Configuration {
 		keys := make([]Key, 0, len(page.Keys))
 
 		for _, key := range page.Keys {
-			clonedKey := Key{Position: key.Position, Kind: key.Kind, Parameters: clonePointer(key.Parameters), Preset: nil}
-			if key.Preset != nil {
-				clonedKey.Preset = &PresetSource{Name: key.Preset.Name, Fields: clonePointer(key.Preset.Fields)}
-			}
-
-			keys = append(keys, clonedKey)
+			keys = append(keys, key.Clone())
 		}
 
 		pages = append(pages, Page{Name: page.Name, Keys: keys})
 	}
 
 	return Configuration{SchemaVersion: configuration.SchemaVersion, Pages: pages}
+}
+
+// Clone returns a deep copy of the key, so a copy made in the editor shares no
+// parameters or preset fields with the key it was copied from.
+func (key Key) Clone() Key {
+	cloned := Key{Position: key.Position, Kind: key.Kind, Parameters: clonePointer(key.Parameters), Preset: nil}
+	if key.Preset != nil {
+		cloned.Preset = &PresetSource{Name: key.Preset.Name, Fields: clonePointer(key.Preset.Fields)}
+	}
+
+	return cloned
 }
 
 // clonePointer copies the struct a parameters pointer points to. Parameter

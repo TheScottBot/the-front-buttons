@@ -27,7 +27,7 @@ func liveKey(source string, row int, column int, credential string) config.Key {
 		Position: layout.Position{Row: row, Column: column},
 		Kind:     testsupport.LiveKindName,
 		Parameters: &testsupport.LiveParameters{
-			Label: buildLabel, Icon: "", Background: "", Source: source, Credential: credential,
+			Label: buildLabel, Icon: "", Background: "", IconFile: "", Source: source, Credential: credential,
 		},
 		Preset: nil,
 	}

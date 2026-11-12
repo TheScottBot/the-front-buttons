@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"image"
 	"log/slog"
 
@@ -9,6 +10,10 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
+
+// errNoIconFiles reports a key naming an icon file when the daemon was given no
+// way to read icon files.
+var errNoIconFiles = errors.New("no icons folder")
 
 // repaintAll draws every key of the current page: the full repaint on connect,
 // on paging and on reload. A failed write means the deck has gone, so the deck
@@ -108,6 +113,11 @@ func (state *loopState) appearanceFor(configured configuredKey) render.Appearanc
 		ErrorReason: configured.errorReason,
 	}
 
+	if configuredAppearance.IconFile != "" {
+		appearance.IconImage = state.iconFile(configuredAppearance.IconFile)
+		appearance.IconMissing = appearance.IconImage == nil
+	}
+
 	if source, isLive := configured.instance.(brick.LiveSource); isLive {
 		if liveState, published := state.hub.State(source.LiveIdentity()); published {
 			appearance.Status = liveState.Status
@@ -126,4 +136,30 @@ func (state *loopState) appearanceFor(configured configuredKey) render.Appearanc
 	}
 
 	return appearance
+}
+
+// iconFile returns a key's own icon, loading it once per configuration, or nil
+// if it cannot be loaded, which is logged once with the reason.
+func (state *loopState) iconFile(fileName string) image.Image {
+	if icon, tried := state.iconFiles[fileName]; tried {
+		return icon
+	}
+
+	var icon image.Image
+
+	loadError := errNoIconFiles
+	if state.options.IconFiles != nil {
+		icon, loadError = state.options.IconFiles.Load(fileName)
+	}
+
+	if loadError != nil {
+		icon = nil
+
+		state.options.Logger.Warn("icon file not loaded",
+			slog.String("file", fileName), slog.String("error", loadError.Error()))
+	}
+
+	state.iconFiles[fileName] = icon
+
+	return icon
 }

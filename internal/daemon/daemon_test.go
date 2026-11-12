@@ -134,6 +134,7 @@ func startHarness(t *testing.T) *harness {
 		PollInterval:    testPollInterval,
 		ReadTimeout:     testReadTimeout,
 		Brightness:      70,
+		IconFiles:       iconFilesTestDouble{},
 	})
 
 	go func() { running.done <- runner.Run(runContext, running.configurations) }()
@@ -162,7 +163,7 @@ func button(name string, column int, fails bool) config.Key {
 		Position: layout.Position{Row: 0, Column: column},
 		Kind:     testsupport.ButtonKindName,
 		Parameters: &testsupport.ButtonParameters{
-			Label: name, Icon: "", Background: "", Name: name, Fails: fails,
+			Label: name, Icon: "", Background: "", IconFile: "", Name: name, Fails: fails,
 		},
 		Preset: nil,
 	}

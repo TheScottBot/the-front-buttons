@@ -47,7 +47,7 @@ func TestDeriveSchema_ListsEveryFieldInDeclarationOrder_IncludingAppearance(t *t
 	}
 
 	want := []string{
-		labelFieldName, iconFieldName, backgroundFieldName, addressFieldName,
+		labelFieldName, iconFieldName, backgroundFieldName, "icon_file", addressFieldName,
 		countFieldName, enabledFieldName, intervalFieldName, credentialFieldName,
 	}
 	if !reflect.DeepEqual(fieldNames, want) {
@@ -246,6 +246,7 @@ func TestSchemaAssignAndRead_RoundTripEveryFieldType(t *testing.T) {
 		Label:      docsLabel,
 		Icon:       "",
 		Background: "",
+		IconFile:   "",
 		Address:    sampleAddress,
 		Count:      3,
 		Enabled:    true,

@@ -11,7 +11,7 @@ import (
 func TestAppearanceOf_ReadsTheEmbeddedAppearance(t *testing.T) {
 	t.Parallel()
 
-	want := brick.Appearance{Label: docsLabel, Icon: "brand-github", Background: "#102030"}
+	want := brick.Appearance{Label: docsLabel, Icon: "brand-github", Background: "#102030", IconFile: ""}
 	parameters := &sampleParameters{
 		Appearance: want, Address: sampleAddress, Count: 1, Enabled: true, Interval: 0, Credential: "",
 	}

@@ -48,6 +48,11 @@ const (
 	FormatToken Format = "token"
 	// FormatBranch is a branch name, which may hold slashes but never "..".
 	FormatBranch Format = "branch"
+	// FormatPNGFile is a PNG's plain file name: letters, digits, underscores and
+	// hyphens in dot separated parts, ending .png, with no slash, no leading dot
+	// and no empty part, so it can only name a file in the folder it is read
+	// from.
+	FormatPNGFile Format = "png_file"
 )
 
 // Bounds limits a value: the length in characters for text, the value for an
@@ -125,6 +130,7 @@ var (
 	repositoryPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,39}/[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$`)
 	tokenPattern      = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]*$`)
 	branchPattern     = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._/-]*$`)
+	pngFilePattern    = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*\.[pP][nN][gG]$`)
 )
 
 // formatCheckers holds the one check per format.
@@ -138,6 +144,7 @@ func formatCheckers() map[Format]func(textValue string) bool {
 		FormatRepository: repositoryPattern.MatchString,
 		FormatToken:      tokenPattern.MatchString,
 		FormatBranch:     isBranchName,
+		FormatPNGFile:    pngFilePattern.MatchString,
 	}
 }
 

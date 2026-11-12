@@ -45,6 +45,15 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   `-editor-port` picks another port (the author's decision, reversing TE9's new
   port at every launch).
 
+- The editor has an Icons page: every bundled icon, drawn as on a key, with a
+  search, linked from each key's Icon field.
+- A key can show a PNG of the person's own: `icon_file` names a file in the
+  `icons` folder beside the configuration (TD5's user icons, never before
+  connected to a key).
+
+- A configured key can be moved or copied to a free tile on any page from its
+  editor page, keeping its kind, parameters and preset.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

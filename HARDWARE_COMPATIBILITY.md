@@ -16,7 +16,7 @@ None yet. The deck had not arrived when this file was written (DV1).
 |---|---|---|
 | Experiment 1: open the XL, read key reports, write an image, replug; record the key order, the input header, the HID usage page, the brightness length and the macOS feature read | MacBook, Dell | run on the MacBook on 12 November 2026, replug included (evaluation, deck testing), awaiting the author's row; Dell owed |
 | Experiment 2: dock switch, what each system reports and how long it takes | both | owed |
-| Experiment 3: every preset's link opened from a shell | both | Discord's app link run on the MacBook on 12 November 2026; Teams, D&D Beyond and the Dell owed |
+| Experiment 3: every preset's link opened from a shell | both | Discord's app link and three D&D Beyond character sheets run on the MacBook on 12 November 2026; Teams and the Dell owed |
 | Experiment 5: one GitHub request with the author's token, repeated with If-None-Match | either | owed |
 | TE1: reproduce the automated criteria; CI green on both runners | both | CI green on macos-26 and windows-2025 on 12 November 2026 (run 43299936830), awaiting the author's row; reproduction on the Dell owed |
 | TE4: legibility at arm's length in the dock, normal desk lighting | both | reported legible on the MacBook on 12 November 2026, awaiting the author's row; Dell owed |

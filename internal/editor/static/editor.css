@@ -412,3 +412,66 @@ figcaption {
     transform: none;
   }
 }
+
+/* The icon gallery: a search, then tiles drawn as keys with their names. */
+
+input[type="search"] {
+  font: inherit;
+  width: 100%;
+  max-width: 26rem;
+  padding: 0.5rem 0.6rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 0;
+}
+
+.summary {
+  font-weight: 700;
+}
+
+.icon-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.icon-gallery li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.4rem;
+  background: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--paper);
+}
+
+.icon-gallery code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--yellow);
+  overflow-wrap: anywhere;
+  text-align: center;
+  user-select: all;
+}
+
+/* The move or copy form: its controls grouped under a heavy ink rule, the
+   legend as a black tag like the product name. */
+
+.move-form fieldset {
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 3px solid var(--ink);
+}
+
+.move-form legend {
+  padding: 0.2rem 0.6rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  color: var(--pink);
+  background: var(--ink);
+}

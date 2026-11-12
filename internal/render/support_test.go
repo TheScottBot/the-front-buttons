@@ -13,6 +13,12 @@ import (
 // model table becomes the real source of this value.
 const testKeyPixels = 96
 
+// lostLabel and unknownIconName make a key whose icon cannot be drawn.
+const (
+	lostLabel       = "Lost"
+	unknownIconName = "no-such-icon"
+)
+
 // knownTestIconName is the one icon the fake icon set has.
 const knownTestIconName = "test-circle"
 

@@ -85,6 +85,10 @@ func (renderer *Renderer) drawIcon(key *image.RGBA, box glyphBox, appearance App
 			appearance.IconImage, appearance.IconImage.Bounds(), xdraw.Over, nil)
 
 		return true
+	case appearance.IconMissing:
+		drawMissingIconGlyph(box, foreground)
+
+		return true
 	case appearance.Icon != "":
 		mask, iconFound := renderer.icons.IconMask(appearance.Icon, iconRectangle.Dx())
 		if !iconFound {

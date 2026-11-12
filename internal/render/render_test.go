@@ -49,7 +49,7 @@ func TestRender_MatchesGoldenImages(t *testing.T) {
 	goldenCases := map[string]render.Appearance{
 		"label_only":              {Label: docsLabel},
 		"label_with_bundled_icon": {Label: buildLabel, Icon: knownTestIconName},
-		"missing_icon":            {Label: "Lost", Icon: "no-such-icon"},
+		"missing_icon":            {Label: lostLabel, Icon: unknownIconName},
 		"long_label":              {Label: "A label far too long to fit on one key"},
 		"user_icon":               {Label: "Mine", IconImage: userIcon},
 		"light_background":        {Label: "Light", Background: color.RGBA{R: 0xf0, G: 0xf0, B: 0xf0, A: 0xff}},
@@ -263,7 +263,7 @@ func TestRender_CentresAnIconAndLabelVertically_WhenThereIsNoStatusWord(t *testi
 
 	for _, appearance := range []render.Appearance{
 		{Label: buildLabel, Icon: knownTestIconName},
-		{Label: "Lost", Icon: "no-such-icon"},
+		{Label: lostLabel, Icon: unknownIconName},
 		{Icon: knownTestIconName},
 	} {
 		first, last := inkRows(renderer.Render(appearance))
@@ -273,5 +273,22 @@ func TestRender_CentresAnIconAndLabelVertically_WhenThereIsNoStatusWord(t *testi
 			t.Errorf("%+v: %d pixels above the content and %d below, want within %d of each other",
 				appearance, above, below, allowedImbalancePixels)
 		}
+	}
+}
+
+// TestRender_DrawsTheMissingMarker_ForAnIconFileThatCouldNotBeLoaded: a key
+// whose icon_file is missing or unreadable looks like a key whose bundled icon
+// name is unknown, so both mistakes read the same on the deck.
+func TestRender_DrawsTheMissingMarker_ForAnIconFileThatCouldNotBeLoaded(t *testing.T) {
+	t.Parallel()
+
+	renderer := newTestRenderer(t)
+
+	unloadable := renderer.Render(render.Appearance{Label: lostLabel, IconMissing: true})
+	unknownName := renderer.Render(render.Appearance{Label: lostLabel, Icon: unknownIconName})
+
+	if differing := differingCount(luminanceMask(unloadable, unloadable.Bounds()),
+		luminanceMask(unknownName, unknownName.Bounds())); differing != 0 {
+		t.Fatalf("want the missing marker drawn, %d pixels differ", differing)
 	}
 }

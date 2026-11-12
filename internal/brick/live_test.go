@@ -71,3 +71,32 @@ func TestCheckFormat_LinkURL_AcceptsHTTPSAndTheDiscordAppOnly(t *testing.T) {
 		}
 	}
 }
+
+// TestCheckFormat_PNGFile_AcceptsAPlainFileNameOnly covers icon_file: a PNG in
+// the icons folder beside the configuration, named by its file name alone, so a
+// value can never reach any other file (the author's request, evaluation, deck
+// testing).
+func TestCheckFormat_PNGFile_AcceptsAPlainFileNameOnly(t *testing.T) {
+	t.Parallel()
+
+	fileCases := map[string]bool{
+		"yeku.png":           true,
+		"Uri_2.PNG":          true,
+		"d-and-d.beyond.png": true,
+		"../config.png":      false,
+		"icons/yeku.png":     false,
+		`icons\yeku.png`:     false,
+		".hidden.png":        false,
+		"yeku.jpg":           false,
+		"yeku.png.exe":       false,
+		"yeku..png":          false,
+		".png":               false,
+		"":                   false,
+	}
+
+	for value, want := range fileCases {
+		if got := brick.CheckFormat(brick.FormatPNGFile, value); got != want {
+			t.Errorf("CheckFormat(png_file, %q) = %v, want %v", value, got, want)
+		}
+	}
+}
