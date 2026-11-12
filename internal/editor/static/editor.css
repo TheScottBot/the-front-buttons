@@ -539,3 +539,20 @@ input[type="search"] {
 .dialog-close {
   margin: 0;
 }
+
+/* The app picker under an application field. */
+
+label[for$="-picker"] {
+  margin-top: 0.6rem;
+}
+
+.app-picker {
+  font: inherit;
+  width: 100%;
+  max-width: 26rem;
+  padding: 0.5rem 0.6rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 0;
+}

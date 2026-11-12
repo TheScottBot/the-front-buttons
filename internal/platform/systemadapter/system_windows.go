@@ -1,11 +1,22 @@
 package systemadapter
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os/exec"
 	"runtime"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
+)
+
+// The Start menu listing, as PowerShell gives it: every entry's name and AppID,
+// written as JSON. Windows PowerShell 5.1 ships with every Windows 10 and 11.
+const (
+	windowsPowerShellProgram = "powershell.exe"
+	windowsStartAppsCommand  = "Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress"
 )
 
 // NewURLOpener returns this machine's URLOpener: ShellExecuteW.
@@ -46,4 +57,26 @@ func shellExecute(request ShellRequest) error {
 	}
 
 	return nil
+}
+
+// NewApplicationCatalogue lists the Start menu's applications with
+// Get-StartApps, each as a shell:AppsFolder target the launcher opens. Not yet
+// run on a Windows machine: the author is testing on macOS only for now.
+func NewApplicationCatalogue() ApplicationLister {
+	return ApplicationLister{list: func(listContext context.Context) ([]platform.Application, error) {
+		// A fixed program and a fixed command, with no part taken from
+		// configuration.
+		output, runError := exec.CommandContext(listContext, windowsPowerShellProgram,
+			"-NoProfile", "-NonInteractive", "-Command", windowsStartAppsCommand).Output()
+		if runError != nil {
+			return nil, fmt.Errorf("listing Start menu applications: %w", runError)
+		}
+
+		applications, parseError := ParseStartApps(output)
+		if parseError != nil {
+			return nil, parseError
+		}
+
+		return nonEmpty(applications)
+	}}
 }

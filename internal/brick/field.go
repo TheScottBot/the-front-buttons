@@ -74,9 +74,20 @@ type Field struct {
 	// credential store. The secret itself never enters configuration
 	// (specification section 2); the editor offers write only entry for it.
 	Secret bool
+	// Suggestions names a list the editor offers values from, such as the
+	// installed applications; empty for none.
+	Suggestions Suggestions
 
 	structFieldIndex []int
 }
+
+// Suggestions names a list of values the editor can offer for a field. The
+// list itself comes from outside the schema, from a platform adapter.
+type Suggestions string
+
+// SuggestApplications is the installed applications, for the app picker the
+// author asked for (evaluation, deck testing).
+const SuggestApplications Suggestions = "applications"
 
 // RejectionReason categorises why a value was refused, so rejections can be
 // counted by reason rather than logged with their content (datum 0.15).

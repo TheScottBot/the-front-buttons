@@ -41,6 +41,7 @@ type pageHandlers struct {
 	options   Options
 	templates *template.Template
 	icons     iconIndex
+	apps      *applicationCache
 }
 
 func newPageHandlers(options Options) *pageHandlers {
@@ -48,7 +49,10 @@ func newPageHandlers(options Options) *pageHandlers {
 	// failure here is a broken build, found at start up rather than on a request.
 	templates := template.Must(template.ParseFS(embeddedFiles, "templates/*.html"))
 
-	return &pageHandlers{options: options, templates: templates, icons: newIconIndex(options.Icons)}
+	return &pageHandlers{
+		options: options, templates: templates, icons: newIconIndex(options.Icons),
+		apps: newApplicationCache(options.Apps),
+	}
 }
 
 // baseView is what every page shows: the product name, the token for its forms,
@@ -194,6 +198,8 @@ type pageView struct {
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
+	pages.apps.warm(request.Context())
+
 	configuration, problems := pages.configuration()
 	pages.renderPage(writer, request, http.StatusOK, configuration,
 		integerParameter(request.URL.Query(), "page"), problems)
@@ -440,6 +446,8 @@ func (pages *pageHandlers) renderKey(
 	status int,
 	context keyContext,
 ) {
+	pages.attachChoices(request.Context(), context.fields)
+
 	title := "Key"
 	if focusFirstError(context.fields) || len(context.errors) > 0 {
 		title = errorPrefix + title

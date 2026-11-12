@@ -18,7 +18,7 @@ const KindName = "open_application"
 type Parameters struct {
 	brick.Appearance
 
-	Application string `brick:"application,required" bounds:"1,512" description:"The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows."`
+	Application string `brick:"application,required" bounds:"1,512" suggest:"applications" description:"The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows."`
 }
 
 // Register adds the kind to a registry.

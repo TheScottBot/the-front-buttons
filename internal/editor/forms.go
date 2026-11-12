@@ -24,6 +24,9 @@ const (
 	presetChoicePrefix = "preset:"
 )
 
+// textControl is the form control for text, and for durations written as text.
+const textControl = "text"
+
 // errorPrefix starts every error a person reads, so an error is announced in
 // words and never by colour alone (datum 0.16).
 const errorPrefix = "Error: "
@@ -57,6 +60,17 @@ type fieldView struct {
 	Minimum       string
 	Maximum       string
 	Autofocus     bool
+	// Suggestions names the list a picker beside the field offers, and Choices
+	// is that list, filled in when the page is shown.
+	Suggestions brick.Suggestions
+	Choices     []fieldChoice
+}
+
+// fieldChoice is one value a picker offers: what the field takes, and the
+// name a person knows it by.
+type fieldChoice struct {
+	Value string
+	Label string
 }
 
 // DescribedBy lists the ids a control's aria-describedby names: its error
@@ -157,6 +171,8 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			Minimum:       "",
 			Maximum:       "",
 			Autofocus:     false,
+			Suggestions:   field.Suggestions,
+			Choices:       nil,
 		}
 
 		applyBounds(&view, field)
@@ -185,9 +201,9 @@ func controlFor(fieldType brick.FieldType) string {
 	case brick.FieldTypeInteger:
 		return "number"
 	case brick.FieldTypeText, brick.FieldTypeDuration:
-		return "text"
+		return textControl
 	default:
-		return "text"
+		return textControl
 	}
 }
 

@@ -217,7 +217,24 @@
     document.getElementById("drag-help")?.removeAttribute("hidden");
   }
 
+  // internal/editor/web/picker.ts
+  function enablePickers(root) {
+    root.addEventListener("change", (event) => {
+      const picker = event.target;
+      if (!(picker instanceof HTMLSelectElement) || !picker.classList.contains("app-picker")) {
+        return;
+      }
+      const field = root.getElementById(picker.dataset.fills ?? "");
+      if (!(field instanceof HTMLInputElement) || picker.value === "") {
+        return;
+      }
+      field.value = picker.value;
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+
   // internal/editor/web/editor.ts
+  enablePickers(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableDrag(grid);

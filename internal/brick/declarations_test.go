@@ -95,3 +95,15 @@ type embeddedOtherStruct struct {
 // The fields of unexportedField exist only to be rejected; reading hidden keeps
 // the compiler and linters from flagging it unused.
 var _ = unexportedField{Address: "", hidden: ""}.hidden
+
+type unknownSuggestions struct {
+	Name string `brick:"name" suggest:"planets" description:"No such list."`
+}
+
+type suggestionsOnInteger struct {
+	Count int `brick:"count" suggest:"applications" description:"Not text."`
+}
+
+type suggestedApplication struct {
+	Application string `brick:"application" suggest:"applications" description:"An installed application."`
+}

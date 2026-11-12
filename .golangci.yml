@@ -57,6 +57,7 @@ linters:
         - brick
         - bounds
         - format
+        - suggest
         - description
         - yaml
 

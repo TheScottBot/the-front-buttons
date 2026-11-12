@@ -11,5 +11,12 @@
 {{if .Icons}}<ul class="icon-gallery">
 {{range .Icons}}<li><img src="/icon.png?name={{.}}" alt="" width="72" height="72" loading="lazy"><code>{{.}}</code></li>
 {{end}}</ul>{{end}}
+{{if gt .PageCount 1}}<nav aria-label="Icon pages">
+<ul class="pages">
+{{if .PreviousHref}}<li><a href="{{.PreviousHref}}" rel="prev">Previous page</a></li>
+{{end}}<li>Page {{.PageNumber}} of {{.PageCount}}</li>
+{{if .NextHref}}<li><a href="{{.NextHref}}" rel="next">Next page</a></li>
+{{end}}</ul>
+</nav>{{end}}
 </div>
 {{template "foot" .}}

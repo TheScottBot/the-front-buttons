@@ -2854,8 +2854,64 @@ reinstalling read the author's own grid: Main as `open_server`, Yeku, Uri and
 Foli as `open_character`, CI as `pipeline_status` and plain links as
 `open_url`.
 
+### An app picker, on both systems
+
+The author asked for an app picker, "multi plat of course". The
+`open_application` key's Application field gains a list of the installed
+applications by name, under the field, labelled "Or choose an installed
+application"; choosing one fills the field with the identifier the launcher
+takes, and the field can still be typed into. A field asks for a list through
+a new schema tag, `suggest:"applications"`, the only list so far; an unknown
+list, or one on a field that is not text, is a declaration fault.
+
+The list comes through a new port, `platform.ApplicationCatalogue`, with an
+adapter per system. The parts that interpret what the system says are built
+everywhere and tested on any machine; only the commands are per system.
+
+- macOS: the bundles in `/Applications`, `/System/Applications` and
+  `~/Applications` and the folders directly inside them, never inside a bundle,
+  following symbolic links (macOS links `/Applications/Safari.app` elsewhere,
+  which the first scan of the author's Mac missed), each named from its
+  Info.plist through `/usr/bin/plutil`, which reads the XML and binary forms,
+  and identified by its bundle identifier, or its name when it has none.
+- Windows: `Get-StartApps` through Windows PowerShell, each entry stored as a
+  `shell:AppsFolder\` target, which the launcher already passes straight to
+  ShellExecute (DV3), so desktop and packaged applications open alike without
+  a launcher change. Not run on a Windows machine: the author is testing on
+  macOS only for now. It is vetted and linted for Windows from the Mac.
+
+The editor keeps the list for ten minutes and fetches it in the background,
+started when the grid page is shown, so a key's page rarely waits; a failed
+listing keeps the last list. A first version started the fetch when the editor
+was built, which `contextcheck` rightly flagged; the fetch now starts from a
+request and outlives it without its cancellation.
+
+Tests first, each failing before its code: the suggest tag and its faults, the
+Start menu parser (an array, a single object, duplicates, blanks, a hyphen led
+AppID refused, output that is not JSON), the bundle scan with a stand in
+reader (nested folders, bundles inside bundles left alone, unreadable bundles
+left out, a linked bundle followed), and the picker on the application field
+only. On the author's Mac the scan offered 91 applications, Safari among them,
+and in the browser pane choosing Spotify filled the field with
+`com.spotify.client`. That check found the script was loaded only on the grid
+page, so the picker did nothing on a key's own page; the script now loads from
+the shared layout on every page, with a test.
+
+### Paging through the icons
+
+At the author's request a subagent, kept to the gallery's own files, added
+pages to the Icons page: 120 icons a page in the same order, previous and next
+links and "Page N of M" in a navigation landmark inside the live results, the
+search kept in the links, a new search starting on page 1, and out of range or
+malformed page numbers clamped. Its report gave its failing runs, from a
+scratch copy because the app picker's half written tests stopped the package
+building, and five tests. The agent reran every check and looked in the
+browser pane on the real set: page 2 showed icons 121 to 240 of 5,247, "Page 2
+of 44", with working links.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
-the keyboard only editor run (TE9). Everything on the Dell, including real
+the keyboard only editor run (TE9). On Windows, when the author turns to the
+Dell: the app picker's Start menu listing, and launching a picked application. Everything on the Dell, including real
 dock switches between the two machines.

@@ -142,6 +142,8 @@ func TestDeriveSchema_EnforcesEveryTagRule(t *testing.T) {
 		{"format on integer", reflect.TypeFor[formatOnInteger](), "format"},
 		{"unknown format", reflect.TypeFor[unknownFormat](), "format"},
 		{"secret on integer", reflect.TypeFor[secretOnInteger](), "secret"},
+		{"unknown suggestions", reflect.TypeFor[unknownSuggestions](), "suggest"},
+		{"suggestions on integer", reflect.TypeFor[suggestionsOnInteger](), "suggest"},
 		{"untagged embedded non appearance struct", reflect.TypeFor[embeddedOtherStruct](), "embedded"},
 	}
 
@@ -280,5 +282,22 @@ func TestAppearanceFieldNames_MatchTheDerivedAppearanceSchema(t *testing.T) {
 
 	if got := brick.AppearanceFieldNames(); !reflect.DeepEqual(got, derivedNames) {
 		t.Fatalf("want %v, got %v", derivedNames, got)
+	}
+}
+
+// TestDeriveSchema_ReadsAFieldsSuggestions: a field may say where the editor
+// finds values to offer for it. The applications list feeds the author's app
+// picker (evaluation, deck testing).
+func TestDeriveSchema_ReadsAFieldsSuggestions(t *testing.T) {
+	t.Parallel()
+
+	schema, deriveError := brick.DeriveSchemaOfType(reflect.TypeFor[suggestedApplication]())
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	field, found := schema.Field("application")
+	if !found || field.Suggestions != brick.SuggestApplications {
+		t.Fatalf("want the applications list, got %+v", field)
 	}
 }

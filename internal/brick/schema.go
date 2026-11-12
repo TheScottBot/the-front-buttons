@@ -16,6 +16,7 @@ const (
 	brickTagKey       = "brick"
 	boundsTagKey      = "bounds"
 	formatTagKey      = "format"
+	suggestTagKey     = "suggest"
 	descriptionTagKey = "description"
 )
 
@@ -167,6 +168,7 @@ func parseBrickTag(brickTag string, fieldIndex []int, description string) (Field
 		Format:           "",
 		Description:      description,
 		Secret:           false,
+		Suggestions:      "",
 		structFieldIndex: fieldIndex,
 	}
 	if !lowerSnakeCaseName.MatchString(field.Name) {
@@ -226,9 +228,30 @@ func applyBoundsFormatAndSecret(field *Field, structTag reflect.StructTag) error
 		field.Format = Format(formatTag)
 	}
 
+	suggestError := applySuggestions(field, structTag)
+	if suggestError != nil {
+		return suggestError
+	}
+
 	if field.Secret && field.Type != FieldTypeText {
 		return declarationFault("secret applies only to text, because it holds a credential name, not %s", field.Type)
 	}
+
+	return nil
+}
+
+// applySuggestions reads a field's suggest tag: a known list, on text only.
+func applySuggestions(field *Field, structTag reflect.StructTag) error {
+	suggestTag, hasSuggestions := structTag.Lookup(suggestTagKey)
+	if !hasSuggestions {
+		return nil
+	}
+
+	if field.Type != FieldTypeText || Suggestions(suggestTag) != SuggestApplications {
+		return declarationFault("suggest names a known list, %q, and applies only to text", SuggestApplications)
+	}
+
+	field.Suggestions = Suggestions(suggestTag)
 
 	return nil
 }

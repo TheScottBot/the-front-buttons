@@ -67,6 +67,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - Preset keys are named by their action in the editor (`open_server`,
   `open_character`, `open_chat`, `open_channel`) rather than by `open_url`.
 
+- An app picker on the Application field lists the installed applications by
+  name on macOS and Windows and fills in the identifier (Windows not yet run
+  on a machine).
+- The Icons page pages through all the icons, 120 at a time, keeping the
+  search.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

@@ -33,3 +33,16 @@ type ConfigLocation interface {
 	ConfigFile() (string, error)
 	StateDirectory() (string, error)
 }
+
+// Application is one installed application: the name a person knows it by and
+// the identifier an ApplicationLauncher on this system takes for it.
+type Application struct {
+	Name       string
+	Identifier string
+}
+
+// ApplicationCatalogue lists the applications installed for this user, for the
+// editor's app picker. Each identifier is one this system's launcher accepts.
+type ApplicationCatalogue interface {
+	Applications(listContext context.Context) ([]Application, error)
+}

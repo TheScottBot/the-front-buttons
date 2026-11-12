@@ -1,6 +1,7 @@
 package editor_test
 
 import (
+	"context"
 	"image"
 	"log/slog"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/editor"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/presets"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
@@ -73,6 +75,17 @@ func (noIcons) IconMask(string, int) (*image.Alpha, bool) { return nil, false }
 type galleryIcons struct{}
 
 func (galleryIcons) Names() []string { return []string{"sword", "dice-5", "dragon", "brand-discord"} }
+
+// installedApplications is a fixed catalogue for the app picker's tests, out of
+// order as a real one might be.
+type installedApplications struct{}
+
+func (installedApplications) Applications(context.Context) ([]platform.Application, error) {
+	return []platform.Application{
+		{Name: "Terminal", Identifier: "com.apple.Terminal"},
+		{Name: "Spotify", Identifier: "com.spotify.client"},
+	}, nil
+}
 
 func harnessRegistry(t *testing.T, registerExtra func(registry *brick.Registry) error) *brick.Registry {
 	t.Helper()
@@ -141,6 +154,7 @@ func newHarness(t *testing.T, registerExtra func(registry *brick.Registry) error
 		Renderer:    renderer,
 		Icons:       galleryIcons{},
 		IconFiles:   nil,
+		Apps:        installedApplications{},
 		Credentials: harness.credentials,
 		Counters:    harness.counters,
 		Logger:      slog.New(slog.DiscardHandler),

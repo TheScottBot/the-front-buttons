@@ -84,6 +84,7 @@ type Options struct {
 	Renderer    *render.Renderer
 	Icons       IconCatalogue
 	IconFiles   IconFileLoader
+	Apps        platform.ApplicationCatalogue
 	Credentials platform.CredentialStore
 	Counters    *diagnostics.Counters
 	Logger      *slog.Logger

@@ -359,6 +359,7 @@ func startEditor(
 	server.Handler = editor.NewHandler(editor.Options{
 		Address: address, Token: token, Store: store, Registry: built.registry, Presets: built.presetTable,
 		Grid: built.grid, Renderer: built.renderer, Icons: built.icons, IconFiles: built.iconFiles,
+		Apps:        systemadapter.NewApplicationCatalogue(),
 		Credentials: credentials, Counters: counters, Logger: logger,
 	})
 	server.ReadHeaderTimeout = editorHeaderTimeout
