@@ -48,6 +48,20 @@ in memory, so a regression in a check fails the build.
   THE_FRONT_BUTTONS_CREDENTIAL_TESTS=1 go test -count=1 -run Credential ./internal/platform/systemadapter/
   ```
 
+- The deck experiments run only with `THE_FRONT_BUTTONS_EXPERIMENT=1`, a deck
+  attached and a person at it, and with the daemon stopped, since they open the
+  deck themselves. Experiment 1 paints every key with its index (each row its
+  own colour) and logs every raw input report for two minutes, or for the
+  duration in `THE_FRONT_BUTTONS_EXPERIMENT_FOR`, while the person presses keys
+  and checks the order and orientation by eye. The write experiment times full
+  pages with and without a reader running and fails on any write that fails
+  after the transport's retries. Compare the results with the MacBook's in the
+  evaluation, under deck testing. Run them with:
+
+  ```bash
+  THE_FRONT_BUTTONS_EXPERIMENT=1 go test -count=1 -v -run Experiment ./internal/deck/hidtransport/
+  ```
+
 ## Author gates
 
 - TE1: the author reproduces the automated criteria on both machines, and CI is

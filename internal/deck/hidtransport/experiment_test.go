@@ -3,7 +3,10 @@ package hidtransport_test
 import (
 	"encoding/hex"
 	"fmt"
+	"image"
+	"image/color"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,19 +16,44 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/render/tablericons"
 )
 
-// TestExperiment1 paints every key with its index and logs every raw input
-// report, so a person can confirm the key order, image orientation and input
-// header on a real deck. Temporary, for experiment 1.
-func TestExperiment1(t *testing.T) {
-	if os.Getenv("THE_FRONT_BUTTONS_EXPERIMENT") != "1" {
-		t.Skip("experiment 1 runs only on request")
+// The experiments run only on request, with a deck attached and a person at
+// it: experiment 1 needs keys pressed, and both draw over whatever the deck
+// shows. TESTING.md says how to run them; the evaluation record holds the
+// MacBook's results, which the Dell's are to be compared with.
+const (
+	experimentVariable      = "THE_FRONT_BUTTONS_EXPERIMENT"
+	experimentForVariable   = "THE_FRONT_BUTTONS_EXPERIMENT_FOR"
+	defaultExperimentLength = 2 * time.Minute
+	experimentPollTimeout   = 250 * time.Millisecond
+	experimentBrightness    = 70
+	rawReportBufferLength   = 512
+	headerBytesShown        = 4
+	paintsAlone             = 10
+	paintsWithReader        = 3
+	readerTimeout           = 50 * time.Millisecond
+)
+
+// rowBackgrounds colours each row of experiment 1's keys differently, so a
+// mirrored or rotated layout shows at a glance.
+var rowBackgrounds = [...]string{"#1F4E79", "#7A1F1F", "#1F6B3A", "#5B2C83"} //nolint:gochecknoglobals // a fixed table
+
+// openExperimentDeck skips unless experiments were asked for, and otherwise
+// opens the first attached deck with its key stream reset. The deck is closed,
+// and the close checked, when the test ends.
+//
+//nolint:ireturn // the port's own type is what the experiments drive
+func openExperimentDeck(t *testing.T) (deck.Model, deck.DeckDevice) {
+	t.Helper()
+
+	if os.Getenv(experimentVariable) != "1" {
+		t.Skipf("set %s=1 with a deck attached and a person at it", experimentVariable)
 	}
 
 	watcher := hidtransport.NewWatcher()
 
 	connections, enumerateError := watcher.Enumerate()
 	if enumerateError != nil || len(connections) == 0 {
-		t.Fatalf("no deck: %v", enumerateError)
+		t.Fatalf("want an attached deck, found %d (%v)", len(connections), enumerateError)
 	}
 
 	model, _ := deck.LookupModel(connections[0].VendorID, connections[0].ProductID)
@@ -34,94 +62,230 @@ func TestExperiment1(t *testing.T) {
 	if openError != nil {
 		t.Fatal(openError)
 	}
-	defer device.Close()
+
+	t.Cleanup(func() {
+		closeError := device.Close()
+		if closeError != nil {
+			t.Errorf("closing the deck: %v", closeError)
+		}
+	})
+
+	failOn(t, device.Write(deck.EncodeResetKeyStream(model)))
+
+	return model, device
+}
+
+// TestExperiment1_PaintsKeyIndexesAndLogsRawReports is experiment 1: every key
+// shows its index with an up arrow, each row in its own colour, and every raw
+// input report is logged while a person presses keys. The person checks the
+// order and orientation by eye; the log gives the report length, its header and
+// the indexes read as pressed.
+//
+//nolint:paralleltest // drives the one physical deck, which two experiments cannot share
+func TestExperiment1_PaintsKeyIndexesAndLogsRawReports(t *testing.T) {
+	model, device := openExperimentDeck(t)
+
+	brightness, encodeError := deck.EncodeBrightness(model, experimentBrightness)
+	failOn(t, encodeError)
+	failOn(t, device.SendFeatureReport(brightness))
+
+	paintKeyIndexes(t, model, device)
+
+	length := experimentLength()
+	t.Logf("painted; press keys for %v", length)
+
+	deadline := time.Now().Add(length)
+	buffer := make([]byte, rawReportBufferLength)
+
+	for time.Now().Before(deadline) {
+		readLength, readError := device.ReadInputReport(buffer, experimentPollTimeout)
+		failOn(t, readError)
+
+		if readLength > 0 {
+			t.Log(describeReport(model, buffer[:readLength]))
+		}
+	}
+}
+
+func paintKeyIndexes(t *testing.T, model deck.Model, device deck.DeckDevice) {
+	t.Helper()
 
 	icons, iconsError := tablericons.Load()
-	if iconsError != nil {
-		t.Fatal(iconsError)
-	}
+	failOn(t, iconsError)
 
 	renderer, rendererError := render.NewRenderer(model.Protocol.KeyPixels, icons)
-	if rendererError != nil {
-		t.Fatal(rendererError)
-	}
-
-	must(t, device.Write(deck.EncodeResetKeyStream(model)))
-
-	brightness, _ := deck.EncodeBrightness(model, 70)
-	must(t, device.SendFeatureReport(brightness))
-
-	backgrounds := []string{"#1F4E79", "#7A1F1F", "#1F6B3A", "#5B2C83"}
+	failOn(t, rendererError)
 
 	for keyIndex := range model.Rows * model.Columns {
-		colour, _ := render.ParseColour(backgrounds[keyIndex/model.Columns])
+		background, colourError := render.ParseColour(rowBackgrounds[keyIndex/model.Columns%len(rowBackgrounds)])
+		failOn(t, colourError)
+
 		upright := renderer.Render(render.Appearance{
 			Label: fmt.Sprintf("key %d", keyIndex), Icon: "arrow-up", IconImage: nil,
-			Background: colour, Status: render.StatusNone, ErrorReason: "",
+			Background: background, Status: render.StatusNone, ErrorReason: "",
 		})
 
-		encoded, encodeError := deck.EncodeKeyImage(model, upright)
-		must(t, encodeError)
+		writeImage(t, model, device, keyIndex, upright)
+	}
+}
 
-		pages, pagesError := deck.EncodeKeyImagePages(model, keyIndex, encoded)
-		must(t, pagesError)
+// describeReport names a raw report's length, its first bytes, the key indexes
+// read as pressed, and how many bytes past the model's report length are not
+// zero, which would mean the deck says more than the driver reads.
+func describeReport(model deck.Model, report []byte) string {
+	var pressed []int
 
-		for _, page := range pages {
-			must(t, device.Write(page))
+	for keyIndex := range model.Rows * model.Columns {
+		offset := model.Protocol.InputHeaderLength + keyIndex
+		if offset < len(report) && report[offset] != 0 {
+			pressed = append(pressed, keyIndex)
 		}
 	}
 
-	fmt.Fprintln(os.Stderr, "PAINTED: press keys now")
+	nonZeroBeyond := 0
 
-	deadline := time.Now().Add(experimentDuration())
-	buffer := make([]byte, 512)
+	for _, extraByte := range report[min(len(report), model.Protocol.InputReportLength):] {
+		if extraByte != 0 {
+			nonZeroBeyond++
+		}
+	}
 
-	for time.Now().Before(deadline) {
-		readLength, readError := device.ReadInputReport(buffer, 250*time.Millisecond)
+	return fmt.Sprintf("report length=%d header=%s pressed=%v non_zero_beyond_%d=%d",
+		len(report), hex.EncodeToString(report[:min(len(report), headerBytesShown)]), pressed,
+		model.Protocol.InputReportLength, nonZeroBeyond)
+}
+
+// TestExperimentWrites_DrawsFullPagesQuickly_WithAndWithoutAReader times full
+// pages written alone and with a reader running as the daemon's does, which is
+// how the paging delay and the false disconnects were found (evaluation, deck
+// testing). Any write that fails after the transport's retries fails the test;
+// the timings are logged for comparison between machines.
+//
+//nolint:paralleltest // drives the one physical deck, which two experiments cannot share
+func TestExperimentWrites_DrawsFullPagesQuickly_WithAndWithoutAReader(t *testing.T) {
+	model, device := openExperimentDeck(t)
+	pages := encodeTestPattern(t, model)
+
+	t.Logf("pages per full repaint: %d", len(pages))
+	timePaints(t, "alone", device, pages, paintsAlone)
+
+	stop := make(chan struct{})
+
+	var reader sync.WaitGroup
+
+	reader.Go(func() { readUntilStopped(t, model, device, stop) })
+
+	timePaints(t, "with a reader", device, pages, paintsWithReader)
+	close(stop)
+	reader.Wait()
+}
+
+// encodeTestPattern encodes a gradient for every key, a worst case for the
+// JPEG size, and returns every page of every key in drawing order.
+func encodeTestPattern(t *testing.T, model deck.Model) [][]byte {
+	t.Helper()
+
+	keyPixels := model.Protocol.KeyPixels
+
+	var pages [][]byte
+
+	for keyIndex := range model.Rows * model.Columns {
+		upright := image.NewRGBA(image.Rect(0, 0, keyPixels, keyPixels))
+
+		for row := range keyPixels {
+			for column := range keyPixels {
+				upright.Set(column, row, color.RGBA{
+					R: uint8(column * 255 / keyPixels), G: uint8(row * 255 / keyPixels), //nolint:gosec // below 256
+					B: uint8(keyIndex * 255 / (model.Rows * model.Columns)), A: 255, //nolint:gosec // below 256
+				})
+			}
+		}
+
+		encoded, encodeError := deck.EncodeKeyImage(model, upright)
+		failOn(t, encodeError)
+
+		keyPages, pagesError := deck.EncodeKeyImagePages(model, keyIndex, encoded)
+		failOn(t, pagesError)
+
+		pages = append(pages, keyPages...)
+	}
+
+	return pages
+}
+
+func timePaints(t *testing.T, label string, device deck.DeckDevice, pages [][]byte, repaints int) {
+	t.Helper()
+
+	start := time.Now()
+	slowest := time.Duration(0)
+
+	for range repaints {
+		for _, page := range pages {
+			writeStart := time.Now()
+			writeError := device.Write(page)
+			slowest = max(slowest, time.Since(writeStart))
+
+			if writeError != nil {
+				t.Errorf("%s: a write failed after the transport's retries: %v", label, writeError)
+			}
+		}
+	}
+
+	took := time.Since(start)
+	t.Logf("%s: %d repaints in %v, %v each, slowest write %v",
+		label, repaints, took, took/time.Duration(repaints), slowest)
+}
+
+func readUntilStopped(t *testing.T, model deck.Model, device deck.DeckDevice, stop <-chan struct{}) {
+	t.Helper()
+
+	buffer := make([]byte, model.Protocol.InputReportLength)
+
+	for {
+		select {
+		case <-stop:
+			return
+		default:
+		}
+
+		_, readError := device.ReadInputReport(buffer, readerTimeout)
 		if readError != nil {
-			fmt.Fprintln(os.Stderr, "READ ERROR:", readError)
+			t.Errorf("reading alongside the writes: %v", readError)
 
 			return
 		}
-
-		if readLength == 0 {
-			continue
-		}
-
-		var pressed []int
-
-		for keyIndex := range model.Rows * model.Columns {
-			offset := model.Protocol.InputHeaderLength + keyIndex
-			if offset < readLength && buffer[offset] != 0 {
-				pressed = append(pressed, keyIndex)
-			}
-		}
-
-		nonZeroAfter := 0
-		for offset := model.Protocol.InputReportLength; offset < readLength; offset++ {
-			if buffer[offset] != 0 {
-				nonZeroAfter++
-			}
-		}
-
-		fmt.Fprintf(os.Stderr, "REPORT length=%d header=%s pressed=%v nonzero_after_36=%d\n",
-			readLength, hex.EncodeToString(buffer[:min(readLength, 4)]), pressed, nonZeroAfter)
 	}
 }
 
-func experimentDuration() time.Duration {
-	seconds, parseError := time.ParseDuration(os.Getenv("THE_FRONT_BUTTONS_EXPERIMENT_FOR"))
-	if parseError != nil {
-		return 120 * time.Second
-	}
-
-	return seconds
-}
-
-func must(t *testing.T, err error) {
+func writeImage(t *testing.T, model deck.Model, device deck.DeckDevice, keyIndex int, upright image.Image) {
 	t.Helper()
 
-	if err != nil {
-		t.Fatal(err)
+	encoded, encodeError := deck.EncodeKeyImage(model, upright)
+	failOn(t, encodeError)
+
+	pages, pagesError := deck.EncodeKeyImagePages(model, keyIndex, encoded)
+	failOn(t, pagesError)
+
+	for _, page := range pages {
+		failOn(t, device.Write(page))
+	}
+}
+
+// experimentLength is how long experiment 1 listens for presses: two minutes,
+// or the duration THE_FRONT_BUTTONS_EXPERIMENT_FOR gives, such as 3m.
+func experimentLength() time.Duration {
+	length, parseError := time.ParseDuration(os.Getenv(experimentForVariable))
+	if parseError != nil || length <= 0 {
+		return defaultExperimentLength
+	}
+
+	return length
+}
+
+func failOn(t *testing.T, failure error) {
+	t.Helper()
+
+	if failure != nil {
+		t.Fatal(failure)
 	}
 }
