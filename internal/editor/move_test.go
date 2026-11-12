@@ -17,9 +17,7 @@ import (
 // The move form's field names and the route it posts to, named once.
 const (
 	movePath        = "/key/move"
-	toPageField     = "to_page"
-	toRowField      = "to_row"
-	toColumnField   = "to_column"
+	toField         = "to"
 	actionField     = "action"
 	moveAction      = "move"
 	copyAction      = "copy"
@@ -36,7 +34,7 @@ const (
 func moveForm(action string, toPage string, toRow string, toColumn string) url.Values {
 	return url.Values{
 		pageField: {"0"}, rowField: {"0"}, columnField: {"0"},
-		toPageField: {toPage}, toRowField: {toRow}, toColumnField: {toColumn}, actionField: {action},
+		toField: {toPage + "." + toRow + "." + toColumn}, actionField: {action},
 	}
 }
 
@@ -76,12 +74,10 @@ func TestEditor_KeyPageOffersMoveAndCopy_OnlyForAnExistingKey(t *testing.T) {
 		`action="/key/move"`,
 		`name="action" value="move"`,
 		`name="action" value="copy"`,
-		`name="to_page"`,
-		`name="to_row"`,
-		`name="to_column"`,
-		`<option value="0" selected>Page 1: Work</option>`,
-		`<option value="3">4</option>`,
-		`<option value="7">8</option>`,
+		`name="to"`,
+		`<optgroup label="Page 1: Work">`,
+		`<option value="0.0.1">Row 1, column 2</option>`,
+		`<option value="0.3.6">Row 4, column 7</option>`,
 		"Move or copy this key",
 	} {
 		if !strings.Contains(body, want) {
@@ -225,7 +221,7 @@ func TestEditor_RefusesAMoveOrCopyToABadDestination(t *testing.T) {
 		{"same position", moveForm(moveAction, "0", "0", "0"), "where the key already is"},
 		{"no key at the source", url.Values{
 			pageField: {"0"}, rowField: {"2"}, columnField: {"2"},
-			toPageField: {"0"}, toRowField: {"1"}, toColumnField: {"2"}, actionField: {moveAction},
+			toField: {"0.1.2"}, actionField: {moveAction},
 		}, "no key here"},
 	}
 
@@ -274,8 +270,8 @@ func TestEditor_RefusedMoveFocusesTheDestination(t *testing.T) {
 	body := newHarness(t, nil).post(t, movePath, moveForm(moveAction, "0", "3", "0")).Body.String()
 
 	focused := regexp.MustCompile(`<(?:input|select)[^>]*\sautofocus[^>]*>`).FindAllString(body, -1)
-	if len(focused) != 1 || !strings.Contains(focused[0], `name="to_page"`) {
-		t.Fatalf("want only the destination page focused, got %q", focused)
+	if len(focused) != 1 || !strings.Contains(focused[0], `name="to"`) {
+		t.Fatalf("want only the destination list focused, got %q", focused)
 	}
 }
 
@@ -327,5 +323,55 @@ func breakConfigurationFile(t *testing.T, harness *editorHarness) {
 	writeError := os.WriteFile(harness.configPath, []byte("schema_version: 1\npages: [\n"), 0o600)
 	if writeError != nil {
 		t.Fatal(writeError)
+	}
+}
+
+// TestEditor_MoveListOffersOnlyFreeTiles: the author found the form offering
+// the paging tiles, which the server then refused (evaluation, deck testing).
+// The one destination list now holds every free tile on every page and nothing
+// else: no paging tile, no occupied tile and not the key's own place.
+func TestEditor_MoveListOffersOnlyFreeTiles(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	addError := harness.store.Save(func() config.Configuration {
+		configuration, _ := harness.store.OnDisk()
+		configuration.Pages = append(configuration.Pages, config.Page{Name: "Games", Keys: nil})
+
+		return configuration
+	}())
+	if addError != nil {
+		t.Fatal(addError)
+	}
+
+	body := harness.get(t, "/key?page=0&row=0&column=0").Body.String()
+	offered := regexp.MustCompile(`<option value="(\d+\.\d+\.\d+)"`).FindAllStringSubmatch(body, -1)
+
+	// Two pages of 32 tiles, less two paging tiles on each and the key's own.
+	if len(offered) != 2*(32-2)-1 {
+		t.Fatalf("want 59 free tiles offered, got %d", len(offered))
+	}
+
+	for _, refused := range []string{"0.0.0", "0.3.0", "0.3.7", "1.3.0", "1.3.7"} {
+		if strings.Contains(body, `<option value="`+refused+`"`) {
+			t.Errorf("want %s left out of the list", refused)
+		}
+	}
+
+	if !strings.Contains(body, `<optgroup label="Page 2: Games">`) {
+		t.Error("want the second page's tiles grouped under its name")
+	}
+}
+
+func TestEditor_RefusesAMalformedDestination(t *testing.T) {
+	t.Parallel()
+
+	form := moveForm(moveAction, "0", "0", "1")
+	form.Set(toField, "not-a-tile")
+
+	recorder := newHarness(t, nil).post(t, movePath, form)
+	if recorder.Code != http.StatusUnprocessableEntity || !strings.Contains(recorder.Body.String(), offGridText) {
+		t.Fatalf("%s for a malformed destination, got %d", refusedMoveText, recorder.Code)
 	}
 }

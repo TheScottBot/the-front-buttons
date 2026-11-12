@@ -2718,6 +2718,25 @@ a key onto an occupied tile was refused with "that destination already has a
 key". The native selects were set directly, as the pane cannot drive them by
 key on macOS.
 
+**Correction: the form offered tiles that could not be used.** The author
+found that the move form "doesn't take the reserved keys into account". The
+server refused the paging tiles, but the form's separate page, row and column
+lists still offered them, as well as occupied tiles and the key's own place,
+so a refusal came only after submitting. The three lists became one,
+"Destination tile", grouped by page, listing only tiles on the grid that paging
+does not hold, no key uses and that are not the key's own place; a page with
+none is left out, and with none anywhere the form says so instead. Its value is
+the page, row and column joined by dots, and anything malformed is refused as
+not on the deck. The server's checks stay as they were.
+
+Tests first: `TestEditor_MoveListOffersOnlyFreeTiles` (two pages, 59 tiles
+offered, the four paging tiles and the key's own place absent, the second
+page's group named) and `TestEditor_RefusesAMalformedDestination` were added,
+the existing tests changed to post the one value, and all failed before the
+change. On the author's own configuration the Editor key's page offered 80
+tiles over three pages, none of them a paging tile, an occupied tile or its own
+place.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

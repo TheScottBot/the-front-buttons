@@ -52,7 +52,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   connected to a key).
 
 - A configured key can be moved or copied to a free tile on any page from its
-  editor page, keeping its kind, parameters and preset.
+  editor page, keeping its kind, parameters and preset. The destination is one
+  list of free tiles only, so paging and occupied tiles are never offered.
 
 ### Fixed
 

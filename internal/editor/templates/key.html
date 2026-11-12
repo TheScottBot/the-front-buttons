@@ -42,27 +42,18 @@
 <input type="hidden" name="column" value="{{.Column}}">
 <fieldset aria-describedby="move-help">
 <legend>Move or copy this key</legend>
-<p class="help" id="move-help">Choose a free tile. Rows count from 1 at the top, columns from 1 at the left. {{.Move.ReservedNote}}</p>
-<div class="field">
-<label for="move-page">Destination page</label>
-<select id="move-page" name="to_page"{{if .Move.Focus}} autofocus{{end}}>
-{{range .Move.Pages}}<option value="{{.Index}}"{{if .Current}} selected{{end}}>Page {{.Number}}: {{.Name}}</option>{{end}}
-</select>
-</div>
-<div class="field">
-<label for="move-row">Destination row</label>
-<select id="move-row" name="to_row">
-{{range .Move.Rows}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
-</select>
-</div>
-<div class="field">
-<label for="move-column">Destination column</label>
-<select id="move-column" name="to_column">
-{{range .Move.Columns}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
-</select>
+<p class="help" id="move-help">{{.Move.ReservedNote}}</p>
+{{if .Move.Groups}}<div class="field">
+<label for="move-to">Destination tile</label>
+<select id="move-to" name="to"{{if .Move.Focus}} autofocus{{end}}>
+{{range .Move.Groups}}<optgroup label="{{.Label}}">
+{{range .Tiles}}<option value="{{.Value}}">{{.Label}}</option>
+{{end}}</optgroup>
+{{end}}</select>
 </div>
 <button type="submit" name="action" value="move">Move key</button>
 <button type="submit" name="action" value="copy">Copy key</button>
+{{else}}<p>There is no free tile on any page; add a page or remove a key first.</p>{{end}}
 </fieldset>
 </form>{{end}}
 <figure>

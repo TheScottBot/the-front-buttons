@@ -361,7 +361,7 @@ func (pages *pageHandlers) storedKeyContext(
 	return keyContext{
 		pageIndex: pageIndex, position: position, hasKey: hasKey, resolved: resolved,
 		fields: fieldViews(resolved.schema, filled, nil), errors: nil, problems: nil,
-		pageNames: pageNamesOf(configuration), moveFailed: false,
+		destinationPages: configuration.Pages, moveFailed: false,
 	}, nil
 }
 
@@ -375,15 +375,6 @@ func storedFields(key config.Key) any {
 	return key.Parameters
 }
 
-func pageNamesOf(configuration config.Configuration) []string {
-	names := make([]string, 0, len(configuration.Pages))
-	for _, page := range configuration.Pages {
-		names = append(names, page.Name)
-	}
-
-	return names
-}
-
 // keyContext is everything the key form shows.
 type keyContext struct {
 	pageIndex int
@@ -393,10 +384,10 @@ type keyContext struct {
 	fields    []fieldView
 	errors    []string
 	problems  []string
-	// pageNames lists every page, for the move form's destination; the form
-	// is shown only for a stored key.
-	pageNames  []string
-	moveFailed bool
+	// destinationPages is every page with its keys, from which the move form
+	// lists the free tiles; the form is shown only for a stored key.
+	destinationPages []config.Page
+	moveFailed       bool
 }
 
 func (pages *pageHandlers) renderKey(
@@ -448,7 +439,7 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 
 		pages.renderKey(writer, request, http.StatusUnprocessableEntity, keyContext{
 			pageIndex: pageIndex, position: position, hasKey: false, resolved: resolved,
-			fields: views, errors: general, problems: nil, pageNames: nil, moveFailed: false,
+			fields: views, errors: general, problems: nil, destinationPages: nil, moveFailed: false,
 		})
 	}
 

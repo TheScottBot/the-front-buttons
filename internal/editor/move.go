@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
@@ -16,6 +18,9 @@ const (
 	copyKeyAction = "copy"
 )
 
+// destinationParts is a destination's page, row and column.
+const destinationParts = 3
+
 // The reasons a move or copy is refused. Each is a whole sentence shown to the
 // author after "Error: ", so none is ever silently swapped or overwritten.
 var (
@@ -23,7 +28,7 @@ var (
 		"there is no key here to move or copy; the page may have changed since it was opened")
 	errMoveSamePlace = errors.New("that destination is where the key already is; choose another tile")
 	errMoveOffGrid   = errors.New(
-		"that destination is not on the deck; choose a page, row and column from the lists")
+		"that destination is not on the deck; choose a free tile from the list")
 	errMoveReserved = errors.New("that destination is reserved for paging back or forward; choose another tile")
 	errMoveOccupied = errors.New(
 		"that destination already has a key; choose a free tile, or remove that key first")
@@ -35,61 +40,92 @@ type keyAddress struct {
 	position layout.Position
 }
 
-// numberOption is one choice in a row or column list: the value counts from
-// zero, as the file does, and the label from one, as a person does.
-type numberOption struct {
-	Value    int
-	Label    int
-	Selected bool
+// moveTile is one free tile in the destination list: its value is the page,
+// row and column the file uses, joined by dots, and its label counts from one,
+// as a person does.
+type moveTile struct {
+	Value string
+	Label string
 }
 
-// movePage is one page in the destination list, numbered from one.
-type movePage struct {
-	Index   int
-	Number  int
-	Name    string
-	Current bool
+// moveGroup is one page's free tiles, under the page's number and name.
+type moveGroup struct {
+	Label string
+	Tiles []moveTile
 }
 
-// moveView is the move or copy form: every page, row and column a key could go
-// to, with the key's own place chosen to start with.
+// moveView is the move or copy form: one list of every free tile on every
+// page. The author found separate page, row and column lists offering the
+// paging tiles, which the server then refused (evaluation, deck testing); a
+// tile that cannot be used is now never offered. The server still checks.
 type moveView struct {
-	Pages        []movePage
-	Rows         []numberOption
-	Columns      []numberOption
+	Groups       []moveGroup
 	Focus        bool
 	ReservedNote string
 }
 
-// moveChoices builds the move form's lists from the configuration's pages and
-// the grid's size, so a deck of another size gets its own rows and columns.
+// moveChoices lists, page by page, every tile on the grid that paging does not
+// hold, no key uses, and is not the key's own place.
 func (pages *pageHandlers) moveChoices(context keyContext) moveView {
 	grid := pages.options.Grid
 	back, forward := grid.BackPosition(), grid.ForwardPosition()
 	view := moveView{
-		Pages:   make([]movePage, 0, len(context.pageNames)),
-		Rows:    numberOptions(grid.Rows(), context.position.Row),
-		Columns: numberOptions(grid.Columns(), context.position.Column),
-		Focus:   context.moveFailed && context.hasKey,
-		ReservedNote: fmt.Sprintf("Row %d, column %d and row %d, column %d are kept for paging.",
+		Groups: nil,
+		Focus:  context.moveFailed && context.hasKey,
+		ReservedNote: fmt.Sprintf("Only free tiles are listed: row %d, column %d and row %d, column %d are kept for paging.",
 			back.Row+1, back.Column+1, forward.Row+1, forward.Column+1),
 	}
 
-	for index, name := range context.pageNames {
-		view.Pages = append(view.Pages,
-			movePage{Index: index, Number: index + 1, Name: name, Current: index == context.pageIndex})
+	for pageIndex, page := range context.destinationPages {
+		group := moveGroup{Label: fmt.Sprintf("Page %d: %s", pageIndex+1, page.Name), Tiles: nil}
+
+		for row := range grid.Rows() {
+			for column := range grid.Columns() {
+				position := layout.Position{Row: row, Column: column}
+				if grid.IsReserved(position) || (pageIndex == context.pageIndex && position == context.position) {
+					continue
+				}
+
+				if _, taken := keyAt(page, position); taken {
+					continue
+				}
+
+				group.Tiles = append(group.Tiles, moveTile{
+					Value: fmt.Sprintf("%d.%d.%d", pageIndex, row, column),
+					Label: fmt.Sprintf("Row %d, column %d", row+1, column+1),
+				})
+			}
+		}
+
+		if len(group.Tiles) > 0 {
+			view.Groups = append(view.Groups, group)
+		}
 	}
 
 	return view
 }
 
-func numberOptions(count int, selected int) []numberOption {
-	options := make([]numberOption, 0, count)
-	for value := range count {
-		options = append(options, numberOption{Value: value, Label: value + 1, Selected: value == selected})
+// destinationFrom reads the destination list's value, page, row and column
+// joined by dots. Anything else is a page that does not exist, which the checks
+// refuse as not on the deck.
+func destinationFrom(value string) keyAddress {
+	parts := strings.Split(value, ".")
+	if len(parts) != destinationParts {
+		return keyAddress{page: -1, position: layout.Position{Row: -1, Column: -1}}
 	}
 
-	return options
+	numbers := make([]int, 0, destinationParts)
+
+	for _, part := range parts {
+		number, parseError := strconv.Atoi(part)
+		if parseError != nil {
+			return keyAddress{page: -1, position: layout.Position{Row: -1, Column: -1}}
+		}
+
+		numbers = append(numbers, number)
+	}
+
+	return keyAddress{page: numbers[0], position: layout.Position{Row: numbers[1], Column: numbers[2]}}
 }
 
 // moveKey moves or copies a stored key to a free tile, through the same save
@@ -109,10 +145,7 @@ func (pages *pageHandlers) moveKey(writer http.ResponseWriter, request *http.Req
 		page:     integerParameter(form, "page"),
 		position: layout.Position{Row: integerParameter(form, "row"), Column: integerParameter(form, "column")},
 	}
-	destination := keyAddress{
-		page:     integerParameter(form, "to_page"),
-		position: layout.Position{Row: integerParameter(form, "to_row"), Column: integerParameter(form, "to_column")},
-	}
+	destination := destinationFrom(form.Get("to"))
 
 	saveError := pages.changeConfiguration(func(configuration *config.Configuration) error {
 		return relocateKey(configuration, pages.options.Grid, source, destination, action == copyKeyAction)
