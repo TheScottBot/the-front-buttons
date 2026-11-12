@@ -75,6 +75,7 @@ func getManyIcons(t *testing.T, path string) string {
 		Renderer:    nil,
 		Icons:       manyIcons{},
 		IconFiles:   nil,
+		AppIcons:    nil,
 		Apps:        nil,
 		Credentials: nil,
 		Counters:    nil,

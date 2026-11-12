@@ -2,6 +2,7 @@ package editor
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -668,18 +669,29 @@ func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Req
 		Label: query.Get(fieldPrefix + "label"), Icon: query.Get(fieldPrefix + "icon"),
 	}
 	iconFile := query.Get(fieldPrefix + "icon_file")
+	parameters := pages.unsavedParameters(query)
 
 	if query.Get("type") == "" && pageIndex >= 0 && pageIndex < len(configuration.Pages) {
 		if key, found := keyAt(configuration.Pages[pageIndex], position); found {
 			configured, _ := brick.AppearanceOf(key.Parameters)
 			appearance.Label, appearance.Icon, iconFile = configured.Label, configured.Icon, configured.IconFile
 			query.Set(fieldPrefix+"background", configured.Background)
+
+			parameters = key.Parameters
 		}
 	}
 
 	if iconFile != "" {
 		appearance.IconImage = pages.loadIconFile(iconFile)
 		appearance.IconMissing = appearance.IconImage == nil
+	}
+
+	if source, offers := parameters.(brick.ApplicationIconSource); offers {
+		if identifier, wanted := source.ApplicationIcon(); wanted {
+			appearance.IconImage = pages.loadAppIcon(request.Context(), identifier)
+			appearance.IconMissing = appearance.IconImage == nil
+			appearance.BackgroundFromIcon = true
+		}
 	}
 
 	background, parseError := render.ParseColour(query.Get(fieldPrefix + "background"))
@@ -817,6 +829,42 @@ func (pages *pageHandlers) showDiagnostics(writer http.ResponseWriter, request *
 	}
 
 	pages.render(writer, http.StatusOK, "diagnostics.html", view)
+}
+
+// unsavedParameters reads a previewed form's fields through its kind's schema,
+// so the preview can ask the parameters, as the daemon does, whether the key
+// shows its application's own icon. It returns nil for anything but a known
+// kind.
+func (pages *pageHandlers) unsavedParameters(query url.Values) any {
+	kindName, isKind := strings.CutPrefix(query.Get("type"), kindChoicePrefix)
+	if !isKind || pages.options.Registry == nil {
+		return nil
+	}
+
+	kind, found := pages.options.Registry.Kind(kindName)
+	if !found {
+		return nil
+	}
+
+	parameters, _ := parseFields(kind.Schema(), query)
+
+	return parameters
+}
+
+// loadAppIcon reads an application's own icon for the preview, or returns nil,
+// drawn as the missing marker, if there is no way to read one or it will not
+// load. The daemon logs the reason; the preview only shows the result.
+func (pages *pageHandlers) loadAppIcon(iconContext context.Context, identifier string) image.Image {
+	if pages.options.AppIcons == nil {
+		return nil
+	}
+
+	icon, readError := pages.options.AppIcons.Icon(iconContext, identifier)
+	if readError != nil {
+		return nil
+	}
+
+	return icon
 }
 
 // loadIconFile reads a key's own icon for the preview, or returns nil, drawn as

@@ -17,6 +17,7 @@ const (
 	boundsTagKey      = "bounds"
 	formatTagKey      = "format"
 	suggestTagKey     = "suggest"
+	replacesTagKey    = "replaces"
 	descriptionTagKey = "description"
 )
 
@@ -65,6 +66,16 @@ func DeriveSchemaOfType(parametersType reflect.Type) (Schema, error) {
 		}
 
 		seenNames[field.Name] = true
+	}
+
+	for _, field := range fields {
+		for _, replaced := range field.Replaces {
+			if !seenNames[replaced] {
+				return Schema{parametersType: nil, fields: nil}, fmt.Errorf(
+					"%w: %s field %q replaces %q, which it does not declare",
+					ErrInvalidParameterDeclaration, parametersType, field.Name, replaced)
+			}
+		}
 	}
 
 	return Schema{parametersType: parametersType, fields: fields}, nil
@@ -169,6 +180,7 @@ func parseBrickTag(brickTag string, fieldIndex []int, description string) (Field
 		Description:      description,
 		Secret:           false,
 		Suggestions:      "",
+		Replaces:         nil,
 		structFieldIndex: fieldIndex,
 	}
 	if !lowerSnakeCaseName.MatchString(field.Name) {
@@ -233,9 +245,31 @@ func applyBoundsFormatAndSecret(field *Field, structTag reflect.StructTag) error
 		return suggestError
 	}
 
+	replacesError := applyReplaces(field, structTag)
+	if replacesError != nil {
+		return replacesError
+	}
+
 	if field.Secret && field.Type != FieldTypeText {
 		return declarationFault("secret applies only to text, because it holds a credential name, not %s", field.Type)
 	}
+
+	return nil
+}
+
+// applyReplaces reads a check box's replaces tag: the fields it stands in for
+// while ticked, which the schema then checks it declares.
+func applyReplaces(field *Field, structTag reflect.StructTag) error {
+	replacesTag, hasReplaces := structTag.Lookup(replacesTagKey)
+	if !hasReplaces {
+		return nil
+	}
+
+	if field.Type != FieldTypeBoolean {
+		return declarationFault("replaces applies only to a check box, not %s", field.Type)
+	}
+
+	field.Replaces = strings.Split(replacesTag, ",")
 
 	return nil
 }

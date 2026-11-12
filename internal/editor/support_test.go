@@ -154,6 +154,7 @@ func newHarness(t *testing.T, registerExtra func(registry *brick.Registry) error
 		Renderer:    renderer,
 		Icons:       galleryIcons{},
 		IconFiles:   nil,
+		AppIcons:    applicationIcons{},
 		Apps:        installedApplications{},
 		Credentials: harness.credentials,
 		Counters:    harness.counters,

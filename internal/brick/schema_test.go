@@ -3,6 +3,7 @@ package brick_test
 import (
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -144,6 +145,8 @@ func TestDeriveSchema_EnforcesEveryTagRule(t *testing.T) {
 		{"secret on integer", reflect.TypeFor[secretOnInteger](), "secret"},
 		{"unknown suggestions", reflect.TypeFor[unknownSuggestions](), "suggest"},
 		{"suggestions on integer", reflect.TypeFor[suggestionsOnInteger](), "suggest"},
+		{"replaces an unknown field", reflect.TypeFor[replacesUnknownField](), "replaces"},
+		{"replaces on text", reflect.TypeFor[replacesOnText](), "replaces"},
 		{"untagged embedded non appearance struct", reflect.TypeFor[embeddedOtherStruct](), "embedded"},
 	}
 
@@ -299,5 +302,23 @@ func TestDeriveSchema_ReadsAFieldsSuggestions(t *testing.T) {
 	field, found := schema.Field("application")
 	if !found || field.Suggestions != brick.SuggestApplications {
 		t.Fatalf("want the applications list, got %+v", field)
+	}
+}
+
+// TestDeriveSchema_ReadsWhatACheckBoxReplaces: a check box may stand in for
+// other fields, as use_app_icon does for icon and icon_file, so the editor can
+// set them aside while it is ticked (the author's request, evaluation, deck
+// testing).
+func TestDeriveSchema_ReadsWhatACheckBoxReplaces(t *testing.T) {
+	t.Parallel()
+
+	schema, deriveError := brick.DeriveSchemaOfType(reflect.TypeFor[replacingCheckBox]())
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	field, _ := schema.Field("own")
+	if !slices.Equal(field.Replaces, []string{"icon", "icon_file"}) {
+		t.Fatalf("want icon and icon_file replaced, got %v", field.Replaces)
 	}
 }

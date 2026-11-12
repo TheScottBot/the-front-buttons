@@ -63,3 +63,17 @@ func TestEditor_EveryPageLoadsTheEditorScript(t *testing.T) {
 		}
 	}
 }
+
+// TestEditor_UseAppIconSetsTheIconFieldsAside: ticking use_app_icon should
+// stop the Icon and Icon file fields being used, as the author asked; the
+// check box names them for the script to set aside while it is ticked.
+func TestEditor_UseAppIconSetsTheIconFieldsAside(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, "/key?page=0&row=1&column=1&type=kind:open_application").Body.String()
+
+	checkBox := regexp.MustCompile(`<input id="field-use_app_icon"[^>]*>`).FindString(body)
+	if !strings.Contains(checkBox, `data-replaces="field-icon field-icon_file"`) {
+		t.Fatalf("want the check box to name the icon fields, got %s", checkBox)
+	}
+}

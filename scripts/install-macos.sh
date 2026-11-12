@@ -24,6 +24,13 @@ plist_text="$("$binary" -print-launch-agent)"
 printf '%s\n' "$plist_text" | plutil -lint - >/dev/null
 
 label="$(printf '%s\n' "$plist_text" | plutil -extract Label raw -o - -)"
+
+# Go signs its builds ad hoc with the identifier a.out, which is how the binary
+# then appears in System Settings, Privacy and Security, Accessibility, where a
+# press_key key needs it. Signing it again, still ad hoc, with the agent's own
+# label gives that entry a name a person can find. macOS still ties the
+# permission to this exact build, so a rebuilt binary needs granting again.
+codesign --force --sign - --identifier "$label" "$binary"
 log_path="$(printf '%s\n' "$plist_text" | plutil -extract StandardErrorPath raw -o - -)"
 agents_directory="$HOME/Library/LaunchAgents"
 plist_path="$agents_directory/$label.plist"

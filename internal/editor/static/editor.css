@@ -556,3 +556,12 @@ label[for$="-picker"] {
   border: 3px solid var(--ink);
   border-radius: 0;
 }
+
+/* A field set aside by a ticked check box, such as Icon while Use app icon is
+   ticked: a dashed border and the page's own colour, with the text still ink
+   on pink (6.1 to 1). */
+
+.field.replaced input {
+  border-style: dashed;
+  background: var(--pink);
+}

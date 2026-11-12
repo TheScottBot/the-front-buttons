@@ -1,4 +1,33 @@
 (() => {
+  // internal/editor/web/replaces.ts
+  var replacedClass = "replaced";
+  function setAside(checkBox, root) {
+    for (const id of (checkBox.dataset.replaces ?? "").split(" ")) {
+      const field = root.getElementById(id);
+      if (!(field instanceof HTMLInputElement)) {
+        continue;
+      }
+      field.readOnly = checkBox.checked;
+      field.setAttribute("aria-disabled", checkBox.checked ? "true" : "false");
+      field.closest(".field")?.classList.toggle(replacedClass, checkBox.checked);
+    }
+  }
+  function applyReplacements(root) {
+    for (const checkBox of root.querySelectorAll("input[type=checkbox][data-replaces]")) {
+      setAside(checkBox, root);
+    }
+  }
+  function enableReplacements(root) {
+    root.addEventListener("change", (event) => {
+      const checkBox = event.target;
+      if (checkBox instanceof HTMLInputElement && checkBox.dataset.replaces !== void 0) {
+        setAside(checkBox, root);
+      }
+    });
+    root.addEventListener("htmx:afterSwap", () => applyReplacements(root));
+    applyReplacements(root);
+  }
+
   // internal/editor/web/dialog.ts
   var keyLinkSelector = 'a[href^="/key?"]';
   var editorID = "key-editor";
@@ -63,6 +92,7 @@
     parts.title.textContent = page.querySelector("h1")?.textContent ?? "Key";
     parts.body.replaceChildren(document.importNode(editor, true));
     htmx()?.process(parts.body);
+    applyReplacements(document);
     if (!parts.dialog.open) {
       parts.dialog.showModal();
     }
@@ -235,6 +265,7 @@
 
   // internal/editor/web/editor.ts
   enablePickers(document);
+  enableReplacements(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableDrag(grid);

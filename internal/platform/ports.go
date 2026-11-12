@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"errors"
+	"image"
 )
 
 // ErrLaunchRefused reports a URL or application identifier refused before
@@ -13,6 +14,14 @@ var ErrLaunchRefused = errors.New("launch target refused")
 // ErrLaunchFailed reports that the operating system could not open a URL or
 // launch an application. Its reason category is shown on the key.
 var ErrLaunchFailed = errors.New("launch failed")
+
+// ErrApplicationNotFound reports an application this system cannot find by the
+// identifier given, so its icon cannot be read.
+var ErrApplicationNotFound = errors.New("application not found")
+
+// ErrIconUnavailable reports that this system's adapter cannot read
+// applications' icons at all.
+var ErrIconUnavailable = errors.New("application icons are not available on this system")
 
 // URLOpener opens a URL or deep link with the system's handler for it.
 type URLOpener interface {
@@ -45,4 +54,17 @@ type Application struct {
 // editor's app picker. Each identifier is one this system's launcher accepts.
 type ApplicationCatalogue interface {
 	Applications(listContext context.Context) ([]Application, error)
+}
+
+// KeyPresser sends one momentary key press, down then up, to whatever has the
+// keyboard focus. The key is a function_key value, F13 to F24.
+type KeyPresser interface {
+	PressKey(pressContext context.Context, key string) error
+}
+
+// ApplicationIcons reads an application's own icon, for a key that asks to show
+// it. The identifier is read as the ApplicationLauncher on this system reads
+// it, so the icon is that of the application a press opens.
+type ApplicationIcons interface {
+	Icon(iconContext context.Context, identifier string) (image.Image, error)
 }

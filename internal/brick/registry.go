@@ -20,6 +20,8 @@ type Ports struct {
 	// EditorAddress returns the local editor's address, known only once the
 	// editor's port is open.
 	EditorAddress func() string
+	// KeyPresser sends a key press, for press_key.
+	KeyPresser platform.KeyPresser
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

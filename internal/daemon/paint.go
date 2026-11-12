@@ -15,6 +15,10 @@ import (
 // way to read icon files.
 var errNoIconFiles = errors.New("no icons folder")
 
+// errNoAppIcons reports a key asking for its application's icon when the
+// daemon was given no way to read application icons.
+var errNoAppIcons = errors.New("no way to read application icons")
+
 // repaintAll draws every key of the current page: the full repaint on connect,
 // on paging and on reload. A failed write means the deck has gone, so the deck
 // is dropped and the next one to appear gets a full repaint of its own.
@@ -26,7 +30,7 @@ func (state *loopState) repaintAll(runContext context.Context) {
 	state.slots = state.arrangeCurrentPage(runContext)
 
 	for keyIndex, slot := range state.slots {
-		writeError := state.connected.SetKeyImage(keyIndex, state.imageFor(slot))
+		writeError := state.connected.SetKeyImage(keyIndex, state.imageFor(runContext, slot))
 		if writeError != nil {
 			state.disconnect(runContext, "write failed")
 
@@ -71,13 +75,15 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 		return
 	}
 
-	writeError := state.connected.SetKeyImage(keyIndex, state.options.Renderer.Render(state.appearanceFor(configured)))
+	keyImage := state.options.Renderer.Render(state.appearanceFor(runContext, configured))
+
+	writeError := state.connected.SetKeyImage(keyIndex, keyImage)
 	if writeError != nil {
 		state.disconnect(runContext, "write failed")
 	}
 }
 
-func (state *loopState) imageFor(slot layout.Slot) image.Image {
+func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) image.Image {
 	renderer := state.options.Renderer
 
 	switch slot.Kind {
@@ -91,7 +97,7 @@ func (state *loopState) imageFor(slot layout.Slot) image.Image {
 
 		return renderer.RenderNavigation(direction, indication, hasIndication)
 	case layout.SlotBrick:
-		return renderer.Render(state.appearanceFor(state.pages[state.paging.Current()][slot.BrickIndex]))
+		return renderer.Render(state.appearanceFor(runContext, state.pages[state.paging.Current()][slot.BrickIndex]))
 	case layout.SlotEmpty:
 		return renderer.RenderBlank()
 	default:
@@ -103,8 +109,10 @@ func (state *loopState) imageFor(slot layout.Slot) image.Image {
 // error state into what the renderer draws. A press failure outranks a live
 // error, since it is the newer news. A background the renderer cannot parse
 // falls back to the default; the configuration decoder has already refused
-// malformed colours.
-func (state *loopState) appearanceFor(configured configuredKey) render.Appearance {
+// malformed colours. A key showing its application's own icon takes that icon
+// over its icon file, and the colour of the icon's edge unless it sets a
+// background.
+func (state *loopState) appearanceFor(runContext context.Context, configured configuredKey) render.Appearance {
 	configuredAppearance, _ := brick.AppearanceOf(configured.key.Parameters)
 
 	appearance := render.Appearance{
@@ -116,6 +124,14 @@ func (state *loopState) appearanceFor(configured configuredKey) render.Appearanc
 	if configuredAppearance.IconFile != "" {
 		appearance.IconImage = state.iconFile(configuredAppearance.IconFile)
 		appearance.IconMissing = appearance.IconImage == nil
+	}
+
+	if source, offers := configured.key.Parameters.(brick.ApplicationIconSource); offers {
+		if identifier, wanted := source.ApplicationIcon(); wanted {
+			appearance.IconImage = state.appIcon(runContext, identifier)
+			appearance.IconMissing = appearance.IconImage == nil
+			appearance.BackgroundFromIcon = true
+		}
 	}
 
 	if source, isLive := configured.instance.(brick.LiveSource); isLive {
@@ -160,6 +176,33 @@ func (state *loopState) iconFile(fileName string) image.Image {
 	}
 
 	state.iconFiles[fileName] = icon
+
+	return icon
+}
+
+// appIcon returns an application's own icon, reading it once per
+// configuration, or nil if it cannot be read, which is logged once with the
+// reason.
+func (state *loopState) appIcon(runContext context.Context, identifier string) image.Image {
+	if icon, tried := state.appIcons[identifier]; tried {
+		return icon
+	}
+
+	var icon image.Image
+
+	readError := errNoAppIcons
+	if state.options.AppIcons != nil {
+		icon, readError = state.options.AppIcons.Icon(runContext, identifier)
+	}
+
+	if readError != nil {
+		icon = nil
+
+		state.options.Logger.WarnContext(runContext, "application icon not loaded",
+			slog.String("application", identifier), slog.String("error", readError.Error()))
+	}
+
+	state.appIcons[identifier] = icon
 
 	return icon
 }

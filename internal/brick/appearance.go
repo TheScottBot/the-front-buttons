@@ -33,3 +33,15 @@ func AppearanceFieldNames() []string {
 
 	return names
 }
+
+// ApplicationIconSource is implemented by a kind's parameters when its key can
+// show an application's own icon, as open_application's can (the author's
+// request, evaluation, deck testing). The daemon and the editor's preview read
+// it, so neither needs to know any kind by name. When wanted, the icon replaces
+// Icon and IconFile, and the key takes the colour of the icon's edge unless
+// Background is set.
+type ApplicationIconSource interface {
+	// ApplicationIcon returns the application's identifier, as the
+	// ApplicationLauncher takes it, and whether its icon is wanted.
+	ApplicationIcon() (identifier string, wanted bool)
+}

@@ -1,6 +1,7 @@
 package brick_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
@@ -98,5 +99,53 @@ func TestCheckFormat_PNGFile_AcceptsAPlainFileNameOnly(t *testing.T) {
 		if got := brick.CheckFormat(brick.FormatPNGFile, value); got != want {
 			t.Errorf("CheckFormat(png_file, %q) = %v, want %v", value, got, want)
 		}
+	}
+}
+
+// TestCheckFormat_FunctionKey_AcceptsF13ToF24 covers the key a press_key key
+// sends: the extended function keys the author asked for, which no keyboard
+// has, so a press cannot collide with anything typed (evaluation, deck
+// testing).
+func TestCheckFormat_FunctionKey_AcceptsF13ToF24(t *testing.T) {
+	t.Parallel()
+
+	keyCases := map[string]bool{
+		"F13": true, "F19": true, "F20": true, "F24": true,
+		"F12": false, "F25": false, "f13": false, "F013": false, "F1": false, "": false,
+	}
+
+	if brick.CheckFormat(brick.FormatFunctionKey, "F13\n") {
+		t.Error("want a trailing newline refused")
+	}
+
+	for value, want := range keyCases {
+		if got := brick.CheckFormat(brick.FormatFunctionKey, value); got != want {
+			t.Errorf("CheckFormat(function_key, %q) = %v, want %v", value, got, want)
+		}
+	}
+}
+
+// TestFormatChoices_ListsAFormatsEveryValue: a format with a short, fixed set
+// of values lists them, so the editor can offer a choice rather than a text
+// field where a typing slip breaks the key (the author's request, evaluation,
+// deck testing). Every listed value passes its own format.
+func TestFormatChoices_ListsAFormatsEveryValue(t *testing.T) {
+	t.Parallel()
+
+	choices := brick.FormatChoices(brick.FormatFunctionKey)
+
+	want := []string{"F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23", "F24"}
+	if !slices.Equal(choices, want) {
+		t.Fatalf("want %v, got %v", want, choices)
+	}
+
+	for _, choice := range choices {
+		if !brick.CheckFormat(brick.FormatFunctionKey, choice) {
+			t.Errorf("listed %s fails its own format", choice)
+		}
+	}
+
+	if brick.FormatChoices(brick.FormatHTTPSURL) != nil {
+		t.Error("want no list for an open ended format")
 	}
 }

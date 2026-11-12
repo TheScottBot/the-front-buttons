@@ -127,6 +127,24 @@ The name is a plain file name ending `.png`, with no folders. The file must be a
 PNG of at most 512 pixels on each side and 1 MB. A key whose file is missing or
 refused shows the missing icon marker, and the log says why.
 
+### Key presses on macOS
+
+A `press_key` key sends F13 to F24 (F13 to F20 on macOS). It needs macOS's
+Accessibility permission, which recent macOS lists in System Settings, Privacy
+and Security, as Device Control and Data Access. macOS ties the permission to
+the exact build, so after installing or reinstalling:
+
+1. Remove any old the-front-buttons entry from that list; do not add one with
+   the plus button, which macOS does not match to this program.
+2. Press the key once, and let macOS add its own entry.
+3. Switch that entry on. The daemon notices within a few seconds and restarts
+   itself to use it (the deck blinks off and on); then press the key.
+
+A daemon run from a terminal rather than the login agent stops instead of
+restarting, and says so in its log.
+
+The install script signs the binary as `io.github.thescottbot.the-front-buttons`.
+
 ## Credentials
 
 Secrets, such as a GitHub token, never go in the configuration file. A key names
@@ -181,6 +199,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `application` | text | required | 1 to 512 characters |  | The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows. |
+| `use_app_icon` | boolean | optional |  |  | Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. Not available on Windows yet, where the key shows the missing icon marker. |
 
 ### `open_editor`
 
@@ -221,6 +240,18 @@ A brick kind.
 | `credential` | text, secret | required | 1 to 64 characters | identifier | The name of the stored GitHub token, a fine grained token with read access to Actions. |
 | `interval` | duration | optional | 30s to 1h |  | How often to poll when no run is active; a minute if left out. Every 15 seconds while a run is queued or in progress. GitHub may ask for longer, and is obeyed. |
 | `api_base_url` | text | optional | 9 to 2048 characters | https_url | The GitHub API address for GitHub Enterprise; api.github.com if left out. |
+
+### `press_key`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `key` | text | required |  | function_key | The key to press: F13 to F24. macOS has only F13 to F20, and asks for Accessibility permission the first time. |
 
 ### `discord_channel`
 

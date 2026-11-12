@@ -92,9 +92,14 @@ type Appearance struct {
 	// IconMissing marks a key whose own icon file could not be loaded; it is
 	// drawn with the missing icon marker, as an unknown bundled icon is.
 	IconMissing bool
-	Background  color.RGBA
-	Status      Status
-	ErrorReason string
+	// BackgroundFromIcon colours the key to match the edge of IconImage, as an
+	// application's own icon asks. An explicit Background still wins, because a
+	// person who chose a colour meant it; an icon with no visible edge, or no
+	// icon, leaves the default background.
+	BackgroundFromIcon bool
+	Background         color.RGBA
+	Status             Status
+	ErrorReason        string
 }
 
 // IconSet supplies bundled icons by name as masks, so the renderer can draw
@@ -144,11 +149,7 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 	renderer.mutex.Lock()
 	defer renderer.mutex.Unlock()
 
-	background := appearance.Background
-	if background.A == 0 {
-		background = defaultBackground()
-	}
-
+	background := backgroundOf(appearance)
 	key := renderer.newKey(background)
 	foreground := ForegroundFor(background)
 	box := renderer.glyphBox(key, glyphSizeHundredths)
@@ -176,6 +177,23 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 	}
 
 	return key
+}
+
+// backgroundOf chooses a key's background: an explicit one first, then the
+// icon's edge colour when asked for, then the default.
+func backgroundOf(appearance Appearance) color.RGBA {
+	if appearance.Background.A != 0 {
+		return appearance.Background
+	}
+
+	if appearance.BackgroundFromIcon && appearance.IconImage != nil {
+		edge, found := EdgeColour(appearance.IconImage)
+		if found {
+			return edge
+		}
+	}
+
+	return defaultBackground()
 }
 
 // RenderBlank draws an empty position: plain background, not an error

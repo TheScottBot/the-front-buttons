@@ -90,3 +90,43 @@ func TestOpenApplication_RefusesToConstructWithoutALauncher(t *testing.T) {
 		t.Fatalf("want ErrPortMissing, got %v", constructError)
 	}
 }
+
+// TestOpenApplication_OffersUseAppIcon_AsACheckbox: the author asked for a
+// check box to use the application's own icon; a boolean field is drawn as one.
+func TestOpenApplication_OffersUseAppIcon_AsACheckbox(t *testing.T) {
+	t.Parallel()
+
+	field, found := kindOf(t).Schema().Field("use_app_icon")
+	if !found || field.Type != brick.FieldTypeBoolean || field.Required || field.Description == "" {
+		t.Fatalf("want an optional, described boolean use_app_icon, got %+v (found %v)", field, found)
+	}
+}
+
+func TestOpenApplication_AsksForTheApplicationsIcon_OnlyWhenTicked(t *testing.T) {
+	t.Parallel()
+
+	kind := kindOf(t)
+	schema := kind.Schema()
+
+	for _, ticked := range []bool{false, true} {
+		parameters := schema.NewParameters()
+		applicationField, _ := schema.Field("application")
+		useField, _ := schema.Field("use_app_icon")
+
+		assignError := errors.Join(schema.Assign(parameters, applicationField, teamsAppID),
+			schema.Assign(parameters, useField, ticked))
+		if assignError != nil {
+			t.Fatalf("assigning: %v", assignError)
+		}
+
+		source, isSource := parameters.(brick.ApplicationIconSource)
+		if !isSource {
+			t.Fatalf("want the parameters to offer the application's icon, got %T", parameters)
+		}
+
+		identifier, wanted := source.ApplicationIcon()
+		if wanted != ticked || identifier != teamsAppID {
+			t.Errorf("ticked %v: got %q, wanted %v", ticked, identifier, wanted)
+		}
+	}
+}

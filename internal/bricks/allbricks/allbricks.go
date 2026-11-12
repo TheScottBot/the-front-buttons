@@ -9,6 +9,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/presskey"
 )
 
 // Register adds every brick kind to a registry.
@@ -18,6 +19,7 @@ func Register(registry *brick.Registry) error {
 		openapplication.Register,
 		pipelinestatus.Register,
 		openeditor.Register,
+		presskey.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

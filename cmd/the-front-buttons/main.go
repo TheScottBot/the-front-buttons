@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"sync/atomic"
 	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
@@ -54,6 +55,9 @@ const (
 	maximumPort = 65535
 	// usageExitStatus reports a command line the daemon cannot use.
 	usageExitStatus = 2
+	// restartExitStatus is EX_TEMPFAIL: a failure exit, so launchd's KeepAlive
+	// restarts the daemon, here to use a permission granted while it ran.
+	restartExitStatus = 75
 	// configurationPollInterval is how often the configuration file is checked.
 	configurationPollInterval = time.Second
 	// deckBrightness is the backlight percentage.
@@ -96,19 +100,16 @@ func run() int {
 		"print the Windows logon task definition for this binary, then exit")
 	taskUser := flag.String("user", "", "the account the logon task runs as, with -print-scheduled-task")
 	printName := flag.Bool("print-name", false, "print the product's display name, the logon task's name, then exit")
+	accessibilityCheck := flag.Bool(systemadapter.AccessibilityCheckFlag, false,
+		"exit zero if macOS trusts this binary for Accessibility, one if not")
 	editorPort := flag.Int("editor-port", editor.DefaultPort,
 		"the editor's port on 127.0.0.1; if another program holds it, any free port is used instead; 0 for any")
 
 	flag.Parse()
 
-	if *printName {
-		printOut(platform.ProductDisplayName + "\n")
-
-		return 0
-	}
-
-	if *printLaunchAgent || *printScheduledTask {
-		return printStartup(*printLaunchAgent, *taskUser)
+	if status, answered := answerOneShot(*accessibilityCheck, *printName, *printLaunchAgent, *printScheduledTask,
+		*taskUser); answered {
+		return status
 	}
 
 	if *editorPort < 0 || *editorPort > maximumPort {
@@ -128,6 +129,12 @@ func run() int {
 	logger.InfoContext(runContext, "state", slog.String("directory", stateDirectory))
 
 	startError := start(runContext, logger, *configPathOverride, *editorPort)
+	if errors.Is(startError, errRestartForPermission) {
+		logger.InfoContext(runContext, "restarting to use the Accessibility permission just granted")
+
+		return restartExitStatus
+	}
+
 	if startError != nil {
 		logger.ErrorContext(runContext, "stopped", slog.String("error", startError.Error()))
 
@@ -135,6 +142,30 @@ func run() int {
 	}
 
 	return 0
+}
+
+// answerOneShot handles the flags that answer one question and exit, before
+// any log or deck is opened, and reports whether one did.
+func answerOneShot(
+	accessibilityCheck, printName, printLaunchAgent, printScheduledTask bool,
+	taskUser string,
+) (int, bool) {
+	switch {
+	case accessibilityCheck:
+		if systemadapter.AccessibilityTrusted() {
+			return 0, true
+		}
+
+		return 1, true
+	case printName:
+		printOut(platform.ProductDisplayName + "\n")
+
+		return 0, true
+	case printLaunchAgent || printScheduledTask:
+		return printStartup(printLaunchAgent, taskUser), true
+	default:
+		return 0, false
+	}
 }
 
 // openLog sends the log to standard error and to the rotating file in the state
@@ -235,6 +266,9 @@ type core struct {
 	// iconFiles reads keys' own icons from the icons folder beside the
 	// configuration file; set once that file is chosen.
 	iconFiles usericons.Folder
+	// appIcons reads applications' own icons, for open_application keys that
+	// ask to show one; shared by the daemon and the editor's preview.
+	appIcons platform.ApplicationIcons
 }
 
 func buildCore() (core, error) {
@@ -276,7 +310,7 @@ func buildCore() (core, error) {
 
 	return core{
 		model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer, icons: icons,
-		iconFiles: usericons.NewFolder(""),
+		iconFiles: usericons.NewFolder(""), appIcons: systemadapter.NewApplicationIcons(),
 	}, nil
 }
 
@@ -318,12 +352,35 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 	}
 	defer stopEditor()
 
+	// When Accessibility is granted after a key press was refused, the daemon
+	// stops cleanly and exits with restartExitStatus, which the login agent's
+	// KeepAlive restarts, since a running daemon cannot see the permission.
+	daemonContext, stopDaemon := context.WithCancel(runContext)
+	defer stopDaemon()
+
+	var permissionGranted atomic.Bool
+
+	keyPresser := systemadapter.NewKeyPresser(daemonContext, func() {
+		permissionGranted.Store(true)
+		stopDaemon()
+	})
+
 	runner := daemon.New(daemonOptions(built, logger, counters, credentials,
 		githubactions.NewClient(newGitHubHTTPClient(), credentials, counters),
-		hidtransport.NewWatcher(), editorAddress))
+		hidtransport.NewWatcher(), editorAddress, keyPresser))
 
-	return runner.Run(runContext, configurations) //nolint:wrapcheck // the daemon's errors already say what failed
+	runError := runner.Run(daemonContext, configurations)
+
+	if permissionGranted.Load() {
+		return errRestartForPermission
+	}
+
+	return runError //nolint:wrapcheck // the daemon's errors already say what failed
 }
+
+// errRestartForPermission asks run to exit so the daemon restarts with a
+// permission granted while it ran.
+var errRestartForPermission = errors.New("restarting for a permission granted while running")
 
 // startEditor opens the editor on a loopback port with a token minted for this
 // launch, prints its address (TD9), and returns the address and a function that
@@ -359,6 +416,7 @@ func startEditor(
 	server.Handler = editor.NewHandler(editor.Options{
 		Address: address, Token: token, Store: store, Registry: built.registry, Presets: built.presetTable,
 		Grid: built.grid, Renderer: built.renderer, Icons: built.icons, IconFiles: built.iconFiles,
+		AppIcons:    built.appIcons,
 		Apps:        systemadapter.NewApplicationCatalogue(),
 		Credentials: credentials, Counters: counters, Logger: logger,
 	})
@@ -407,6 +465,7 @@ func daemonOptions(
 	pipelineProvider pipeline.Provider,
 	watcher deck.DeckWatcher,
 	editorAddress string,
+	keyPresser platform.KeyPresser,
 ) daemon.Options {
 	return daemon.Options{
 		Watcher:  watcher,
@@ -417,6 +476,7 @@ func daemonOptions(
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
 			PipelineProvider:    pipelineProvider,
 			EditorAddress:       func() string { return editorAddress },
+			KeyPresser:          keyPresser,
 		},
 		Logger:          logger,
 		PollInterval:    deckPollInterval,
@@ -425,6 +485,7 @@ func daemonOptions(
 		Counters:        counters,
 		CredentialStore: credentials,
 		IconFiles:       built.iconFiles,
+		AppIcons:        built.appIcons,
 	}
 }
 

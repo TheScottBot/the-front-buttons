@@ -64,6 +64,9 @@ type Options struct {
 	// IconFiles reads keys' own icon files; nil reads none, and a key naming
 	// one shows the missing icon marker.
 	IconFiles IconFileLoader
+	// AppIcons reads applications' own icons, for keys that ask to show one;
+	// nil reads none, and such a key shows the missing icon marker.
+	AppIcons platform.ApplicationIcons
 }
 
 // IconFileLoader reads a key's own icon file by its name.
@@ -183,6 +186,10 @@ type loopState struct {
 	// iconFiles holds each icon file loaded under the current configuration,
 	// nil for one that failed, so a file is read once per configuration.
 	iconFiles map[string]image.Image
+	// appIcons holds each application icon read under the current
+	// configuration, nil for one that could not be read, so an icon is read,
+	// and a failure logged, once per configuration.
+	appIcons map[string]image.Image
 
 	pages                   [][]configuredKey
 	pageNames               []string
@@ -207,6 +214,7 @@ func newLoopState(options Options) *loopState {
 		liveChanges:             newLiveChangeSet(),
 		liveReasons:             map[string]string{},
 		iconFiles:               map[string]image.Image{},
+		appIcons:                map[string]image.Image{},
 		pages:                   nil,
 		pageNames:               nil,
 		paging:                  layout.NewPaging(0),
@@ -261,6 +269,7 @@ func (state *loopState) handle(runContext context.Context, received any) {
 func (state *loopState) applyConfiguration(runContext context.Context, configuration config.Configuration) {
 	state.configurationGeneration++
 	state.iconFiles = map[string]image.Image{}
+	state.appIcons = map[string]image.Image{}
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
 	state.pageNames = make([]string, 0, len(configuration.Pages))
 

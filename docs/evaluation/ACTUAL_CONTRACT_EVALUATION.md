@@ -2909,6 +2909,125 @@ building, and five tests. The agent reran every check and looked in the
 browser pane on the real set: page 2 showed icons 121 to 240 of 5,247, "Page 2
 of 44", with working links.
 
+### Parked: reading mute and solo from a RØDECaster Pro II
+
+The author asked for keys showing a RØDECaster Pro II channel's mute and solo,
+then parked it on the agent's findings. RØDE documents MIDI control only, with
+no state read back. Two MIT licensed community projects have reverse
+engineered the USB HID protocol RØDE's own app uses: rodey's protocol notes
+(github.com/seanheiney/rodey) and a Bitfocus Companion module
+(github.com/gcdkgrnvle/companion-module-rode-rodecaster2), with a Rust library,
+rodecaster-protocol. A session opened with two fixed messages gets a full state
+dump and then every change pushed; mute is `channelOutputMute`, inverted (false
+when muted), and cue is less certain (`channelCueEnable` in one, `soloPressed`
+in the other). The author's desk enumerated on vendor 0x19F7, product 0x0092,
+with a vendor HID interface on usage page 0xFF00 and 256 byte reports; the
+projects saw product 0x0037 on firmware 1.7.3. The risks that parked it: a wrong
+byte on the mode report can enter firmware update mode or start a flash, and a
+reader that stops reading while a session is open freezes the desk's physical
+controls until it is replugged. Were it resumed, the first step would be a
+read only experiment with the author at the desk, sending only the two
+documented session messages.
+
+### A key that presses a key
+
+The author asked for a key that sends a momentary press of a key, the extended
+function keys first. The `press_key` brick takes `key`, a new `function_key`
+format accepting F13 to F24 exactly, and presses it through a new
+`platform.KeyPresser` port; failures show on the key as `permission`,
+`unsupported_key` or `key_failed`.
+
+The key codes were read from source, not memory: `kVK_F13` to `kVK_F20` from
+the macOS SDK's HIToolbox `Events.h`, which defines no F21 to F24, and `VK_F13`
+to `VK_F24` (0x7C to 0x87) from golang.org/x/sys v0.49.0, the version pinned.
+Both tables are pure Go and tested on any machine.
+
+- macOS: CoreGraphics key down and key up posted at the HID level, through a
+  small cgo file in the system adapter. macOS lets only a process trusted for
+  Accessibility do that; without it the press fails as `permission` and, once
+  per run, has macOS show its prompt. F21 to F24 fail as `unsupported_key`.
+  macOS ties the permission to the exact binary, so a rebuilt binary may need
+  it granted again.
+- Windows: `SendInput` with a key down and a key up. The 64 bit `INPUT` layout
+  is 40 bytes, checked at compile time. Not run on a Windows machine; vetted
+  and linted for Windows from the Mac.
+
+Tests first, each failing before its code: the format, the brick pressing its
+key and naming each failure, its required field and port, and both tables. The
+agent added an F13 key to the author's configuration for the author to press;
+its first choice of tile was one the author had since used, and the daemon
+refused the file as `duplicate_position` and kept the last good configuration,
+so the key went on the first free tile instead.
+
+On the deck the key first showed `permission` even after the author granted
+Accessibility: the running daemon had started before the grant, and macOS
+reads the permission when a program starts. Restarting the agent, without
+rebuilding, fixed it, and the author's test received F13. The error and the
+README now say to restart after granting. The binary's ad hoc signature
+carried Go's generic identifier `a.out`, which made it hard to find in the
+Accessibility list; at the author's request `scripts/install-macos.sh` now
+signs it again, still ad hoc, with the agent's label,
+`io.github.thescottbot.the-front-buttons`. After reinstalling, `codesign -dv`
+showed that identifier and `codesign --verify --strict` passed. macOS still
+ties Accessibility to the exact build, so the author granted it again: an entry
+added by hand with the plus button, for this bare binary, did not match it (a
+press at 22:11:46, after a restart, still read `permission`), while the entry
+macOS added itself from the daemon's own prompt, switched on and followed by a
+restart, did (presses at 22:13:20 and 22:13:28 went through). The README gives
+those steps. On this macOS the list is titled Device Control and Data Access.
+
+### Application icons, a key list, and restarting for a permission
+
+**Use app icon.** At the author's request a subagent added `use_app_icon` to
+`open_application`: the key draws the application's own icon, and its
+background takes the colour of the icon's visible edge (render.EdgeColour,
+scanning in from each side to the first opaque pixel, taking the largest colour
+group), unless a background is set, which wins. A new
+`platform.ApplicationIcons` port reads the icon through AppKit on macOS (a cgo
+Objective C file drawing NSWorkspace's icon into a 256 pixel bitmap, so icons
+kept in an asset catalogue work); on Windows it returns
+`platform.ErrIconUnavailable` and the key shows the missing marker, since shell
+COM cannot be tried from the Mac. Its report gave failing runs and tests,
+including a real AppKit test over Finder, Safari, Mail and Notes. The agent
+reran every check (0 lint findings on macOS and Windows, one targeted exception
+with its reason), and read the C side's memory handling: a manual retain and
+release bitmap released on every path inside an autorelease pool, the PNG
+bytes copied into memory of their own and freed after Go copies at most the
+decoder's bound plus one, and the C string freed.
+
+The agent made a slip worth recording: reinstalling for the signing change
+built the whole tree while the subagent was part way through, so the deck ran
+its unfinished code for a while. The author found the result, a check box
+reading "Stub" that did nothing for Claude or Spotify. After review, previews
+of the finished code drew Claude's icon on its orange edge and Spotify's on
+black, each with a label in the contrasting colour, and the clean build was
+installed.
+
+**Set aside while ticked.** The author asked for Use app icon to disable the
+Icon fields. A new schema tag, `replaces:"icon,icon_file"`, lets a check box
+name the fields it stands in for; a field it does not declare, or the tag on
+anything but a check box, is a declaration fault. The editor marks those
+fields read only and dashed while it is ticked, not disabled, since a disabled
+field is not sent and its saved value would be lost. Tests first; in the
+browser, ticking set both aside and unticking restored them.
+
+**A list for the key.** The press_key key field is chosen from F13 to F24
+rather than typed: `brick.FormatChoices` lists a fixed format's values and the
+editor shows any such field as a list with the saved value chosen. The schema
+still checks what is sent; a posted F25 is refused. Tests first.
+
+**Restarting for a permission.** A running daemon does not see Accessibility
+granted. After a press is refused, the macOS key presser now asks a fresh copy
+of the binary (`-accessibility-check`, exit zero when trusted) every two
+seconds, and when it says yes the daemon stops cleanly and exits with 75,
+which the login agent's KeepAlive restarts. The watcher is tested with a stand
+in check (told once, one loop however often started, silent once stopped). On
+the deck, after a clean install: a press refused at 22:25:24, the entry
+switched on, the log reading "restarting to use the Accessibility permission
+just granted" at 22:25:28 with the new daemon starting the same second, and the
+author's F13 then working with no manual restart. The README's steps no longer
+mention restarting.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

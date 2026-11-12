@@ -58,6 +58,7 @@ linters:
         - bounds
         - format
         - suggest
+        - replaces
         - description
         - yaml
 

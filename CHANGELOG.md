@@ -73,6 +73,18 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The Icons page pages through all the icons, 120 at a time, keeping the
   search.
 
+- A `press_key` brick sends one momentary press of an extended function key,
+  F13 to F24 (macOS has F13 to F20 only, and asks for Accessibility
+  permission).
+
+- `open_application` keys can draw the application's own icon on a key
+  coloured to match its edge (macOS; Windows not yet), and ticking it sets the
+  Icon fields aside.
+- The press_key key is chosen from a list of F13 to F24.
+- On macOS the daemon restarts itself once Accessibility is granted, so a new
+  permission takes effect without a manual restart; the install script signs
+  the binary as io.github.thescottbot.the-front-buttons.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

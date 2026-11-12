@@ -8,6 +8,8 @@
 // inside, closes on Escape and leaves the page behind it inert. When it closes,
 // focus goes back to the tile that opened it.
 
+import { applyReplacements } from "./replaces";
+
 interface Elements {
   readonly dialog: HTMLDialogElement;
   readonly title: HTMLElement;
@@ -112,6 +114,7 @@ async function load(parts: Elements, url: string, init?: RequestInit): Promise<v
   parts.title.textContent = page.querySelector("h1")?.textContent ?? "Key";
   parts.body.replaceChildren(document.importNode(editor, true));
   htmx()?.process(parts.body);
+  applyReplacements(document);
 
   if (!parts.dialog.open) {
     parts.dialog.showModal();

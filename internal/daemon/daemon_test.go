@@ -3,6 +3,7 @@ package daemon_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
@@ -85,23 +87,35 @@ func xlModel(t *testing.T) deck.Model {
 	return model
 }
 
-func startHarness(t *testing.T) *harness {
+// harnessRegistry holds the fake kinds, and open_application for its
+// application icon.
+func harnessRegistry(
+	t *testing.T,
+	recorder *testsupport.PressRecorder,
+	liveController *testsupport.LiveController,
+) *brick.Registry {
 	t.Helper()
 
-	recorder := testsupport.NewPressRecorder()
 	registry := brick.NewRegistry()
 
-	registerError := testsupport.RegisterButtonKind(registry, recorder)
+	registerError := errors.Join(
+		testsupport.RegisterButtonKind(registry, recorder),
+		testsupport.RegisterLiveKind(registry, liveController),
+		openapplication.Register(registry),
+	)
 	if registerError != nil {
 		t.Fatal(registerError)
 	}
 
-	liveController := testsupport.NewLiveController()
+	return registry
+}
 
-	liveError := testsupport.RegisterLiveKind(registry, liveController)
-	if liveError != nil {
-		t.Fatal(liveError)
-	}
+func startHarness(t *testing.T) *harness {
+	t.Helper()
+
+	recorder := testsupport.NewPressRecorder()
+	liveController := testsupport.NewLiveController()
+	registry := harnessRegistry(t, recorder, liveController)
 
 	renderer, rendererError := render.NewRenderer(xlModel(t).Protocol.KeyPixels, iconSetTestDouble{})
 	if rendererError != nil {
@@ -124,10 +138,14 @@ func startHarness(t *testing.T) *harness {
 	}
 
 	runner := daemon.New(daemon.Options{
-		Watcher:         running.watcher,
-		Renderer:        renderer,
-		Registry:        registry,
-		Ports:           brick.Ports{URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil},
+		Watcher:  running.watcher,
+		Renderer: renderer,
+		Registry: registry,
+		Ports: brick.Ports{
+			URLOpener:           nil,
+			ApplicationLauncher: testsupport.ApplicationLauncherTestDouble{Recorder: testsupport.NewLaunchRecorder()},
+			PipelineProvider:    nil,
+		},
 		Logger:          slog.New(slog.NewJSONHandler(logs, nil)),
 		Counters:        running.counters,
 		CredentialStore: testsupport.NewCredentialStoreTestDouble(),
@@ -135,6 +153,7 @@ func startHarness(t *testing.T) *harness {
 		ReadTimeout:     testReadTimeout,
 		Brightness:      70,
 		IconFiles:       iconFilesTestDouble{},
+		AppIcons:        applicationIconsTestDouble{},
 	})
 
 	go func() { running.done <- runner.Run(runContext, running.configurations) }()

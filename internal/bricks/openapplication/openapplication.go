@@ -19,6 +19,17 @@ type Parameters struct {
 	brick.Appearance
 
 	Application string `brick:"application,required" bounds:"1,512" suggest:"applications" description:"The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows."`
+
+	// UseAppIcon is the check box the author asked for. It stands apart so the
+	// tag alignment check does not pad Application's tag out to the width of
+	// this long description.
+	UseAppIcon bool `brick:"use_app_icon" replaces:"icon,icon_file" description:"Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. Not available on Windows yet, where the key shows the missing icon marker."`
+}
+
+// ApplicationIcon offers the application's own icon to the daemon and the
+// editor's preview when the key asks for it.
+func (parameters Parameters) ApplicationIcon() (string, bool) {
+	return parameters.Application, parameters.UseAppIcon
 }
 
 // Register adds the kind to a registry.

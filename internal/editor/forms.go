@@ -27,6 +27,9 @@ const (
 // textControl is the form control for text, and for durations written as text.
 const textControl = "text"
 
+// selectControl is the form control for a field chosen from a fixed list.
+const selectControl = "select"
+
 // errorPrefix starts every error a person reads, so an error is announced in
 // words and never by colour alone (datum 0.16).
 const errorPrefix = "Error: "
@@ -64,6 +67,12 @@ type fieldView struct {
 	// is that list, filled in when the page is shown.
 	Suggestions brick.Suggestions
 	Choices     []fieldChoice
+	// Options is every value a field with a fixed set of values may take,
+	// shown as a list rather than a text box (the author's request).
+	Options []string
+	// Replaces lists, space separated, the control IDs a check box sets aside
+	// while it is ticked.
+	Replaces string
 }
 
 // fieldChoice is one value a picker offers: what the field takes, and the
@@ -173,6 +182,15 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			Autofocus:     false,
 			Suggestions:   field.Suggestions,
 			Choices:       nil,
+			Options:       nil,
+			Replaces:      replacedIDs(field.Replaces),
+		}
+
+		// A field whose format has a short, fixed set of values is chosen from
+		// a list, so a typing slip cannot break the key; the schema still checks
+		// whatever is sent.
+		if options := brick.FormatChoices(field.Format); options != nil {
+			view.Control, view.Options = selectControl, options
 		}
 
 		applyBounds(&view, field)
@@ -363,4 +381,15 @@ func focusFirstError(fields []fieldView) bool {
 	}
 
 	return false
+}
+
+// replacedIDs turns the fields a check box stands in for into their controls'
+// IDs, as fieldViews names them.
+func replacedIDs(fieldNames []string) string {
+	ids := make([]string, 0, len(fieldNames))
+	for _, fieldName := range fieldNames {
+		ids = append(ids, "field-"+fieldName)
+	}
+
+	return strings.Join(ids, " ")
 }

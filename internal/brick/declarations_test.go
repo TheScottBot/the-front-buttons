@@ -107,3 +107,21 @@ type suggestionsOnInteger struct {
 type suggestedApplication struct {
 	Application string `brick:"application" suggest:"applications" description:"An installed application."`
 }
+
+type replacesUnknownField struct {
+	brick.Appearance
+
+	Own bool `brick:"own" replaces:"icon,nonesuch" description:"Names a field that does not exist."`
+}
+
+type replacesOnText struct {
+	brick.Appearance
+
+	Own string `brick:"own" replaces:"icon" description:"Not a check box."`
+}
+
+type replacingCheckBox struct {
+	brick.Appearance
+
+	Own bool `brick:"own" replaces:"icon,icon_file" description:"Stands in for the icon fields."`
+}

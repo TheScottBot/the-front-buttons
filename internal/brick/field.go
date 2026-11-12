@@ -53,6 +53,10 @@ const (
 	// and no empty part, so it can only name a file in the folder it is read
 	// from.
 	FormatPNGFile Format = "png_file"
+	// FormatFunctionKey is an extended function key, F13 to F24, which a
+	// press_key key sends; no keyboard has them, so a press never collides with
+	// typing.
+	FormatFunctionKey Format = "function_key"
 )
 
 // Bounds limits a value: the length in characters for text, the value for an
@@ -77,6 +81,9 @@ type Field struct {
 	// Suggestions names a list the editor offers values from, such as the
 	// installed applications; empty for none.
 	Suggestions Suggestions
+	// Replaces names the fields a check box stands in for while it is ticked,
+	// as use_app_icon does for icon and icon_file.
+	Replaces []string
 
 	structFieldIndex []int
 }
@@ -141,22 +148,47 @@ var (
 	repositoryPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,39}/[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$`)
 	tokenPattern      = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]*$`)
 	branchPattern     = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._/-]*$`)
+	functionKeyRule   = regexp.MustCompile(`^F(1[3-9]|2[0-4])$`)
 	pngFilePattern    = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)*\.[pP][nN][gG]$`)
 )
 
 // formatCheckers holds the one check per format.
 func formatCheckers() map[Format]func(textValue string) bool {
 	return map[Format]func(textValue string) bool{
-		FormatHTTPSURL:   isHTTPSURL,
-		FormatLinkURL:    isLinkURL,
-		FormatIdentifier: identifierPattern.MatchString,
-		FormatDigits:     digitsPattern.MatchString,
-		FormatColour:     colourPattern.MatchString,
-		FormatRepository: repositoryPattern.MatchString,
-		FormatToken:      tokenPattern.MatchString,
-		FormatBranch:     isBranchName,
-		FormatPNGFile:    pngFilePattern.MatchString,
+		FormatHTTPSURL:    isHTTPSURL,
+		FormatLinkURL:     isLinkURL,
+		FormatIdentifier:  identifierPattern.MatchString,
+		FormatDigits:      digitsPattern.MatchString,
+		FormatColour:      colourPattern.MatchString,
+		FormatRepository:  repositoryPattern.MatchString,
+		FormatToken:       tokenPattern.MatchString,
+		FormatBranch:      isBranchName,
+		FormatPNGFile:     pngFilePattern.MatchString,
+		FormatFunctionKey: functionKeyRule.MatchString,
 	}
+}
+
+// The extended function keys a function_key value names.
+const (
+	firstFunctionKey = 13
+	lastFunctionKey  = 24
+)
+
+// FormatChoices lists every value of a format whose values are few and fixed,
+// so the editor can offer a choice instead of a text field where a typing slip
+// breaks the key (the author's request, evaluation, deck testing). It returns
+// nil for an open ended format.
+func FormatChoices(format Format) []string {
+	if format != FormatFunctionKey {
+		return nil
+	}
+
+	choices := make([]string, 0, lastFunctionKey-firstFunctionKey+1)
+	for number := firstFunctionKey; number <= lastFunctionKey; number++ {
+		choices = append(choices, fmt.Sprintf("F%d", number))
+	}
+
+	return choices
 }
 
 // isBranchName refuses "..", which the pattern alone cannot, because it would

@@ -5,8 +5,10 @@
 import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
 import { enablePickers } from "./picker";
+import { enableReplacements } from "./replaces";
 
 enablePickers(document);
+enableReplacements(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");
 

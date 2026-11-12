@@ -81,11 +81,18 @@ func (launcher MacOSLauncher) OpenURL(openContext context.Context, address strin
 // name.
 func (launcher MacOSLauncher) LaunchApplication(launchContext context.Context, identifier string) error {
 	flag := openApplicationNameFlag
-	if bundleIdentifierPattern.MatchString(identifier) && !strings.HasSuffix(identifier, macOSApplicationSuffix) {
+	if isMacOSBundleIdentifier(identifier) {
 		flag = openBundleIdentifierFlag
 	}
 
 	return launcher.open(launchContext, identifier, flag)
+}
+
+// isMacOSBundleIdentifier reports whether a macOS application identifier is a
+// bundle identifier rather than a name. The launcher and the icon reader both
+// decide by it, so a key's icon is always that of the application it opens.
+func isMacOSBundleIdentifier(identifier string) bool {
+	return bundleIdentifierPattern.MatchString(identifier) && !strings.HasSuffix(identifier, macOSApplicationSuffix)
 }
 
 func (launcher MacOSLauncher) open(runContext context.Context, target string, flag string) error {
