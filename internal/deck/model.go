@@ -21,6 +21,10 @@ type Protocol struct {
 	ContentPixels int
 	ContentLeft   int
 	ContentTop    int
+	// ContentBulge and ContentCornerRadius shape the content so its edges look
+	// straight through the domed key caps, which pull them in at the middle.
+	ContentBulge        float64
+	ContentCornerRadius int
 
 	OutputReportLength  int
 	ImageHeaderLength   int
@@ -96,9 +100,14 @@ const (
 	// the left, and two to three of black seen beyond the right edge and two to
 	// three times that below, looking straight on. Thicker black at the top
 	// and left evens out what is seen; provisional until checked on the deck.
-	xlContentPixels = 84
+	xlContentPixels = 82
 	xlContentLeft   = 8
-	xlContentTop    = 10
+	xlContentTop    = 9
+	// The key caps pull each edge in at its middle. A bulge of three pixels
+	// overcorrected on the deck, the edges then bowing outward, so it is half
+	// that, with the edge blended, which the author approved on the deck.
+	xlContentBulge        = 1.5
+	xlContentCornerRadius = 6
 )
 
 func streamDeckXLProtocol() Protocol {
@@ -110,6 +119,8 @@ func streamDeckXLProtocol() Protocol {
 		ContentPixels:          xlContentPixels,
 		ContentLeft:            xlContentLeft,
 		ContentTop:             xlContentTop,
+		ContentBulge:           xlContentBulge,
+		ContentCornerRadius:    xlContentCornerRadius,
 		OutputReportLength:     xlOutputReportLength,
 		ImageHeaderLength:      xlImageHeaderLength,
 		MaximumImageBytes:      xlMaximumImagePages * (xlOutputReportLength - xlImageHeaderLength),

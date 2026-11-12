@@ -6,11 +6,15 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"math"
 	"sync"
 )
 
 // percent turns the hundredths the layout is written in into fractions.
 const percent = 100
+
+// halfPixel moves a pixel's coordinate to its centre.
+const halfPixel = 0.5
 
 // centringDivisor halves the spare space either side of something centred.
 const centringDivisor = 2
@@ -147,6 +151,12 @@ type Inset struct {
 	Left          int
 	Top           int
 	ContentPixels int
+	// Bulge is how far each edge is drawn outward at its middle, falling to
+	// nothing at the corners: the deck's domed key caps pull straight edges in
+	// at the middle, so a bulge of the same size looks straight through them.
+	Bulge float64
+	// CornerRadius rounds the content's corners.
+	CornerRadius int
 }
 
 // keyFrame draws a key's content with an inner renderer and places it in a
@@ -157,22 +167,116 @@ type keyFrame struct {
 	size  int
 }
 
+// edgeSamples is how many points along each side of a pixel are tested
+// against the shape, so a pixel the edge crosses is blended with black in
+// proportion: a hard one pixel staircase showed through the key cap
+// (evaluation, deck testing).
+const edgeSamples = 4
+
+// place draws the content into a black key, shaped: its edges bulge outward at
+// their middles and its corners are rounded, with the pixels the edge crosses
+// blended with black. A pixel the bulge adds beyond the content takes the
+// colour of the content's nearest edge pixel.
 func (frame *keyFrame) place(content image.Image) image.Image {
 	key := image.NewRGBA(image.Rect(0, 0, frame.size, frame.size))
 	draw.Draw(key, key.Bounds(), image.NewUniform(defaultBackground()), image.Point{X: 0, Y: 0}, draw.Src)
 
-	destination := image.Rect(frame.inset.Left, frame.inset.Top,
-		frame.inset.Left+frame.inset.ContentPixels, frame.inset.Top+frame.inset.ContentPixels)
-	draw.Draw(key, destination, content, content.Bounds().Min, draw.Src)
+	inset, origin := frame.inset, content.Bounds().Min
+
+	for row := range frame.size {
+		for column := range frame.size {
+			coverage := frame.coverage(column, row)
+			if coverage == 0 {
+				continue
+			}
+
+			sourceColumn := min(max(column-inset.Left, 0), inset.ContentPixels-1)
+			sourceRow := min(max(row-inset.Top, 0), inset.ContentPixels-1)
+			source := color.RGBAModel.Convert(content.At(origin.X+sourceColumn, origin.Y+sourceRow))
+			key.Set(column, row, scaleTowardsBlack(source, coverage))
+		}
+	}
 
 	return key
+}
+
+// coverage is the share of a pixel inside the shape, from zero to one.
+func (frame *keyFrame) coverage(column int, row int) float64 {
+	inside := 0
+
+	for sampleRow := range edgeSamples {
+		for sampleColumn := range edgeSamples {
+			pointX := float64(column) + (float64(sampleColumn)+halfPixel)/edgeSamples
+			pointY := float64(row) + (float64(sampleRow)+halfPixel)/edgeSamples
+
+			if frame.inside(pointX, pointY) {
+				inside++
+			}
+		}
+	}
+
+	return float64(inside) / (edgeSamples * edgeSamples)
+}
+
+// scaleTowardsBlack blends a colour with the black around it by coverage.
+func scaleTowardsBlack(source color.Color, coverage float64) color.RGBA {
+	opaque, _ := source.(color.RGBA)
+	scale := func(channel uint8) uint8 { return uint8(math.Round(float64(channel) * coverage)) }
+
+	return color.RGBA{R: scale(opaque.R), G: scale(opaque.G), B: scale(opaque.B), A: opaque.A}
+}
+
+// inside reports whether a key pixel falls within the shaped content: between
+// the bulging edges, and not in a rounded corner.
+func (frame *keyFrame) inside(pointX float64, pointY float64) bool {
+	inset := frame.inset
+	size := float64(inset.ContentPixels)
+	centreX := float64(inset.Left) + size/centringDivisor
+	centreY := float64(inset.Top) + size/centringDivisor
+
+	// The bulge at a point along an edge: full at the middle, nothing at the
+	// ends, following a parabola.
+	bulgeAt := func(along float64, centre float64) float64 {
+		offset := math.Min(math.Abs(along-centre)/(size/centringDivisor), 1)
+
+		return inset.Bulge * (1 - offset*offset)
+	}
+
+	left := float64(inset.Left) - bulgeAt(pointY, centreY)
+	right := float64(inset.Left) + size + bulgeAt(pointY, centreY)
+	top := float64(inset.Top) - bulgeAt(pointX, centreX)
+	bottom := float64(inset.Top) + size + bulgeAt(pointX, centreX)
+
+	if pointX < left || pointX >= right || pointY < top || pointY >= bottom {
+		return false
+	}
+
+	return !frame.inRoundedCorner(pointX, pointY)
+}
+
+// inRoundedCorner reports whether a point lies in a corner cut away by the
+// corner radius.
+func (frame *keyFrame) inRoundedCorner(pointX float64, pointY float64) bool {
+	inset := frame.inset
+	radius := float64(inset.CornerRadius)
+	low, high := float64(inset.Left)+radius, float64(inset.Left+inset.ContentPixels)-radius
+	lowY, highY := float64(inset.Top)+radius, float64(inset.Top+inset.ContentPixels)-radius
+
+	cornerX := math.Max(low-pointX, pointX-high)
+	cornerY := math.Max(lowY-pointY, pointY-highY)
+
+	return cornerX > 0 && cornerY > 0 && cornerX*cornerX+cornerY*cornerY > radius*radius
 }
 
 // NewFramedRenderer returns a renderer whose keys are keyPixels square, with
 // their content drawn at the inset's size and placed in a black frame.
 func NewFramedRenderer(keyPixels int, icons IconSet, inset Inset) (*Renderer, error) {
-	if inset.Left < 0 || inset.Top < 0 || inset.ContentPixels < minimumKeyPixels ||
-		inset.Left+inset.ContentPixels > keyPixels || inset.Top+inset.ContentPixels > keyPixels {
+	bulge := int(math.Ceil(inset.Bulge))
+	if inset.Left < bulge || inset.Top < bulge || inset.Bulge < 0 ||
+		inset.ContentPixels < minimumKeyPixels || inset.CornerRadius < 0 ||
+		inset.CornerRadius > inset.ContentPixels/centringDivisor ||
+		inset.Left+inset.ContentPixels+bulge > keyPixels ||
+		inset.Top+inset.ContentPixels+bulge > keyPixels {
 		return nil, fmt.Errorf("%w: %d pixels at %d, %d on a %d pixel key",
 			ErrFrameDoesNotFit, inset.ContentPixels, inset.Left, inset.Top, keyPixels)
 	}

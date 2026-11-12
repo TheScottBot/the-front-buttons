@@ -102,9 +102,9 @@ func TestXL_CarriesTheContentInsetMeasuredOnTheDeck(t *testing.T) {
 	model, _ := deck.LookupModel(0x0FD9, 0x008F)
 	protocol := model.Protocol
 
-	if protocol.ContentLeft != 8 || protocol.ContentTop != 10 || protocol.ContentPixels != 84 {
-		t.Fatalf("want content 84 pixels at 8, 10; got %d at %d, %d",
-			protocol.ContentPixels, protocol.ContentLeft, protocol.ContentTop)
+	if protocol.ContentLeft != 8 || protocol.ContentTop != 9 || protocol.ContentPixels != 82 ||
+		protocol.ContentBulge != 1.5 || protocol.ContentCornerRadius != 6 {
+		t.Fatalf("want content 82 pixels at 8, 9, bulging 1.5 with corners of 6; got %+v", protocol)
 	}
 
 	if protocol.ContentLeft+protocol.ContentPixels > protocol.KeyPixels ||

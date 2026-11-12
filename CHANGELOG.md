@@ -89,7 +89,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   it removes it, and the page offers Undo.
 
 - Every key is framed in black, so the XL's slight offset and bowed edges no
-  longer show as a strip on light keys.
+  longer show as a strip on light keys. Each key sits in it as a rounded tile
+  with smooth, blended edges, bulged slightly so they look straight through
+  the key caps.
 
 ### Fixed
 

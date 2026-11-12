@@ -295,7 +295,9 @@ func TestRender_DrawsTheMissingMarker_ForAnIconFileThatCouldNotBeLoaded(t *testi
 
 // The frame the framed renderer tests use: an 84 pixel square, 8 from the left
 // and 10 from the top of a 96 pixel key.
-var testInset = render.Inset{Left: 8, Top: 10, ContentPixels: 84} //nolint:gochecknoglobals // a fixed test value
+var testInset = render.Inset{ //nolint:gochecknoglobals // a fixed test value
+	Left: 8, Top: 9, ContentPixels: 82, Bulge: 1.5, CornerRadius: 6,
+}
 
 func framedRenderer(t *testing.T) *render.Renderer {
 	t.Helper()
@@ -333,14 +335,17 @@ func TestFramedRenderer_ContainsEveryKeyInABlackSquare(t *testing.T) {
 		"blank": renderer.RenderBlank(),
 	}
 
-	inner := testInset.ContentPixels
+	inner, bulge := testInset.ContentPixels, int(math.Ceil(testInset.Bulge))
+	middle := testInset.Left + inner/2
 	frame := []image.Point{
 		{X: 0, Y: 0},
-		{X: testInset.Left - 1, Y: 50},
-		{X: 50, Y: testInset.Top - 1},
-		{X: testInset.Left + inner, Y: 50},
-		{X: 50, Y: testInset.Top + inner},
+		{X: testInset.Left - bulge - 1, Y: middle},
+		{X: middle, Y: testInset.Top - bulge - 1},
+		{X: testInset.Left + inner + bulge, Y: middle},
+		{X: middle, Y: testInset.Top + inner + bulge},
 		{X: 95, Y: 95},
+		{X: testInset.Left, Y: testInset.Top},
+		{X: testInset.Left + inner - 1, Y: testInset.Top + inner - 1},
 	}
 
 	for name, key := range keys {
@@ -355,12 +360,36 @@ func TestFramedRenderer_ContainsEveryKeyInABlackSquare(t *testing.T) {
 		}
 	}
 
-	if got := keys["key"].At(testInset.Left+3, testInset.Top+3); got != color.Color(light) {
-		t.Errorf("want the key's own colour just inside the frame, got %v", got)
+	inside := image.Point{X: testInset.Left + testInset.CornerRadius, Y: testInset.Top + testInset.CornerRadius}
+	if got := keys["key"].At(inside.X, inside.Y); got != color.Color(light) {
+		t.Errorf("want the key's own colour inside the frame, got %v", got)
 	}
+
+	// The key cap pulls each edge in at its middle, so the edges are drawn
+	// bulging out there, by a pixel and a half, to look straight through it.
+	// The pixel the edge crosses is blended with black, not stepped: a hard
+	// one pixel staircase showed through the cap (evaluation, deck testing).
+	assertBlended(t, keys["key"], light, []image.Point{
+		{X: testInset.Left - bulge, Y: middle},
+		{X: middle, Y: testInset.Top - bulge},
+		{X: testInset.Left + inner + bulge - 1, Y: middle},
+		{X: middle, Y: testInset.Top + inner + bulge - 1},
+	})
 
 	if isBlack(keys["navigation"].At(testInset.Left+3, testInset.Top+3)) {
 		t.Error("want the navigation key drawn inside the frame")
+	}
+}
+
+// assertBlended checks each point is part way between black and the colour.
+func assertBlended(t *testing.T, key image.Image, full color.RGBA, points []image.Point) {
+	t.Helper()
+
+	for _, point := range points {
+		got, _ := color.RGBAModel.Convert(key.At(point.X, point.Y)).(color.RGBA)
+		if got.B == 0 || got.B >= full.B {
+			t.Errorf("want the edge at %v blended between black and the key's colour, got %v", point, got)
+		}
 	}
 }
 
@@ -368,10 +397,12 @@ func TestNewFramedRenderer_RefusesAFrameThatDoesNotFit(t *testing.T) {
 	t.Parallel()
 
 	for name, inset := range map[string]render.Inset{
-		"too small to draw in": {Left: 0, Top: 0, ContentPixels: 40},
-		"off the right":        {Left: 20, Top: 0, ContentPixels: 84},
-		"off the bottom":       {Left: 0, Top: 20, ContentPixels: 84},
-		"negative":             {Left: -1, Top: 0, ContentPixels: 84},
+		"too small to draw in": {Left: 0, Top: 0, ContentPixels: 40, Bulge: 0, CornerRadius: 0},
+		"off the right":        {Left: 20, Top: 0, ContentPixels: 84, Bulge: 0, CornerRadius: 0},
+		"off the bottom":       {Left: 0, Top: 20, ContentPixels: 84, Bulge: 0, CornerRadius: 0},
+		"negative":             {Left: -1, Top: 0, ContentPixels: 84, Bulge: 0, CornerRadius: 0},
+		"bulge past the edge":  {Left: 2, Top: 8, ContentPixels: 82, Bulge: 3, CornerRadius: 0},
+		"corner too round":     {Left: 8, Top: 8, ContentPixels: 80, Bulge: 0, CornerRadius: 41},
 	} {
 		_, rendererError := render.NewFramedRenderer(testKeyPixels, iconSetTestDouble{}, inset)
 		if rendererError == nil {

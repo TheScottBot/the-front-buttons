@@ -3097,6 +3097,26 @@ from the probes, to be adjusted on the deck. Tests first, both failing before
 the code. The probe file was temporary and deleted; the probes ended at the
 author's request, late at night.
 
+On the deck the frame showed the cause of the bowing: the domed key caps act
+as lenses and pull any straight edge near the rim in at its middle, so the
+square's edges bowed in turn. The content is now shaped to cancel it: each
+edge bulges outward on a parabola, three pixels at its middle and nothing at
+the corners, and the corners are rounded with a radius of six. The square
+became 82 pixels at 8, 9, so the bulge fits inside the frame on every side;
+`render.Inset` gains `Bulge` and `CornerRadius`, refused if the bulge would
+leave the key or the radius exceeds half the square. Tests first, failing
+before the code; an enlarged rendering showed the intended shape before it
+was installed.
+
+On the deck three pixels overcorrected: the edges then bowed outward, and the
+hard one pixel steps of the curve showed through the cap as a clear staircase.
+The bulge is now a pixel and a half, `Bulge` a fraction, and each pixel the
+edge crosses is sampled at sixteen points and blended with black by how much
+of it lies inside, so the edge is smooth rather than stepped. The test that
+checks the blend failed against a planted hard edge (one sample a pixel). The
+author liked the look of a smooth, rounded tile: little buttons. Installed,
+the author looked on the deck and approved it.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

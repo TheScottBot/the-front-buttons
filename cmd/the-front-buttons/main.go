@@ -307,6 +307,7 @@ func buildCore() (core, error) {
 	// black seen around each key is even (evaluation, deck testing).
 	renderer, rendererError := render.NewFramedRenderer(model.Protocol.KeyPixels, icons, render.Inset{
 		Left: model.Protocol.ContentLeft, Top: model.Protocol.ContentTop, ContentPixels: model.Protocol.ContentPixels,
+		Bulge: model.Protocol.ContentBulge, CornerRadius: model.Protocol.ContentCornerRadius,
 	})
 	if rendererError != nil {
 		return core{}, fmt.Errorf("building the renderer: %w", rendererError)
