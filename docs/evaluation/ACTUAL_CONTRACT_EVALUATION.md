@@ -2607,9 +2607,29 @@ pipelinestatus_test.go:272: want polls at 0, 15, 30, 45 seconds and 1:45, got 3
 and a third, that a finished run costs one request only. The test that opened
 the last failure while a fix ran is removed with the rule.
 
+### CI green on both runners, and the key followed it
+
+The third run, on `905cd27`, passed on macos-26 and windows-2025: the first
+fully green run (run 43299936830, completed 20:30:34). Its only annotation was
+GitHub's notice of longer queue times for macOS arm64 runners. The author
+reported the key showing in progress and then turning green as the run
+finished. With the earlier failed run shown and opened by a press, the key has
+now been seen red, in progress and green against a real workflow, which is what
+TE8's gate asks; recording the gate cleared is the author's.
+
+### The credential contract on the Keychain
+
+With the author's go ahead, the `CredentialStore` contract ran against the real
+macOS Keychain (`THE_FRONT_BUTTONS_CREDENTIAL_TESTS=1`): reads back what was
+written with the latest write winning, reports a missing name as missing, and
+refuses an oversized secret without echoing it, all passing. Afterwards
+`security find-generic-password` found no `contract-test-entry` under
+`the-front-buttons`, and the author's `github-front-buttons` entry still
+present; no secret was printed, and the pipeline key logged no new credential
+error.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
-the keyboard only editor run (TE9); the pipeline key turning green, once CI
-passes on both runners (TE8). Everything on the Dell, including real
+the keyboard only editor run (TE9). Everything on the Dell, including real
 dock switches between the two machines.
