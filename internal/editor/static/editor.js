@@ -311,9 +311,35 @@
     });
   }
 
+  // internal/editor/web/theme.ts
+  var oneYearSeconds = 60 * 60 * 24 * 365;
+  var systemDark = "(prefers-color-scheme: dark)";
+  function enableThemeToggle(page) {
+    const toggle = page.querySelector("button.theme-switch");
+    if (toggle === null) {
+      return;
+    }
+    const root = page.documentElement;
+    const system = window.matchMedia(systemDark);
+    const isDark = () => root.dataset["theme"] === "dark" || root.dataset["theme"] === void 0 && system.matches;
+    const show = () => {
+      toggle.setAttribute("aria-checked", String(isDark()));
+    };
+    toggle.addEventListener("click", () => {
+      const chosen = isDark() ? "light" : "dark";
+      root.dataset["theme"] = chosen;
+      page.cookie = `theme=${chosen}; path=/; max-age=${oneYearSeconds}; samesite=strict`;
+      show();
+    });
+    system.addEventListener("change", show);
+    show();
+    toggle.hidden = false;
+  }
+
   // internal/editor/web/editor.ts
   enablePickers(document);
   enableReplacements(document);
+  enableThemeToggle(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableDrag(grid);

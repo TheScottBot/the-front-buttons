@@ -640,13 +640,15 @@ label[for$="-picker"] {
 }
 
 /*
- * Dark, when the system asks for it: the author's Thyme clock. Its near black
- * panel, its pink time text and outline, and lilac for the quieter parts, with
- * the tilts straightened and the heading's misprint softened to a glow. Every
- * text pair still meets WCAG AA (ink pink on the panel is 9.3 to 1).
+ * Dark, when the system asks for it or the switch chooses it: the author's
+ * Thyme clock. Its near black panel, its pink time text and outline, and lilac
+ * for the quieter parts, with the tilts straightened and the heading's misprint
+ * softened to a glow. Every text pair still meets WCAG AA (ink pink on the
+ * panel is 9.3 to 1). The two blocks hold the same palette; a test keeps them
+ * so. A chosen light outranks the system's dark.
  */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
     --page: #12131c;
     --text: #f894f8;
@@ -665,4 +667,55 @@ label[for$="-picker"] {
     --tilt: none;
     --tilt-back: none;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #12131c;
+  --text: #f894f8;
+  --block: #1c1d2b;
+  --on-block: #f894f8;
+  --on-block-accent: #ffd3fc;
+  --on-block-accent-2: #d583d7;
+  --highlight: #4b2050;
+  --notice: #2a2442;
+  --field: #1a1b27;
+  --rule: #f59ef3;
+  --accent: #d599d7;
+  --accent-2: #9b5aa0;
+  --lift: #2b2c3d;
+  --heading-shadow: 0 0 14px rgba(248, 148, 248, 0.45);
+  --tilt: none;
+  --tilt-back: none;
+}
+
+/* The theme switch: a pill whose knob slides right for dark, its state also
+   read out as a switch. Hidden until the script shows it. */
+
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.7rem;
+  box-shadow: none;
+  transform: none;
+}
+
+.theme-switch::before {
+  content: "";
+  flex: none;
+  width: 2.4rem;
+  height: 1.3rem;
+  border: 2px solid var(--on-block);
+  border-radius: 1rem;
+  background: radial-gradient(circle at 0.55rem 50%, var(--on-block) 0.4rem, transparent 0.45rem);
+  transition: background-position 120ms ease-out;
+}
+
+.theme-switch[aria-checked="true"]::before {
+  background: radial-gradient(circle at 1.75rem 50%, var(--on-block) 0.4rem, transparent 0.45rem);
+}
+
+.theme-switch[hidden] {
+  display: none;
 }

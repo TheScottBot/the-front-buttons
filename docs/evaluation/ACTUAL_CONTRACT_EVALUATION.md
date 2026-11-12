@@ -3139,6 +3139,24 @@ text, a rule naming ink directly) failed them. In the browser, with the
 colour scheme emulated, the pages grid and the key dialog read in both
 modes, and light looks as it did.
 
+The author then asked for a switch. The script is deferred, so a choice kept
+only in the browser would be applied after the page is drawn: a dark choice on
+a light system would flash pink on every page, at night. The switch instead
+writes a cookie, `theme`, and the editor reads it as each page is served,
+writing `data-theme` on the html element; only light and dark are taken. The
+dark palette is set both for the system's dark (unless light is chosen) and
+for a chosen dark, the two blocks kept identical by a test. The switch is a
+button with the switch role and aria-checked, hidden until the script shows
+it, as the drag hint is; without the script the system's setting holds.
+
+Tests first, failing before the code: the switch on every page, hidden and
+with no theme chosen without the cookie; the cookie's light and dark drawn by
+the server and anything else ignored; the chosen dark matching the system's.
+Planted violations (a cookie read taking any value, the two dark blocks
+drifting apart) failed them. In the browser the switch turned the page dark,
+set the cookie, and the next page arrived dark from the server; switching
+back gave light.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

@@ -1,7 +1,10 @@
 package editor_test
 
 import (
+	"maps"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,6 +34,13 @@ const (
 	nonTextContrast = 3
 )
 
+// themeCookie is the cookie the switch keeps its choice in; noThemeChosen is
+// the page's opening tag when there is no choice, so the system's setting holds.
+const (
+	themeCookie   = "theme"
+	noThemeChosen = `<html lang="en-GB">`
+)
+
 // maximumReferences bounds following one role through others, so a circle of
 // references fails rather than looping.
 const maximumReferences = 8
@@ -44,7 +54,9 @@ var (
 	paletteColour     = regexp.MustCompile(`var\(-{2}(pink|ink|yellow|cyan|paper)\)`)
 	rootBlock         = regexp.MustCompile(`(?s):root\s*\{.*?\}`)
 	firstRootBlock    = regexp.MustCompile(`(?s)^.*?:root\s*\{(.*?)\}`)
-	darkRootBlock     = regexp.MustCompile(`(?s)@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{(.*?)\}`)
+	darkRootBlock     = regexp.MustCompile(
+		`(?s)@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{(.*?)\}`)
+	chosenDarkBlock = regexp.MustCompile(`(?s):root\[data-theme="dark"\]\s*\{(.*?)\}`)
 )
 
 func TestStylesheet_FollowsTheSystemIntoThymesDarkPalette(t *testing.T) {
@@ -103,6 +115,81 @@ func TestStylesheet_RulesNameRolesNotPaletteColours(t *testing.T) {
 
 	for _, use := range paletteColour.FindAllString(rootBlock.ReplaceAllString(stylesheet, ""), -1) {
 		t.Errorf("a rule names the palette colour %s; name a role so dark mode reaches it", use)
+	}
+}
+
+// TestStylesheet_ChosenDarkMatchesTheSystemsDark: the switch's dark is the
+// same palette as the system's, and the system's gives way to a chosen light.
+func TestStylesheet_ChosenDarkMatchesTheSystemsDark(t *testing.T) {
+	t.Parallel()
+
+	stylesheet := newHarness(t, nil).get(t, "/static/editor.css").Body.String()
+
+	chosen := chosenDarkBlock.FindStringSubmatch(stylesheet)
+	if chosen == nil {
+		t.Fatal(`stylesheet: want a :root[data-theme="dark"] block for the switch`)
+	}
+
+	_, system := stylesheetPalettes(t)
+
+	if got := customProperties(chosen[1]); !maps.Equal(got, system.properties) {
+		t.Errorf("want the chosen dark palette the same as the system's,\ngot  %v\nwant %v", got, system.properties)
+	}
+}
+
+// TestEditor_ThemeSwitchWaitsForTheScript: the author asked for a switch
+// between light and dark. It needs the script, so it is hidden until the
+// script shows it, and it is a switch to a screen reader.
+func TestEditor_ThemeSwitchWaitsForTheScript(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	for _, path := range editorPages() {
+		body := harness.get(t, path).Body.String()
+
+		if !regexp.MustCompile(`<button type="button" class="theme-switch" role="switch" aria-checked="false" hidden>`).
+			MatchString(body) {
+			t.Errorf("%s: want the theme switch, hidden until the script runs", path)
+		}
+
+		if strings.Contains(body, "data-theme") {
+			t.Errorf("%s: want no theme chosen without the cookie, so the system's setting holds", path)
+		}
+	}
+
+	script := harness.get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{"theme-switch", themeCookie + "=", "prefers-color-scheme: dark"} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+}
+
+// TestEditor_ChosenThemeIsDrawnByTheServer: the choice is kept in a cookie and
+// written onto the page as it is served, so a page never flashes the other
+// palette before the script runs. Only light and dark are taken.
+func TestEditor_ChosenThemeIsDrawnByTheServer(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	for value, want := range map[string]string{
+		"dark":   `<html lang="en-GB" data-theme="dark">`,
+		"light":  `<html lang="en-GB" data-theme="light">`,
+		"purple": noThemeChosen,
+		"Dark":   noThemeChosen,
+	} {
+		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+testAddress+"/page?page=0",
+			http.NoBody)
+		request.Header.Set("Cookie", themeCookie+"="+value)
+
+		recorder := httptest.NewRecorder()
+		harness.handler.ServeHTTP(recorder, request)
+
+		if !strings.Contains(recorder.Body.String(), want) {
+			t.Errorf("cookie %q: want %s", value, want)
+		}
 	}
 }
 

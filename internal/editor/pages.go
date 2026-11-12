@@ -67,6 +67,29 @@ type baseView struct {
 	Problems []string
 	// Undo offers to put back the key just removed.
 	Undo bool
+	// Theme is the palette chosen with the switch, light or dark, or empty to
+	// follow the system's setting.
+	Theme string
+}
+
+// themeCookie is where the theme switch keeps its choice. It is read here so
+// the page is drawn in the chosen palette from the start, rather than
+// flashing the other until the script runs.
+const themeCookie = "theme"
+
+// chosenTheme is the theme the request's cookie names, if it is one there is.
+func chosenTheme(request *http.Request) string {
+	cookie, cookieError := request.Cookie(themeCookie)
+	if cookieError != nil {
+		return ""
+	}
+
+	switch cookie.Value {
+	case "light", "dark":
+		return cookie.Value
+	default:
+		return ""
+	}
 }
 
 func (pages *pageHandlers) base(title string, request *http.Request, problems []string) baseView {
@@ -88,6 +111,7 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		Message:  message,
 		Problems: problems,
 		Undo:     undo,
+		Theme:    chosenTheme(request),
 	}
 }
 

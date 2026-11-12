@@ -98,6 +98,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   straightened. Every rule names a colour role, and each role pair meets WCAG AA
   contrast in both palettes.
 
+- A switch in the editor's header chooses light or dark whatever the system's
+  setting. The choice is kept in a cookie the editor reads, so each page is
+  drawn in it from the start without a flash of the other palette.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now
