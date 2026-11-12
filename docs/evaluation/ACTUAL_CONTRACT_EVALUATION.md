@@ -2202,3 +2202,114 @@ Each refusal was also logged by reason (three `editor request refused` lines).
 | Warnings | 0 |
 | **Author gate, outstanding** | building a full page from scratch in the editor on each machine, including once using the keyboard only. Automated label, landmark, live region, focus and keyboard checks pass; they are not the gate |
 | Not run | a screen reader; anything on the Dell; CI |
+
+## TE10: start at login, reference and documents
+
+The last phase, built under DV1 and committed under DV2.
+
+### What was built
+
+- `platform.LaunchAgentPlist` and `platform.ScheduledTaskXML`: the start at login
+  definitions, generated in Go and printed by the binary with
+  `-print-launch-agent` and `-print-scheduled-task -user`, with `-print-name` for
+  the task's name. Every path is XML escaped.
+- `scripts/install-macos.sh` and `scripts/uninstall-macos.sh`: a per user login
+  agent through `launchctl bootstrap gui/UID`, removing only the agent they wrote.
+- `scripts/install-windows.ps1` and `scripts/uninstall-windows.ps1`: a per user
+  logon task through `Register-ScheduledTask -Xml`, no administrator rights.
+- `diagnostics.RotatingFile`: the log file the specification's section 7 asks
+  for, in the state folder, owner only.
+- `internal/reference`: the README's brick reference, generated from every kind's
+  schema and every preset, with a test that fails when the README drifts.
+- The prose check now reads a Go string literal as its value, so a Markdown table
+  separator built in Go is not read as a dash run.
+- LICENSE, CHANGELOG.md, SECURITY.md, PRIVACY.md and HARDWARE_COMPATIBILITY.md;
+  README.md rewritten; TESTING.md updated.
+
+### Decisions taken by the agent under DV2
+
+1. **ProcessType Interactive** on the macOS agent: launchd throttles background
+   agents, and a key press must feel immediate.
+2. **KeepAlive with SuccessfulExit false**: restarted after a crash, left stopped
+   after a clean shutdown, so stopping it on purpose sticks.
+3. **Task Scheduler schema version 1.3**, the lowest that carries every element
+   used, per Microsoft's task schema.
+4. **The scripts take the definition from the binary**, so it is written once, in
+   Go, and tested there; the scripts only validate the path and register.
+5. **LICENSE: MIT, held by TheScottBot.** The author's to change.
+6. **The log rotates at 1 MiB, keeping 3 older files**, so it never passes 4 MiB.
+   Output before the log opens goes to a launchd log beside it on macOS.
+7. **The prose check reads Go string values** rather than exempting test files.
+8. **SECURITY.md's accepted risks are the agent's statement**, marked as awaiting
+   the author's own words.
+
+### Tests first
+
+The first run, before the start up definitions, the rotating file and the
+generator existed:
+
+```text
+[FAIL] TestLaunchAgentPlist_StartsTheDaemonAtLoginAndRestartsItOnlyAfterACrash (0.00s)
+[FAIL] TestLaunchAgentPlist_EscapesAPathThatLooksLikeMarkup (0.00s)
+FAIL	github.com/TheScottBot/the-front-buttons/internal/platform	0.250s
+[FAIL] TestRotatingFile_RotatesAtItsBound_AndKeepsOnlyTheNewestFiles (0.00s)
+[FAIL] TestRotatingFile_AppendsToAnExistingFile (0.00s)
+FAIL	github.com/TheScottBot/the-front-buttons/internal/diagnostics	0.250s
+[FAIL] TestMarkdown_DescribesEveryKindFieldAndPreset_FromTheirSchemas (0.00s)
+FAIL	github.com/TheScottBot/the-front-buttons/internal/reference	0.163s
+```
+
+The scheduled task, before it existed:
+
+```text
+[FAIL] TestScheduledTaskXML_StartsTheDaemonAtThisUsersLogon_WithoutElevation (0.00s)
+FAIL	github.com/TheScottBot/the-front-buttons/internal/platform	0.168s
+```
+
+The prose check, before it read Go string values:
+
+```text
+[FAIL] TestScanProse_AllowsATableSeparatorRowInsideAGoStringLiteral (0.00s)
+FAIL	github.com/TheScottBot/the-front-buttons/internal/repositorychecks	0.194s
+```
+
+One test was corrected before it went green: the property list reader in the
+launch agent test ignored values nested deeper than the top dictionary, so it
+read KeepAlive as `SuccessfulExit` without its `false`. It now flattens nested
+values. The corrected test was then seen to fail with the agent's KeepAlive
+planted as true:
+
+```text
+[FAIL] TestLaunchAgentPlist_StartsTheDaemonAtLoginAndRestartsItOnlyAfterACrash (0.00s)
+    startup_test.go:105: KeepAlive: want "SuccessfulExitfalse", got "SuccessfulExittrue"
+```
+
+The generator was also found to leave no blank line before the README's next
+heading; it now ends with one, and the README was regenerated.
+
+### Planted violations
+
+| Planted | Result |
+|---|---|
+| macOS install script given a path that does not exist | `error: ... is not an executable file`, exit 2 |
+| macOS install script given a file that is not executable | exit 2 |
+| macOS uninstall script given a path that does not exist | exit 2 |
+| README brick reference drifted from the registry | `TestREADME_BrickReferenceMatchesTheRegistry` fails, naming the command to regenerate |
+| The agent's KeepAlive set to true | the launch agent test fails, as above |
+
+The Windows scripts could not be run here (no PowerShell on this Mac); their
+refusal of a missing binary is checked only by the CI step on windows-2025.
+
+### Reproduction report, 12 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; Apple clang 21.0.0; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| Windows type check | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet` over every package except the cgo adapter and the composition root: clean |
+| `go test -race -count=1 ./...` | every package ok; 404 tests and subtests: 402 passed, 0 failed, 2 skipped (the device and real credential contracts) |
+| `golangci-lint config verify`, then `run ./...` | valid; 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Warnings | 0 |
+| **Author gate, outstanding** | on each machine, install with the script, log out and in, and find the daemon running and the deck live without a terminal open |
+| Not run | either install script for real (it would change this login); the Windows scripts at all; anything on the Dell; CI |

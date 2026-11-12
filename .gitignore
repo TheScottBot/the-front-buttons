@@ -18,6 +18,8 @@ desktop.ini
 # Build output. go build ./cmd/the-front-buttons writes the binary at the root.
 /the-front-buttons
 /the-front-buttons.exe
+/the-front-buttons-check
+/the-front-buttons-check.exe
 /bin/
 /dist/
 

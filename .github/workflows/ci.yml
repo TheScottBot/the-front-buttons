@@ -67,6 +67,27 @@ jobs:
       - name: Fuzz the deck feature text decoder
         run: go test -run '^$' -fuzz '^FuzzDecodeSerialNumber$' -fuzztime 30s ./internal/deck/
 
+      # TE10: the install scripts refuse a missing binary before touching the
+      # system, and the start up definitions the binary prints are well formed
+      # by each system's own tool. Installing for real is the author's gate.
+      - name: macOS install script refuses a missing binary, and the agent lints
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          go build -o the-front-buttons-check ./cmd/the-front-buttons
+          if scripts/install-macos.sh /no/such/the-front-buttons; then exit 1; fi
+          ./the-front-buttons-check -print-launch-agent | plutil -lint -
+
+      - name: Windows install script refuses a missing binary, and the task parses
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          go build -o the-front-buttons-check.exe ./cmd/the-front-buttons
+          pwsh -File scripts/install-windows.ps1 -BinaryPath 'C:\no\such\the-front-buttons.exe'
+          if ($LASTEXITCODE -ne 2) { exit 1 }
+          [xml](./the-front-buttons-check.exe -print-scheduled-task -user 'CI\check' | Out-String) | Out-Null
+          exit 0
+
       # Bash on both runners, so the one script is the one definition of the
       # check (Windows runners provide Git Bash).
       - name: Duplicate code across packages

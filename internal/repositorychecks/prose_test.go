@@ -148,3 +148,26 @@ func TestScanProse_AllowsCleanProse(t *testing.T) {
 		t.Fatalf("want no violations, got %v", violations)
 	}
 }
+
+func TestScanProse_AllowsATableSeparatorRowInsideAGoStringLiteral(t *testing.T) {
+	t.Parallel()
+
+	separator := "|" + plantedTripleHyphen + "|" + plantedTripleHyphen + `|\n`
+	source := "package sample\n\nconst row = \"" + separator + "\"\n"
+
+	violations := repositorychecks.ScanProse("internal/sample/sample.go", []byte(source))
+	if len(violations) != 0 {
+		t.Fatalf("want a table separator in a string's value allowed, got %v", violations)
+	}
+}
+
+func TestScanProse_StillReportsAHyphenRunInAnEscapedGoString_OnItsOwnLine(t *testing.T) {
+	t.Parallel()
+
+	source := "package sample\n\nconst label = \"first\\nsecond " + plantedDoubleHyphen + " third\"\n"
+
+	violations := repositorychecks.ScanProse("internal/sample/sample.go", []byte(source))
+	if len(violations) != 1 || violations[0].LineNumber != 3 {
+		t.Fatalf("want one violation reported on source line 3, got %v", violations)
+	}
+}

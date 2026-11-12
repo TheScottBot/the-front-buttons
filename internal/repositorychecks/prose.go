@@ -5,6 +5,7 @@ import (
 	"go/scanner"
 	"go/token"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -179,9 +180,36 @@ func scanGoProseForHyphenRuns(relativePath string, fileContent []byte) []Violati
 			return violations
 		}
 
-		if tokenKind == token.COMMENT || tokenKind == token.STRING {
-			startLine := sourceFile.Line(tokenPosition)
+		startLine := sourceFile.Line(tokenPosition)
+
+		switch tokenKind { //nolint:exhaustive // only comments and strings hold prose
+		case token.COMMENT:
 			violations = append(violations, scanTextForHyphenRuns(relativePath, tokenLiteral, startLine)...)
+		case token.STRING:
+			violations = append(violations, scanGoStringValue(relativePath, tokenLiteral, startLine)...)
 		}
 	}
+}
+
+// scanGoStringValue scans what a string literal holds rather than how it is
+// written, so a Markdown table separator inside a string is recognised as one.
+// A raw string's lines are its source lines; an interpreted string sits on one
+// source line, so every line of its value is reported there.
+func scanGoStringValue(relativePath string, literal string, startLine int) []Violation {
+	value, unquoteError := strconv.Unquote(literal)
+	if unquoteError != nil {
+		return scanTextForHyphenRuns(relativePath, literal, startLine)
+	}
+
+	if strings.HasPrefix(literal, "`") {
+		return scanTextForHyphenRuns(relativePath, value, startLine)
+	}
+
+	var violations []Violation
+
+	for valueLine := range strings.SplitSeq(value, "\n") {
+		violations = append(violations, scanTextForHyphenRuns(relativePath, valueLine, startLine)...)
+	}
+
+	return violations
 }

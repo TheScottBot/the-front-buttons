@@ -17,7 +17,7 @@ a later change is a dated note.
 | TE7 | Automated criteria green on this Mac; binary smoke run | Every preset and both bricks on each machine |
 | TE8 | Automated criteria green on this Mac | A real workflow red then green, press opening the failing run; credential contract with consent |
 | TE9 | Automated criteria green on this Mac; live editor probed | A full page built in the editor on each machine, once keyboard only |
-| TE10 | Not started | Start at login on both machines |
+| TE10 | Automated criteria green on this Mac; the Windows script's refusal proven only in CI | Start at login on both machines with the deck live and no terminal |
 
 ## Entries
 
@@ -45,4 +45,5 @@ commit, since a commit cannot name its own hash.
 | TE6 | feat(daemon): add HID transport, deck watching and the main loop | `d36a8ac` |
 | TE7 | feat(bricks): add URL and application bricks, presets and the composition root | `ec1820f` |
 | TE8 | feat(live): add live hub, GitHub Actions pipeline status and credentials | `5643a74` |
-| TE9 | feat(editor): add the local editor and the open_editor brick | recorded in the next commit |
+| TE9 | feat(editor): add the local editor and the open_editor brick | `6c543d1` |
+| TE10 | docs(release): add start at login, generated brick reference and project documents | recorded in the next commit |
