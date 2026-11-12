@@ -2628,6 +2628,25 @@ refuses an oversized secret without echoing it, all passing. Afterwards
 present; no secret was printed, and the pipeline key logged no new credential
 error.
 
+### The editor's port, fixed by the author's decision
+
+TE9's first decision gave the editor a new port at every launch. Each
+reinstall today restarted the daemon, and the author found the address
+"cycling all the time"; the author chose a fixed port. Rather than a new
+configuration field, which every hand built configuration in the tests would
+have had to carry, the agent made it the default: the editor tries 127.0.0.1
+port 48080 first and, only if another program holds it, takes any free port
+and logs `editor port taken; using another` with the address chosen.
+`-editor-port` names another port, and 0 keeps the old behaviour; a port
+outside 0 to 65535 is refused with exit status 2. The Host, Origin and token
+checks protect the editor, not an unpredictable port.
+
+Tests first (they failed to build against the old signature): a free preferred
+port is used, a taken one falls back to another loopback port and reports it,
+zero lets the system choose, and the default is 48080. After two reinstalls in
+a row the log read `http://127.0.0.1:48080/` both times and the page answered
+200. README and SECURITY.md, including its note for IT, now name the port.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

@@ -40,6 +40,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   meets WCAG AA (the lowest is 6.1 to 1) and focus is a thick ink and yellow
   ring. A key's kind now shows on its own line under its label in the grid.
 
+- The editor now stays at <http://127.0.0.1:48080/> across restarts, falling
+  back to any free port, with a warning, only if another program holds 48080;
+  `-editor-port` picks another port (the author's decision, reversing TE9's new
+  port at every launch).
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

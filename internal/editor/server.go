@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
@@ -24,10 +25,16 @@ import (
 //go:embed templates/*.html static/editor.css static/htmx.min.js
 var embeddedFiles embed.FS
 
-// loopbackAddress binds the editor to this machine only (specification section
-// 1: reaching the editor from another machine is out of scope), on a port the
-// operating system chooses, so it never collides with anything already running.
-const loopbackAddress = "127.0.0.1:0"
+// loopbackHost binds the editor to this machine only (specification section 1:
+// reaching the editor from another machine is out of scope).
+const loopbackHost = "127.0.0.1"
+
+// DefaultPort is the editor's port unless another program holds it. A new port
+// at every launch kept the collision free start the TE9 decision wanted, but
+// broke every bookmark, and on the real deck the author found the address
+// changing all the time (evaluation, deck testing). The Host, Origin and token
+// checks are what protect the editor, not an unpredictable port.
+const DefaultPort = 48080
 
 // tokenBytes is the size of the per launch token: 256 bits, far beyond guessing.
 const tokenBytes = 32
@@ -69,16 +76,27 @@ type Options struct {
 	Logger      *slog.Logger
 }
 
-// Listen opens the editor's loopback listener.
-func Listen(listenContext context.Context) (net.Listener, error) {
+// Listen opens the editor's loopback listener on the preferred port, or, if
+// that port is taken or none is preferred (zero), on a port the operating
+// system chooses. It reports whether it had to fall back, so the caller can say
+// why the address is not the usual one.
+func Listen(listenContext context.Context, preferredPort int) (net.Listener, bool, error) {
 	var listenConfig net.ListenConfig
 
-	listener, listenError := listenConfig.Listen(listenContext, "tcp", loopbackAddress)
-	if listenError != nil {
-		return nil, fmt.Errorf("opening the editor's loopback port: %w", listenError)
+	if preferredPort > 0 {
+		listener, preferredError := listenConfig.Listen(listenContext, "tcp",
+			net.JoinHostPort(loopbackHost, strconv.Itoa(preferredPort)))
+		if preferredError == nil {
+			return listener, false, nil
+		}
 	}
 
-	return listener, nil
+	listener, listenError := listenConfig.Listen(listenContext, "tcp", net.JoinHostPort(loopbackHost, "0"))
+	if listenError != nil {
+		return nil, false, fmt.Errorf("opening the editor's loopback port: %w", listenError)
+	}
+
+	return listener, preferredPort > 0, nil
 }
 
 // NewToken mints the token for this launch.

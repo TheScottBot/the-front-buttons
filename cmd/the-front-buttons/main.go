@@ -46,6 +46,10 @@ const (
 	// keyReadTimeout bounds each wait for a key report. The adapter holds its
 	// lock while reading, so a short wait keeps key image writes from queueing.
 	keyReadTimeout = 50 * time.Millisecond
+	// maximumPort is the highest TCP port number.
+	maximumPort = 65535
+	// usageExitStatus reports a command line the daemon cannot use.
+	usageExitStatus = 2
 	// configurationPollInterval is how often the configuration file is checked.
 	configurationPollInterval = time.Second
 	// deckBrightness is the backlight percentage.
@@ -88,6 +92,8 @@ func run() int {
 		"print the Windows logon task definition for this binary, then exit")
 	taskUser := flag.String("user", "", "the account the logon task runs as, with -print-scheduled-task")
 	printName := flag.Bool("print-name", false, "print the product's display name, the logon task's name, then exit")
+	editorPort := flag.Int("editor-port", editor.DefaultPort,
+		"the editor's port on 127.0.0.1; if another program holds it, any free port is used instead; 0 for any")
 
 	flag.Parse()
 
@@ -101,6 +107,12 @@ func run() int {
 		return printStartup(*printLaunchAgent, *taskUser)
 	}
 
+	if *editorPort < 0 || *editorPort > maximumPort {
+		printError(fmt.Sprintf("-editor-port must be from 0 to %d", maximumPort))
+
+		return usageExitStatus
+	}
+
 	stateDirectory, logFile, logger := openLog()
 	if logFile != nil {
 		defer func() { _ = logFile.Close() }()
@@ -111,7 +123,7 @@ func run() int {
 
 	logger.InfoContext(runContext, "state", slog.String("directory", stateDirectory))
 
-	startError := start(runContext, logger, *configPathOverride)
+	startError := start(runContext, logger, *configPathOverride, *editorPort)
 	if startError != nil {
 		logger.ErrorContext(runContext, "stopped", slog.String("error", startError.Error()))
 
@@ -257,7 +269,7 @@ func buildCore() (core, error) {
 	return core{model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer}, nil
 }
 
-func start(runContext context.Context, logger *slog.Logger, configPathOverride string) error {
+func start(runContext context.Context, logger *slog.Logger, configPathOverride string, editorPort int) error {
 	built, buildError := buildCore()
 	if buildError != nil {
 		return buildError
@@ -286,7 +298,8 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 	counters := diagnostics.NewCounters()
 	credentials := systemadapter.NewKeyringCredentialStore()
 
-	editorAddress, stopEditor, editorError := startEditor(runContext, logger, built, store, credentials, counters)
+	editorAddress, stopEditor, editorError := startEditor(runContext, logger, built, store, credentials, counters,
+		editorPort)
 	if editorError != nil {
 		return editorError
 	}
@@ -309,10 +322,16 @@ func startEditor(
 	store *config.Store,
 	credentials platform.CredentialStore,
 	counters *diagnostics.Counters,
+	editorPort int,
 ) (string, func(), error) {
-	listener, listenError := editor.Listen(runContext)
+	listener, fellBack, listenError := editor.Listen(runContext, editorPort)
 	if listenError != nil {
 		return "", nil, fmt.Errorf("starting the editor: %w", listenError)
+	}
+
+	if fellBack {
+		logger.WarnContext(runContext, "editor port taken; using another",
+			slog.Int("wanted", editorPort), slog.String("address", listener.Addr().String()))
 	}
 
 	token, tokenError := editor.NewToken()

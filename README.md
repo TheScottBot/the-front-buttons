@@ -115,9 +115,12 @@ token with read access to Actions on the repositories the keys watch.
 
 ## The editor
 
-The daemon prints the editor's address when it starts, on a port the operating
-system chooses, listening on this machine only. An `open_editor` key opens it
-from the deck. Every key, page and form in it works from the keyboard.
+The editor is at <http://127.0.0.1:48080/>, listening on this machine only. If
+another program already holds port 48080, the daemon uses any free port instead,
+logs a warning, and prints the address it chose; `-editor-port` picks another
+number, and `-editor-port 0` always lets the system choose. An `open_editor` key
+opens the current address from the deck. Every key, page and form in it works
+from the keyboard.
 
 ## Checking
 

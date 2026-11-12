@@ -7,8 +7,8 @@ against, stated plainly.
 
 One background process per signed in user: the daemon. It talks to the Stream
 Deck over USB HID, polls GitHub over HTTPS for the pipeline keys configured, and
-serves a web editor on the loopback interface (127.0.0.1) only, on a port the
-operating system chooses at each start. Nothing listens on any other interface.
+serves a web editor on the loopback interface (127.0.0.1) only, on port 48080,
+or on any free port if that one is taken. Nothing listens on any other interface.
 Nothing runs with administrator rights: on macOS it is a per user login agent, on
 Windows a per user logon task at least privilege.
 
@@ -55,8 +55,9 @@ acceptance.
 
 ## For IT
 
-The daemon is a user level process listening on 127.0.0.1 only, on an ephemeral
-port, serving a local configuration editor protected by a per launch token. It
+The daemon is a user level process listening on 127.0.0.1 only, on TCP port
+48080 (or any free port if 48080 is taken, or the port `-editor-port` names),
+serving a local configuration editor protected by a per launch token. It
 makes outbound HTTPS requests to the GitHub API host configured (api.github.com
 by default) and to nothing else. It needs no administrator rights and installs no
 driver.
