@@ -66,7 +66,7 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 		return
 	}
 
-	writeError := state.connected.SetKeyImage(keyIndex, state.options.Renderer.Render(appearanceFor(configured)))
+	writeError := state.connected.SetKeyImage(keyIndex, state.options.Renderer.Render(state.appearanceFor(configured)))
 	if writeError != nil {
 		state.disconnect(runContext, "write failed")
 	}
@@ -86,7 +86,7 @@ func (state *loopState) imageFor(slot layout.Slot) image.Image {
 
 		return renderer.RenderNavigation(direction, indication, hasIndication)
 	case layout.SlotBrick:
-		return renderer.Render(appearanceFor(state.pages[state.paging.Current()][slot.BrickIndex]))
+		return renderer.Render(state.appearanceFor(state.pages[state.paging.Current()][slot.BrickIndex]))
 	case layout.SlotEmpty:
 		return renderer.RenderBlank()
 	default:
@@ -94,16 +94,28 @@ func (state *loopState) imageFor(slot layout.Slot) image.Image {
 	}
 }
 
-// appearanceFor turns a key's configured appearance and error state into what
-// the renderer draws. A background the renderer cannot parse falls back to the
-// default; the configuration decoder has already refused malformed colours.
-func appearanceFor(configured configuredKey) render.Appearance {
+// appearanceFor turns a key's configured appearance, its live state and its
+// error state into what the renderer draws. A press failure outranks a live
+// error, since it is the newer news. A background the renderer cannot parse
+// falls back to the default; the configuration decoder has already refused
+// malformed colours.
+func (state *loopState) appearanceFor(configured configuredKey) render.Appearance {
 	configuredAppearance, _ := brick.AppearanceOf(configured.key.Parameters)
 
 	appearance := render.Appearance{
 		Label:       configuredAppearance.Label,
 		Icon:        configuredAppearance.Icon,
 		ErrorReason: configured.errorReason,
+	}
+
+	if source, isLive := configured.instance.(brick.LiveSource); isLive {
+		if liveState, published := state.hub.State(source.LiveIdentity()); published {
+			appearance.Status = liveState.Status
+
+			if appearance.ErrorReason == "" {
+				appearance.ErrorReason = liveState.ErrorReason
+			}
+		}
 	}
 
 	if configuredAppearance.Background != "" {

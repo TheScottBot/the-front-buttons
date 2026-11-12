@@ -38,6 +38,14 @@ in memory, so a regression in a check fails the build.
   THE_FRONT_BUTTONS_DECK_TESTS=1 go test -count=1 -run Contract ./internal/deck/hidtransport/
   ```
 
+- The `CredentialStore` contract against the real Keychain or Credential
+  Manager runs only with `THE_FRONT_BUTTONS_CREDENTIAL_TESTS=1`, because it writes
+  one entry, `contract-test-entry`, and removes it afterwards. Run it with:
+
+  ```bash
+  THE_FRONT_BUTTONS_CREDENTIAL_TESTS=1 go test -count=1 -run Credential ./internal/platform/systemadapter/
+  ```
+
 ## Author gates
 
 - TE1: the author reproduces the automated criteria on both machines, and CI is
@@ -45,3 +53,7 @@ in memory, so a regression in a check fails the build.
 - TE4: legibility on the physical deck at arm's length, both machines.
 - TE6: the device contract above on both machines; pressing keys, paging both
   ways, and ten dock switches without restarting the daemon.
+- TE7: every preset and both bricks on each machine, including new Teams by its
+  app ID on the Dell (DV3).
+- TE8: a real workflow turning red then green on the deck at work, with a press
+  opening the failing run; the credential contract above on both machines.

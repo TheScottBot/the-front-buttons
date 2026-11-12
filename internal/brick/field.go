@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 // FieldType is the kind of value a parameter holds. The set is deliberately
@@ -35,6 +36,13 @@ const (
 	FormatDigits Format = "digits"
 	// FormatColour is a colour written #RRGGBB.
 	FormatColour Format = "colour"
+	// FormatRepository is a GitHub repository written owner/name.
+	FormatRepository Format = "repository"
+	// FormatToken is one path segment such as a workflow file name or ID: no
+	// slashes, and not starting with a dot.
+	FormatToken Format = "token"
+	// FormatBranch is a branch name, which may hold slashes but never "..".
+	FormatBranch Format = "branch"
 )
 
 // Bounds limits a value: the length in characters for text, the value for an
@@ -107,6 +115,11 @@ var (
 	identifierPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_.-]*$`)
 	digitsPattern     = regexp.MustCompile(`^[0-9]+$`)
 	colourPattern     = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+	// GitHub's owner and repository name limits: an owner of up to 39
+	// characters of letters, digits and hyphens; a name of up to 100.
+	repositoryPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,39}/[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$`)
+	tokenPattern      = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]*$`)
+	branchPattern     = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._/-]*$`)
 )
 
 // formatCheckers holds the one check per format.
@@ -116,7 +129,26 @@ func formatCheckers() map[Format]func(textValue string) bool {
 		FormatIdentifier: identifierPattern.MatchString,
 		FormatDigits:     digitsPattern.MatchString,
 		FormatColour:     colourPattern.MatchString,
+		FormatRepository: repositoryPattern.MatchString,
+		FormatToken:      tokenPattern.MatchString,
+		FormatBranch:     isBranchName,
 	}
+}
+
+// isBranchName refuses "..", which the pattern alone cannot, because it would
+// let a branch name climb out of its path.
+func isBranchName(textValue string) bool {
+	return branchPattern.MatchString(textValue) && !strings.Contains(textValue, "..")
+}
+
+// CheckFormat reports whether a value satisfies a format. It is the one check
+// per format, used by the schema and by any adapter guarding a value it was
+// given, so the two can never disagree (datum 0.7). An unknown format refuses
+// every value.
+func CheckFormat(format Format, textValue string) bool {
+	checker, known := formatCheckers()[format]
+
+	return known && checker(textValue)
 }
 
 func isHTTPSURL(textValue string) bool {

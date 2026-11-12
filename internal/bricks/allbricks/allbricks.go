@@ -7,6 +7,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus"
 )
 
 // Register adds every brick kind to a registry.
@@ -14,6 +15,7 @@ func Register(registry *brick.Registry) error {
 	for _, register := range []func(registry *brick.Registry) error{
 		openurl.Register,
 		openapplication.Register,
+		pipelinestatus.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

@@ -16,6 +16,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
+	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
@@ -64,6 +65,9 @@ func (locked *lockedBuffer) String() string {
 type harness struct {
 	watcher        *testsupport.DeckWatcherTestDouble
 	recorder       *testsupport.PressRecorder
+	live           *testsupport.LiveController
+	renderer       *render.Renderer
+	counters       *diagnostics.Counters
 	logs           *lockedBuffer
 	configurations chan config.Configuration
 	cancel         context.CancelFunc
@@ -92,6 +96,13 @@ func startHarness(t *testing.T) *harness {
 		t.Fatal(registerError)
 	}
 
+	liveController := testsupport.NewLiveController()
+
+	liveError := testsupport.RegisterLiveKind(registry, liveController)
+	if liveError != nil {
+		t.Fatal(liveError)
+	}
+
 	renderer, rendererError := render.NewRenderer(xlModel(t).Protocol.KeyPixels, iconSetTestDouble{})
 	if rendererError != nil {
 		t.Fatal(rendererError)
@@ -103,6 +114,9 @@ func startHarness(t *testing.T) *harness {
 	running := &harness{
 		watcher:        testsupport.NewDeckWatcherTestDouble(),
 		recorder:       recorder,
+		live:           liveController,
+		renderer:       renderer,
+		counters:       diagnostics.NewCounters(),
 		logs:           logs,
 		configurations: make(chan config.Configuration, 1),
 		cancel:         cancel,
@@ -110,14 +124,16 @@ func startHarness(t *testing.T) *harness {
 	}
 
 	runner := daemon.New(daemon.Options{
-		Watcher:      running.watcher,
-		Renderer:     renderer,
-		Registry:     registry,
-		Ports:        brick.Ports{URLOpener: nil, ApplicationLauncher: nil},
-		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
-		PollInterval: testPollInterval,
-		ReadTimeout:  testReadTimeout,
-		Brightness:   70,
+		Watcher:         running.watcher,
+		Renderer:        renderer,
+		Registry:        registry,
+		Ports:           brick.Ports{URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil},
+		Logger:          slog.New(slog.NewJSONHandler(logs, nil)),
+		Counters:        running.counters,
+		CredentialStore: testsupport.NewCredentialStoreTestDouble(),
+		PollInterval:    testPollInterval,
+		ReadTimeout:     testReadTimeout,
+		Brightness:      70,
 	})
 
 	go func() { running.done <- runner.Run(runContext, running.configurations) }()
@@ -141,9 +157,9 @@ type iconSetTestDouble struct{}
 
 func (iconSetTestDouble) IconMask(string, int) (*image.Alpha, bool) { return nil, false }
 
-func button(name string, row int, column int, fails bool) config.Key {
+func button(name string, column int, fails bool) config.Key {
 	return config.Key{
-		Position: layout.Position{Row: row, Column: column},
+		Position: layout.Position{Row: 0, Column: column},
 		Kind:     testsupport.ButtonKindName,
 		Parameters: &testsupport.ButtonParameters{
 			Label: name, Icon: "", Background: "", Name: name, Fails: fails,
@@ -156,8 +172,8 @@ func twoPages() config.Configuration {
 	return config.Configuration{
 		SchemaVersion: config.CurrentSchemaVersion,
 		Pages: []config.Page{
-			{Name: "First", Keys: []config.Key{button("first", 0, 0, false)}},
-			{Name: "Second", Keys: []config.Key{button("second", 0, 0, false), button("broken", 0, 1, true)}},
+			{Name: "First", Keys: []config.Key{button("first", 0, false)}},
+			{Name: "Second", Keys: []config.Key{button("second", 0, false), button("broken", 1, true)}},
 		},
 	}
 }

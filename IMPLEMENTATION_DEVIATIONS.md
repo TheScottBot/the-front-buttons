@@ -116,3 +116,30 @@ the author may reverse it. If COM is wanted, the GUIDs are read from
 
 **Covering test:** `TestWindowsApplicationLauncher_UsesAppsFolderForAppIDs_AndPathsDirectly`;
 the launch itself is part of the TE7 author gate on the Dell.
+
+## DV4: GitHub's response fields beyond those read are ignored, not refused
+
+Recorded 12 November 2026, during TE8, by the agent under DV2.
+
+**Rule departed from:** datum 0.10, "reject unknown fields, unknown verbs and
+missing required fields explicitly rather than tolerating them", for bytes from
+outside the trust boundary.
+
+**What is done instead:** the GitHub Actions client reads only `status`,
+`conclusion` and `html_url` from each run and ignores every other field. Every
+other 0.10 obligation holds: the response is bounded at 1 MiB before parsing, a
+malformed body is refused, an empty run list is refused, and the run address is
+kept only if it is https.
+
+**Reason:** the response is GitHub's, not a contract this project owns. GitHub's
+documentation lists dozens of fields per run and adds more over time; refusing
+unknown ones would turn every GitHub release into a broken key. The configuration
+file, the contract this project does own, still refuses unknown fields at every
+level.
+
+**Author's decision:** taken by the agent under DV2; the author may reverse it.
+
+**Covering test:** `TestLatestRun_ReportsSuccessFailureAndInProgress` decodes
+responses carrying fields the client does not read (`id`, `head_branch`,
+`total_count`); `TestLatestRun_CategorisesEveryOtherFailure` covers malformed,
+oversized and empty responses.

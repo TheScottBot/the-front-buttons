@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -21,7 +22,10 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 	"github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport"
+	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
+	"github.com/TheScottBot/the-front-buttons/internal/githubactions"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/pipeline"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
 	"github.com/TheScottBot/the-front-buttons/internal/presets"
@@ -43,6 +47,9 @@ const (
 	configurationPollInterval = time.Second
 	// deckBrightness is the backlight percentage.
 	deckBrightness = 70
+	// githubRequestTimeout bounds one GitHub poll, so a stalled connection
+	// shows as a network error on the key instead of a key that never updates.
+	githubRequestTimeout = 20 * time.Second
 )
 
 // developmentVersion is reported when the binary was not built from a tagged
@@ -153,21 +160,51 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 		offerLatest(configurations, configuration)
 	}, logger)
 
-	runner := daemon.New(daemon.Options{
-		Watcher:  hidtransport.NewWatcher(),
+	counters := diagnostics.NewCounters()
+	credentials := systemadapter.NewKeyringCredentialStore()
+
+	runner := daemon.New(daemonOptions(built, logger, counters, credentials,
+		githubactions.NewClient(newGitHubHTTPClient(), credentials, counters),
+		hidtransport.NewWatcher()))
+
+	return runner.Run(runContext, configurations) //nolint:wrapcheck // the daemon's errors already say what failed
+}
+
+// newGitHubHTTPClient is the HTTP client for GitHub: the standard transport with
+// a bound on each request.
+func newGitHubHTTPClient() *http.Client {
+	httpClient := new(http.Client)
+	httpClient.Timeout = githubRequestTimeout
+
+	return httpClient
+}
+
+// daemonOptions wires the adapters into the daemon. It is separate from start so
+// the composition can be tested with fakes in place of the deck and GitHub.
+func daemonOptions(
+	built core,
+	logger *slog.Logger,
+	counters *diagnostics.Counters,
+	credentials platform.CredentialStore,
+	pipelineProvider pipeline.Provider,
+	watcher deck.DeckWatcher,
+) daemon.Options {
+	return daemon.Options{
+		Watcher:  watcher,
 		Renderer: built.renderer,
 		Registry: built.registry,
 		Ports: brick.Ports{
 			URLOpener:           systemadapter.NewURLOpener(),
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
+			PipelineProvider:    pipelineProvider,
 		},
-		Logger:       logger,
-		PollInterval: deckPollInterval,
-		ReadTimeout:  keyReadTimeout,
-		Brightness:   deckBrightness,
-	})
-
-	return runner.Run(runContext, configurations) //nolint:wrapcheck // the daemon's errors already say what failed
+		Logger:          logger,
+		PollInterval:    deckPollInterval,
+		ReadTimeout:     keyReadTimeout,
+		Brightness:      deckBrightness,
+		Counters:        counters,
+		CredentialStore: credentials,
+	}
 }
 
 func chooseConfigPath(configPathOverride string) (string, error) {

@@ -1841,3 +1841,220 @@ exits 0 on interrupt.
 | Warnings | 0 |
 | **Author gate, outstanding** | every preset and both bricks working on each machine; with DV3, launching new Teams by its app ID on the Dell |
 | Not run | experiment 3; anything on the Dell; CI |
+
+## TE8: live state and pipeline_status
+
+Started 12 November 2026, after rereading datum Part 0 and 0.17.
+
+### Dependency record: github.com/zalando/go-keyring v0.2.8 (datum 0.13)
+
+Written before the dependency is added (TD12). Facts from evaluation 6.3 and
+`gh api`, read 12 November 2026: tag v0.2.8 is commit
+`2fb288e584191da8306e42b9f86a697742fca71e`, 23 March 2026.
+
+| Item | Record |
+|---|---|
+| Behaviour provided | Reading and writing named secrets in the macOS Keychain and the Windows Credential Manager |
+| Why the standard library is insufficient | Go has no access to either store; hand writing both would reimplement Keychain access (TD12) |
+| Maintenance | Maintained; last commit 24 July 2026 |
+| Licence | MIT |
+| Requires | `github.com/danieljoos/wincred` v1.2.3 (Windows), `github.com/godbus/dbus/v5` v5.2.2 (Linux only, never built here), `golang.org/x/sys` |
+| Platform support | macOS without cgo, by running `/usr/bin/security -i` with the secret written to its standard input, never its arguments; Windows through `wincred` and `CredWriteW`/`CredReadW` |
+| Security | The secret never enters configuration, logs or the editor's responses (specification section 2). On macOS it passes through a child process's standard input, which other users cannot read. Windows refuses secrets over 2,560 bytes; the adapter bounds secrets below that first |
+| Test strategy | The adapter runs the one `CredentialStore` contract suite only with the author's consent (`THE_FRONT_BUTTONS_CREDENTIAL_TESTS=1`), because it writes to the real store; the in memory double runs it always |
+| Replacement cost | Contained to one file of `internal/platform/systemadapter` behind the port |
+
+Added with `go get github.com/zalando/go-keyring@v0.2.8`, after this record. It
+brought `github.com/danieljoos/wincred` v1.2.3 and `github.com/godbus/dbus/v5`
+v5.2.2 as stated.
+
+### What was built
+
+- **Credentials** (`internal/platform/credentials.go`,
+  `internal/platform/systemadapter/credentials.go`): the `CredentialStore` port;
+  one rule every adapter applies (a name of 1 to 64 bytes, a secret of 1 to 2,048
+  bytes, no control characters, and errors that never contain the secret); the
+  go-keyring adapter filing secrets under the product's service name; an in
+  memory double; one contract suite.
+- **Diagnostics** (`internal/diagnostics`): named counters and readings, safe
+  across goroutines, read by snapshot. Counted so far: key presses by kind, brick
+  errors by kind and reason, deck connects, disconnects and busy, pipeline polls
+  by result, and GitHub's remaining rate limit.
+- **The pipeline port** (`internal/pipeline`): provider neutral run states, the
+  query, the result with GitHub's requested wait, and `PollError` carrying a
+  reason category and a retry wait.
+- **The GitHub Actions client** (`internal/githubactions`): the documented
+  endpoint, headers and API version (TD8); the query checked with the same
+  format functions the configuration uses before any request; the token read
+  from the credential store per poll and never put in an error; the ETag sent
+  back and a 304 answered from the cached run; rate limiting recognised as GitHub
+  describes it, with retry after, reset time and the one minute floor; every
+  other failure categorised; the response bounded before parsing (DV4 for its
+  extra fields); TD10's state mapping and press target.
+- **New formats** (`internal/brick/field.go`): `repository`, `token` and
+  `branch`, with `CheckFormat` as the one check per format for schema and adapters
+  alike.
+- **Live state** (`internal/brick/live.go`, `internal/live`): `LiveSource`,
+  `LivePressable` and `LiveState`; the hub running one watch per identity,
+  caching each identity's latest state, restarting only changed identities on
+  reload, and stopping cleanly.
+- **`pipeline_status`** (`internal/bricks/pipelinestatus`): repository, workflow,
+  branch, credential (a secret field naming the stored token), interval (30 seconds
+  to an hour, a minute if left out) and API base URL (api.github.com if left out);
+  publishes each run state, waits longer when GitHub asks, opens the run from its
+  latest state on press, and keeps its identity across a relabel.
+- **The daemon** now runs the hub (with a non blocking change set, so the hub and
+  the loop can never deadlock), repaints live keys on change, draws cached state
+  the moment a page is shown, presses live keys with their latest state, logs each
+  live error reason change once, names each configured credential that is
+  missing, and counts presses, errors and connections.
+- **The composition root** wires the keyring store, the GitHub client with a 20
+  second request bound, and the counters.
+
+### Decisions taken by the agent under DV2
+
+1. **DV4**: GitHub's response fields beyond those read are ignored, not refused.
+2. **The token is read from the store on every poll** rather than cached in
+   memory, so a credential updated in the editor (TE9) takes effect on the next
+   poll with no restart, and the secret is held only for the request.
+3. **A press failure outranks a live error on the key**, as the newer news.
+4. **The secret field of `pipeline_status` is required.** GitHub allows
+   unauthenticated reads of public repositories, but at 60 requests an hour; a
+   required token keeps the rate limit arithmetic of TD8 true.
+5. **`startup_failure`**, a conclusion seen in GitHub's newer documentation and
+   not in TD10's list, falls to unknown, as TD10 settled for anything
+   unrecognised.
+
+### Tests first
+
+Each piece was written against stubs and run first (go test prefixes written in
+brackets). The credential rule:
+
+```text
+[FAIL] TestCheckCredential_RefusesBadNamesAndSecrets (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+panic({0x100ab29a8?, 0x100aed000?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/platform	0.215s
+FAIL
+```
+
+The credential adapter has no failing run of its own: its contract runs only with
+consent, so it was skipped against the stub as it is now; the double's run of the
+same suite passed, because the double was written with it.
+
+The counters:
+
+```text
+[FAIL] TestCounters_SnapshotIsACopy (0.00s)
+[FAIL] TestCounters_IncrementAndSet_AreSafeFromManyGoroutines (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/diagnostics	0.155s
+FAIL
+```
+
+The GitHub client and mapping:
+
+```text
+[FAIL] TestPressTarget_OpensTheLastFailure_WhileAFixIsRunning (0.00s)
+[FAIL] TestStateOf_MapsEveryGitHubStatusAndConclusionAsTD10Settled (0.00s)
+[FAIL] TestLatestRun_SendsTheDocumentedRequest (0.00s)
+panic: runtime error: index out of range [-1] [recovered, repanicked]
+panic({0x1047b8760?, 0x7c7157bf2168?})
+	/opt/homebrew/Cellar/go/1.27.3/libexec/src/runtime/panic.go:859 +0x120
+FAIL	github.com/TheScottBot/the-front-buttons/internal/githubactions	0.281s
+FAIL
+```
+
+The formats:
+
+```text
+[FAIL] TestCheckFormat_RepositoryWorkflowAndBranch (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/brick	0.314s
+FAIL
+```
+
+The live hub:
+
+```text
+[FAIL] TestHub_RunsOneWatchPerIdentity_SoTwoKeysOnOneWorkflowMakeOnePoll (0.00s)
+[FAIL] TestHub_NotifiesEachPublishedState_AndStopWaitsForEveryWatch (0.00s)
+[FAIL] TestHub_KeepsTheLatestStatePerIdentity (0.00s)
+[FAIL] TestHub_RestartsOnlyChangedSources_AndStopsRemovedOnes (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/live	0.195s
+FAIL
+```
+
+`pipeline_status`:
+
+```text
+[FAIL] TestPipelineStatus_IsALiveSourceAndALivePressable (0.00s)
+[FAIL] TestPipelineStatus_WaitsLongerWhenGitHubAsks (0.00s)
+[FAIL] TestPipelineStatus_IdentityChangesWithAnyPartOfTheDefinition (0.00s)
+[FAIL] TestPipelineStatus_PollsAtTheDefaultInterval_AgainstTheDefaultHost (0.00s)
+[FAIL] TestPipelineStatus_PublishesEachRunStateAsAKeyStatus (0.00s)
+[FAIL] TestPipelineStatus_PressOpensTheRunFromItsState (0.00s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus	0.180s
+FAIL
+```
+
+The daemon's live integration:
+
+```text
+[FAIL] TestDaemon_RunsLiveSourcesWithNoDeck_AndSharesThemBetweenKeys (0.00s)
+[FAIL] TestDaemon_LogsAConfiguredCredentialThatIsMissing (0.00s)
+[FAIL] TestDaemon_CountsPressesByKind (0.04s)
+[FAIL] TestDaemon_PressesALiveKeyWithItsLatestState (0.04s)
+[FAIL] TestDaemon_RepaintsALiveKey_WhenItsSourcePublishes (0.05s)
+[FAIL] TestDaemon_ShowsAnOffPageUpdate_TheMomentThePageIsShown (0.06s)
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/internal/daemon	0.410s
+FAIL
+```
+
+**Not tests first:** `TestComposition_NeverLogsTheToken`, the specification's
+"no token appears in any log line" check, was written after the wiring it
+exercises. It was therefore proven the datum's way for a check instead: a
+realistic leak was planted in a scratch copy (the brick showing the error's text
+as its reason, and the client's 401 error carrying the Authorization header), and
+the test failed on it. It was then reordered so a leak is reported as a leak
+before anything else, and failed on the plant again:
+
+```text
+##### planted: token leak (error text shown as the reason, token in the 401 error)
+$ go test -run TestComposition_NeverLogsTheToken ./cmd/the-front-buttons/
+[FAIL] TestComposition_NeverLogsTheToken (10.02s)
+    main_test.go:115: want the refused token reported by reason, got:
+        {"time":"2026-11-12T00:11:13.213967Z","level":"INFO","msg":"deck","state":"waiting"}
+        {"time":"2026-11-12T00:11:13.21718Z","level":"WARN","msg":"live brick error","kind":"pipeline_status","reason":"pipeline poll failed: unauthorised: HTTP 401 with Bearer github_pat_MUST_NEVER_BE_LOGGED_0123456789"
+FAIL
+FAIL	github.com/TheScottBot/the-front-buttons/cmd/the-front-buttons	10.278s
+FAIL
+
+##### rerun after ordering the leak check first
+$ go test -run TestComposition_NeverLogsTheToken ./cmd/the-front-buttons/
+[FAIL] TestComposition_NeverLogsTheToken (10.03s)
+    main_test.go:116: the token appeared in the log:
+        {"time":"2026-11-12T00:11:37.267934Z","level":"INFO","msg":"deck","state":"waiting"}
+        {"time":"2026-11-12T00:11:37.271262Z","level":"WARN","msg":"live brick error","kind":"pipeline_status","reason":"pipeline poll failed: unauthorised: HTTP 401 with Bearer github_pat_MUST_NEVER_
+FAIL
+```
+
+### Reproduction report, 12 November 2026, this Mac only
+
+| Item | Value |
+|---|---|
+| Platform | macOS 27.2 (26B7124), arm64; Go go1.27.3 darwin/arm64; Apple clang 21.0.0; golangci-lint v2.15.0 |
+| `go build ./...` then `go vet ./...` | clean |
+| Windows type check | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet` over every package except the cgo adapter and the composition root: clean |
+| `go test -race -count=1 ./...` | every package ok; 365 tests and subtests passed, 0 failed, 2 skipped |
+| Skipped | the TE6 device contract (needs a deck); `TestKeyringCredentialStore_PassesTheCredentialStoreContract_WithConsent` (writes to the real Keychain or Credential Manager; needs `THE_FRONT_BUTTONS_CREDENTIAL_TESTS=1`) |
+| `golangci-lint config verify`, then `run ./...` | valid; 0 issues |
+| `scripts/check-duplicate-code.sh` | no duplicate code at or above 100 tokens |
+| Memory analysis | race detector, clean |
+| Warnings | 0 |
+| **Author gate, outstanding** | a real workflow turning red then green on the deck at work, with a press opening the failing run; the credential contract run with consent on both machines |
+| Not run | anything against real GitHub; anything on the Dell; CI |

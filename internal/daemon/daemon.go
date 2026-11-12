@@ -11,12 +11,16 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
+	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/live"
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
@@ -53,6 +57,9 @@ type Options struct {
 	PollInterval time.Duration
 	ReadTimeout  time.Duration
 	Brightness   int
+
+	Counters        *diagnostics.Counters
+	CredentialStore platform.CredentialStore
 }
 
 // Daemon runs the deck.
@@ -71,6 +78,7 @@ func New(options Options) *Daemon {
 // closed.
 func (daemon *Daemon) Run(runContext context.Context, configurations <-chan config.Configuration) error {
 	state := newLoopState(daemon.options)
+	state.hub = live.NewHub(state.liveChanges.mark)
 
 	ticker := time.NewTicker(daemon.options.PollInterval)
 	defer ticker.Stop()
@@ -89,8 +97,45 @@ func (daemon *Daemon) Run(runContext context.Context, configurations <-chan conf
 			state.poll(runContext)
 		case received := <-state.events:
 			state.handle(runContext, received)
+		case <-state.liveChanges.signal:
+			state.handleLiveChanges(runContext, state.liveChanges.take())
 		}
 	}
+}
+
+// liveChangeSet collects the identities of live sources that published since the
+// loop last looked. Marking never blocks: the hub calls it from source
+// goroutines, and the loop may be waiting on the hub to stop a source, so a
+// blocking hand over could deadlock the two.
+type liveChangeSet struct {
+	mutex      sync.Mutex
+	identities map[string]bool
+	signal     chan struct{}
+}
+
+func newLiveChangeSet() *liveChangeSet {
+	return &liveChangeSet{mutex: sync.Mutex{}, identities: map[string]bool{}, signal: make(chan struct{}, 1)}
+}
+
+func (changes *liveChangeSet) mark(identity string) {
+	changes.mutex.Lock()
+	changes.identities[identity] = true
+	changes.mutex.Unlock()
+
+	select {
+	case changes.signal <- struct{}{}:
+	default:
+	}
+}
+
+func (changes *liveChangeSet) take() map[string]bool {
+	changes.mutex.Lock()
+	defer changes.mutex.Unlock()
+
+	taken := changes.identities
+	changes.identities = map[string]bool{}
+
+	return taken
 }
 
 // configuredKey is one brick key as configured and built.
@@ -121,8 +166,11 @@ type pressResultEvent struct {
 }
 
 type loopState struct {
-	options Options
-	events  chan any
+	options     Options
+	events      chan any
+	hub         *live.Hub
+	liveChanges *liveChangeSet
+	liveReasons map[string]string
 
 	pages                   [][]configuredKey
 	pageNames               []string
@@ -143,6 +191,9 @@ func newLoopState(options Options) *loopState {
 	return &loopState{
 		options:                 options,
 		events:                  make(chan any, eventBuffer),
+		hub:                     nil,
+		liveChanges:             newLiveChangeSet(),
+		liveReasons:             map[string]string{},
 		pages:                   nil,
 		pageNames:               nil,
 		paging:                  layout.NewPaging(0),
@@ -216,7 +267,100 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 		state.hasConfiguration = true
 	}
 
+	state.hub.Update(runContext, state.liveSources())
+	state.logMissingCredentials(runContext, configuration)
 	state.repaintAll(runContext)
+}
+
+// liveSources lists every live brick on every page, so the hub runs them all
+// whichever page is showing and whether or not a deck is connected.
+func (state *loopState) liveSources() []brick.LiveSource {
+	var sources []brick.LiveSource
+
+	for _, keys := range state.pages {
+		for _, configured := range keys {
+			if source, isLive := configured.instance.(brick.LiveSource); isLive {
+				sources = append(sources, source)
+			}
+		}
+	}
+
+	return sources
+}
+
+// logMissingCredentials names, once per configuration, each credential a key
+// refers to that is not in the store (specification section 7), so a key stuck
+// on credential_missing is explained in the log by name, never by secret.
+func (state *loopState) logMissingCredentials(runContext context.Context, configuration config.Configuration) {
+	logged := map[string]bool{}
+
+	for _, page := range configuration.Pages {
+		for _, key := range page.Keys {
+			kind, kindFound := state.options.Registry.Kind(key.Kind)
+			if !kindFound {
+				continue
+			}
+
+			for _, field := range kind.Schema().Fields() {
+				credentialName, isText := kind.Schema().Read(key.Parameters, field).(string)
+				if !field.Secret || !isText || credentialName == "" || logged[credentialName] {
+					continue
+				}
+
+				_, readError := state.options.CredentialStore.ReadCredential(credentialName)
+				if errors.Is(readError, platform.ErrCredentialMissing) {
+					logged[credentialName] = true
+					state.options.Logger.WarnContext(runContext, "credential missing",
+						slog.String("credential", credentialName), slog.String("kind", key.Kind))
+				}
+			}
+		}
+	}
+}
+
+// handleLiveChanges repaints the keys on the showing page whose source
+// published, and logs each change of a source's error reason once.
+func (state *loopState) handleLiveChanges(runContext context.Context, identities map[string]bool) {
+	for identity := range identities {
+		liveState, _ := state.hub.State(identity)
+		if liveState.ErrorReason != state.liveReasons[identity] {
+			state.liveReasons[identity] = liveState.ErrorReason
+			state.logLiveReason(runContext, identity, liveState.ErrorReason)
+		}
+	}
+
+	if !state.paging.HasPage() {
+		return
+	}
+
+	for _, configured := range state.pages[state.paging.Current()] {
+		source, isLive := configured.instance.(brick.LiveSource)
+		if isLive && identities[source.LiveIdentity()] {
+			state.repaintKey(runContext, configured.key.Position, configured)
+		}
+	}
+}
+
+func (state *loopState) logLiveReason(runContext context.Context, identity string, reason string) {
+	kindName := ""
+
+	for _, keys := range state.pages {
+		for _, configured := range keys {
+			if source, isLive := configured.instance.(brick.LiveSource); isLive && source.LiveIdentity() == identity {
+				kindName = configured.key.Kind
+			}
+		}
+	}
+
+	if reason == "" {
+		state.options.Logger.InfoContext(runContext, "live brick recovered", slog.String("kind", kindName))
+
+		return
+	}
+
+	state.options.Counters.Increment("brick_errors." + kindName + "." + reason)
+	state.options.Logger.WarnContext(runContext, "live brick error",
+		slog.String("kind", kindName), slog.String("reason", reason))
 }
 
 // build constructs one key's brick. A brick that cannot be built shows its error
@@ -289,6 +433,10 @@ func (state *loopState) connect(runContext context.Context, connection deck.Conn
 
 	switch {
 	case errors.Is(openError, deck.ErrDeckBusy):
+		if state.loggedState != stateBusy {
+			state.options.Counters.Increment("deck.busy")
+		}
+
 		state.logState(runContext, stateBusy,
 			slog.String("hint", "another program, such as Elgato's own software, may hold the deck"))
 
@@ -315,6 +463,7 @@ func (state *loopState) connect(runContext context.Context, connection deck.Conn
 	state.connectionPath = connection.Path
 	state.grid = grid
 	state.deckGeneration++
+	state.options.Counters.Increment("deck.connects")
 	state.logState(runContext, stateConnected, slog.String("model", opened.Model().Name))
 
 	go state.readKeys(runContext, opened, state.deckGeneration)
@@ -353,10 +502,13 @@ func (state *loopState) disconnect(runContext context.Context, reason string) {
 	state.connectionPath = ""
 	state.slots = nil
 	state.deckGeneration++
+	state.options.Counters.Increment("deck.disconnects")
 	state.logState(runContext, stateDisconnected, slog.String("reason", reason))
 }
 
 func (state *loopState) shutdown(runContext context.Context) {
+	state.hub.Stop()
+
 	if state.connected == nil {
 		return
 	}
@@ -400,8 +552,10 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 		slog.String("kind", configured.key.Kind), slog.Int("page", pageIndex),
 		slog.Int("row", configured.key.Position.Row), slog.Int("column", configured.key.Position.Column))
 
-	pressable, isPressable := configured.instance.(brick.Pressable)
-	if !isPressable {
+	state.options.Counters.Increment("key_presses." + configured.key.Kind)
+
+	pressFunction := state.pressFunction(configured)
+	if pressFunction == nil {
 		return
 	}
 
@@ -415,9 +569,30 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 			configurationGeneration: configurationGeneration,
 			pageIndex:               pageIndex,
 			brickIndex:              brickIndex,
-			failure:                 pressable.Press(pressContext),
+			failure:                 pressFunction(pressContext),
 		})
 	}()
+}
+
+// pressFunction returns what a press of the key does, or nil if the brick does
+// nothing when pressed. A live brick is pressed with its latest cached state.
+func (state *loopState) pressFunction(configured configuredKey) func(pressContext context.Context) error {
+	if pressable, isPressable := configured.instance.(brick.Pressable); isPressable {
+		return pressable.Press
+	}
+
+	livePressable, isLivePressable := configured.instance.(brick.LivePressable)
+	source, isLive := configured.instance.(brick.LiveSource)
+
+	if !isLivePressable || !isLive {
+		return nil
+	}
+
+	liveState, _ := state.hub.State(source.LiveIdentity())
+
+	return func(pressContext context.Context) error {
+		return livePressable.PressWithState(pressContext, liveState)
+	}
 }
 
 func (state *loopState) handlePressResult(runContext context.Context, result pressResultEvent) {
@@ -427,6 +602,7 @@ func (state *loopState) handlePressResult(runContext context.Context, result pre
 	configured.errorReason = ""
 	if result.failure != nil {
 		configured.errorReason = brick.ReasonCategoryOf(result.failure)
+		state.options.Counters.Increment("brick_errors." + configured.key.Kind + "." + configured.errorReason)
 		state.options.Logger.WarnContext(runContext, "brick error",
 			slog.String("kind", configured.key.Kind), slog.Int("page", result.pageIndex),
 			slog.Int("row", configured.key.Position.Row), slog.Int("column", configured.key.Position.Column),

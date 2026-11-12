@@ -36,6 +36,7 @@ func constructWith(t *testing.T, recorder *testsupport.LaunchRecorder, address s
 	constructed, constructError := kind.Construct(parameters, brick.Ports{
 		URLOpener:           testsupport.URLOpenerTestDouble{Recorder: recorder},
 		ApplicationLauncher: nil,
+		PipelineProvider:    nil,
 	})
 	if constructError != nil {
 		t.Fatalf("constructing: %v", constructError)
@@ -103,7 +104,7 @@ func TestOpenURL_RefusesToConstructWithoutAURLOpener(t *testing.T) {
 
 	kind, _ := registry.Kind(openurl.KindName)
 
-	noPorts := brick.Ports{URLOpener: nil, ApplicationLauncher: nil}
+	noPorts := brick.Ports{URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil}
 
 	_, constructError := kind.Construct(kind.Schema().NewParameters(), noPorts)
 	if !errors.Is(constructError, brick.ErrPortMissing) {

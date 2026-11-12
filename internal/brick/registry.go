@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/TheScottBot/the-front-buttons/internal/pipeline"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
@@ -15,6 +16,7 @@ import (
 type Ports struct {
 	URLOpener           platform.URLOpener
 	ApplicationLauncher platform.ApplicationLauncher
+	PipelineProvider    pipeline.Provider
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its
