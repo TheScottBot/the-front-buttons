@@ -104,11 +104,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 - Two keys that change the deck itself. `brightness` toggles the deck between
   its usual brightness and a set percentage, which it shows unless labelled.
-  `deck_off` turns every other key off and the deck down low (10 percent unless
+  `deck_off` turns every other key off and the deck down low (20 percent unless
   set); pressing it, or any key, turns them back on without doing anything else.
   The chosen brightness survives the deck being unplugged and returned.
 - A bounded number in the editor, such as a brightness level, can be set with a
-  slider as well as typed; the two stay in step.
+  slider as well as typed; the two stay in step. A new key's form starts at the
+  number's default: 50 percent for brightness, 20 for off.
 
 ### Fixed
 

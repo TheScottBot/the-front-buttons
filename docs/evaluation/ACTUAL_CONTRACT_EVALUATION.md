@@ -3190,6 +3190,17 @@ Planted violations failed them: no wake on press, a live key drawn while off,
 a returning deck at the usual brightness, the wrong default. In the browser
 the slider and number moved each other both ways.
 
+On trying them the author asked for a new key's level to start somewhere
+useful: 50 percent for brightness, 20 for off. The brick schema gained a
+`default` tag, for numbers only and within their bounds, both checked when the
+kind is registered; it is placed after bounds in the tag order. A new key's
+form starts there, number and slider alike; a refused form keeps what was
+typed. The tag only starts a form: a value left out of the configuration file
+is still the brick's to handle, so the off key's own default rose from 10 to
+20 to match. Tests first, failing before the code, and planted violations (no
+bounds check on a default, no prefill) failed them; in the browser both new
+key forms opened at their levels.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

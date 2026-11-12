@@ -84,6 +84,10 @@ type Field struct {
 	// Replaces names the fields a check box stands in for while it is ticked,
 	// as use_app_icon does for icon and icon_file.
 	Replaces []string
+	// Default is where a number starts in a new key's form, written as the
+	// form shows it; empty for none. It never fills a value left out of the
+	// configuration file: a brick says what it does then.
+	Default string
 
 	structFieldIndex []int
 }

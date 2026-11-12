@@ -210,7 +210,7 @@ A brick kind.
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-| `level` | integer | optional | 1 to 100 |  | How bright the deck is, in percent, while every other key is off; 10 if left out. Pressing this key, or any other, turns the keys back on. |
+| `level` | integer | optional | 1 to 100 |  | How bright the deck is, in percent, while every other key is off; 20 if left out. Pressing this key, or any other, turns the keys back on. |
 
 ### `open_application`
 

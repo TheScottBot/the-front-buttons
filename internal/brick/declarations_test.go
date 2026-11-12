@@ -125,3 +125,19 @@ type replacingCheckBox struct {
 
 	Own bool `brick:"own" replaces:"icon,icon_file" description:"Stands in for the icon fields."`
 }
+
+type defaultOnText struct {
+	Name string `brick:"name" default:"anything" description:"Defaults are for numbers."`
+}
+
+type defaultOutOfBounds struct {
+	Count int `brick:"count" bounds:"1,10" default:"20" description:"Past the maximum."`
+}
+
+type defaultNotANumber struct {
+	Count int `brick:"count" bounds:"1,10" default:"lots" description:"Not a number."`
+}
+
+type defaultedCount struct {
+	Count int `brick:"count" bounds:"1,10" default:"5" description:"Five unless changed."`
+}

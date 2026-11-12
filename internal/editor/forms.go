@@ -201,6 +201,8 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 
 		if parameters != nil {
 			fillValue(&view, field, schema.Read(parameters, field))
+		} else {
+			view.Value = field.Default
 		}
 
 		views = append(views, view)

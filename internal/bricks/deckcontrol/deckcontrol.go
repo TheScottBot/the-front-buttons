@@ -18,8 +18,9 @@ const (
 )
 
 // defaultOffPercent is how bright the deck is while off, unless set: low, but
-// enough to see the key that brings it back.
-const defaultOffPercent = 10
+// enough to see the key that brings it back. The level's default tag starts a
+// new key's form at the same.
+const defaultOffPercent = 20
 
 // errNoLevel reports a brightness key built without its level, which the
 // configuration decoder refuses first, as the field is required.
@@ -30,14 +31,14 @@ var errNoLevel = errors.New("a brightness key needs a level")
 type BrightnessParameters struct {
 	brick.Appearance
 
-	Level int `brick:"level,required" bounds:"1,100" description:"How bright the deck goes, in percent, when the key is pressed; pressing it again goes back to the usual brightness. The key shows the percentage unless it has a label."`
+	Level int `brick:"level,required" bounds:"1,100" default:"50" description:"How bright the deck goes, in percent, when the key is pressed; pressing it again goes back to the usual brightness. The key shows the percentage unless it has a label."`
 }
 
 // OffParameters is the deck_off kind's one declaration of its parameters.
 type OffParameters struct {
 	brick.Appearance
 
-	Level int `brick:"level" bounds:"1,100" description:"How bright the deck is, in percent, while every other key is off; 10 if left out. Pressing this key, or any other, turns the keys back on."`
+	Level int `brick:"level" bounds:"1,100" default:"20" description:"How bright the deck is, in percent, while every other key is off; 20 if left out. Pressing this key, or any other, turns the keys back on."`
 }
 
 // Register adds both kinds to a registry.

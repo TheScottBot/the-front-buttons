@@ -120,7 +120,10 @@ func TestDeriveSchema_CarriesEveryTagFact(t *testing.T) {
 func TestDeriveSchema_EnforcesEveryTagRule(t *testing.T) {
 	t.Parallel()
 
-	const boundsMessage = "bounds"
+	const (
+		boundsMessage  = "bounds"
+		defaultMessage = "default"
+	)
 
 	declarationCases := []struct {
 		name           string
@@ -148,6 +151,9 @@ func TestDeriveSchema_EnforcesEveryTagRule(t *testing.T) {
 		{"replaces an unknown field", reflect.TypeFor[replacesUnknownField](), "replaces"},
 		{"replaces on text", reflect.TypeFor[replacesOnText](), "replaces"},
 		{"untagged embedded non appearance struct", reflect.TypeFor[embeddedOtherStruct](), "embedded"},
+		{"default on text", reflect.TypeFor[defaultOnText](), defaultMessage},
+		{"default out of bounds", reflect.TypeFor[defaultOutOfBounds](), defaultMessage},
+		{"default not a number", reflect.TypeFor[defaultNotANumber](), defaultMessage},
 	}
 
 	for _, declarationCase := range declarationCases {
@@ -320,5 +326,22 @@ func TestDeriveSchema_ReadsWhatACheckBoxReplaces(t *testing.T) {
 	field, _ := schema.Field("own")
 	if !slices.Equal(field.Replaces, []string{"icon", "icon_file"}) {
 		t.Fatalf("want icon and icon_file replaced, got %v", field.Replaces)
+	}
+}
+
+// TestDeriveSchema_ReadsANumbersDefault: a new key's form starts at a number's
+// default, as the author asked for a brightness key's level (evaluation, deck
+// testing).
+func TestDeriveSchema_ReadsANumbersDefault(t *testing.T) {
+	t.Parallel()
+
+	schema, deriveError := brick.DeriveSchemaOfType(reflect.TypeFor[defaultedCount]())
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	field, found := schema.Field("count")
+	if !found || field.Default != "5" {
+		t.Fatalf("want the default 5, got %+v", field)
 	}
 }

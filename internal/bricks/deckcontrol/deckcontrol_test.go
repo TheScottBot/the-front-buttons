@@ -74,12 +74,12 @@ func TestBrightness_AsksForItsLevel(t *testing.T) {
 }
 
 // TestOff_AsksToBlankTheOtherKeys_AtALowLevel: the author asked for a key that
-// turns every other key off and turns the deck down low; ten percent unless
+// turns every other key off and turns the deck down low; twenty percent unless
 // set.
 func TestOff_AsksToBlankTheOtherKeys_AtALowLevel(t *testing.T) {
 	t.Parallel()
 
-	for level, want := range map[int]int{0: 10, 25: 25} {
+	for level, want := range map[int]int{0: 20, 25: 25} {
 		constructed, constructError := construct(t, deckcontrol.OffKindName, level)
 		if constructError != nil {
 			t.Fatal(constructError)
@@ -111,5 +111,27 @@ func TestDeckControls_RefuseALevelOffTheScale(t *testing.T) {
 	_, missingError := construct(t, deckcontrol.BrightnessKindName, 0)
 	if missingError == nil {
 		t.Error("want a brightness key without a level refused")
+	}
+}
+
+// TestDeckControls_StartANewKeyAtTheAuthorsLevels: a new brightness key's form
+// starts at 50 percent and an off key's at 20, as the author asked.
+func TestDeckControls_StartANewKeyAtTheAuthorsLevels(t *testing.T) {
+	t.Parallel()
+
+	registry := brick.NewRegistry()
+
+	registerError := deckcontrol.Register(registry)
+	if registerError != nil {
+		t.Fatal(registerError)
+	}
+
+	for kindName, want := range map[string]string{deckcontrol.BrightnessKindName: "50", deckcontrol.OffKindName: "20"} {
+		kind, _ := registry.Kind(kindName)
+
+		field, found := kind.Schema().Field("level")
+		if !found || field.Default != want {
+			t.Errorf("%s: want the level to start at %s, got %+v", kindName, want, field)
+		}
 	}
 }

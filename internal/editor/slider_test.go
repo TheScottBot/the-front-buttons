@@ -50,3 +50,28 @@ func TestEditor_BoundedNumberHasASlider(t *testing.T) {
 		t.Error("script: want it to keep the sliders and their numbers in step")
 	}
 }
+
+// TestEditor_NewKeyStartsAtTheLevelsDefault: a new brightness key's level and
+// slider start at 50 and an off key's at 20, as the author asked; a refused
+// form keeps what was typed.
+func TestEditor_NewKeyStartsAtTheLevelsDefault(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	for path, want := range map[string]string{
+		brightnessKeyPath: "50",
+		"/key?page=0&row=1&column=1&type=kind:deck_off": "20",
+	} {
+		body := harness.get(t, path).Body.String()
+
+		number := regexp.MustCompile(`<input id="field-level" [^>]*>`).FindString(body)
+		slider := regexp.MustCompile(`<input id="field-level-slider"[^>]*>`).FindString(body)
+
+		for name, control := range map[string]string{"number": number, "slider": slider} {
+			if !strings.Contains(control, `value="`+want+`"`) {
+				t.Errorf("%s: want the %s at %s, got %s", path, name, want, control)
+			}
+		}
+	}
+}

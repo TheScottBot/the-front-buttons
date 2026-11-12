@@ -10,11 +10,12 @@ import (
 )
 
 // The struct tags a parameter declaration uses. Each field carries its name and
-// flags in the brick tag, and its bounds, format and description in their own
-// tags so a description may contain commas.
+// flags in the brick tag, and its bounds, default, format and description in
+// their own tags so a description may contain commas.
 const (
 	brickTagKey       = "brick"
 	boundsTagKey      = "bounds"
+	defaultTagKey     = "default"
 	formatTagKey      = "format"
 	suggestTagKey     = "suggest"
 	replacesTagKey    = "replaces"
@@ -157,6 +158,12 @@ func deriveField(structType reflect.Type, structField reflect.StructField, field
 		return Field{}, locate(attributesError)
 	}
 
+	// The default is checked against the bounds, so it is read after them.
+	defaultError := applyDefault(&field, structField.Tag)
+	if defaultError != nil {
+		return Field{}, locate(defaultError)
+	}
+
 	return field, nil
 }
 
@@ -181,6 +188,7 @@ func parseBrickTag(brickTag string, fieldIndex []int, description string) (Field
 		Secret:           false,
 		Suggestions:      "",
 		Replaces:         nil,
+		Default:          "",
 		structFieldIndex: fieldIndex,
 	}
 	if !lowerSnakeCaseName.MatchString(field.Name) {
@@ -270,6 +278,33 @@ func applyReplaces(field *Field, structTag reflect.StructTag) error {
 	}
 
 	field.Replaces = strings.Split(replacesTag, ",")
+
+	return nil
+}
+
+// applyDefault reads a number's default tag: where a new key's form starts. It
+// must be a whole number within the field's bounds.
+func applyDefault(field *Field, structTag reflect.StructTag) error {
+	defaultTag, hasDefault := structTag.Lookup(defaultTagKey)
+	if !hasDefault {
+		return nil
+	}
+
+	if field.Type != FieldTypeInteger {
+		return declarationFault("default applies only to a number, not %s", field.Type)
+	}
+
+	value, parseError := strconv.ParseInt(defaultTag, 10, 64)
+	if parseError != nil {
+		return declarationFault("default %q must be a whole number", defaultTag)
+	}
+
+	if field.Bounds != nil && (value < field.Bounds.Minimum || value > field.Bounds.Maximum) {
+		return declarationFault("default %d is outside the bounds %d to %d",
+			value, field.Bounds.Minimum, field.Bounds.Maximum)
+	}
+
+	field.Default = defaultTag
 
 	return nil
 }
