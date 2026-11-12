@@ -3057,6 +3057,15 @@ key left the file and the page offered Undo, and Undo put the key back. Two
 first attempts missed: one aimed before the saved message moved the grid down,
 and one checked the file before the removal had saved.
 
+### TE9 in part: a key made by keyboard alone
+
+The author made a GoLand key using only the keyboard: an `open_application`
+key on page 1, row 4, column 7, with the application `com.jetbrains.goland`,
+the identifier the app picker fills in, and Use app icon ticked. The daemon
+accepted the file and logged no icon failure. TE9's gate is a full page built
+from scratch on each machine by keyboard; this is one key of it, recorded as
+the author reported it, who found it smooth.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
