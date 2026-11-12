@@ -4,9 +4,10 @@
 <ol class="pages">{{range .Pages}}<li><a href="/page?page={{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ol>
 </nav>{{end}}
 {{if .HasPage}}
+<p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Option (Alt on Windows) as you drop to copy it instead. The move form on each key's page does the same from the keyboard.</p>
 <table class="grid">
 <caption>Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
-{{range .Rows}}<tr>{{range .}}<td>{{if .Reserved}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
+{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
 <form method="post" action="/page/rename" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
@@ -27,4 +28,5 @@
 <input id="add-name" name="name" type="text" required minlength="1" maxlength="24">
 <button type="submit">Add page</button>
 </form>
+<script src="/static/drag.js" defer></script>
 {{template "foot" .}}

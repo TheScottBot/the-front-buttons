@@ -55,6 +55,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   editor page, keeping its kind, parameters and preset. The destination is one
   list of free tiles only, so paging and occupied tiles are never offered.
 
+- Keys can be dragged onto a free tile in the editor's grid to move them, or
+  copied by holding Option (Alt) while dropping. The script is TypeScript,
+  built by esbuild pinned as a Go tool; a check fails if the served script
+  drifts from it.
+
 ### Fixed
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now

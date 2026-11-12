@@ -475,3 +475,27 @@ input[type="search"] {
   color: var(--pink);
   background: var(--ink);
 }
+
+/* Drag and drop on the grid: the drag script shows its hint, marks the key
+   being carried with a dashed outline and the free tile under the pointer
+   with a yellow one. Outlines, not fading, so contrast never drops. */
+
+.drag-help {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+}
+
+.grid td[data-state="key"] a[draggable="true"] {
+  cursor: grab;
+}
+
+.grid td.dragging {
+  outline: 4px dashed var(--yellow);
+  outline-offset: -4px;
+}
+
+.grid td.drop-target {
+  outline: 5px solid var(--yellow);
+  outline-offset: -5px;
+  box-shadow: 4px 4px 0 var(--cyan);
+}

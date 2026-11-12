@@ -2737,6 +2737,62 @@ change. On the author's own configuration the Editor key's page offered 80
 tiles over three pages, none of them a paging tile, an occupied tile or its own
 place.
 
+### Dragging keys on the grid
+
+The author asked to drag a key to a new tile, preferably in TypeScript. Asked
+how to build it, the author chose TypeScript compiled by esbuild run as a
+pinned Go tool, over plain checked JavaScript or TypeScript with tsc and Node.
+
+#### Dependency record: github.com/evanw/esbuild v0.28.2, tools module only (datum 0.13)
+
+Written after the tool was added, not before as datum 0.13 asks; the agent
+recorded the version check first and wrote this record late. Facts read 12
+November 2026 from the module proxy and the module's own files.
+
+| Item | Record |
+|---|---|
+| Behaviour provided | Compiling `internal/editor/web/drag.ts` to the JavaScript the editor serves |
+| Why the standard library is insufficient | Go cannot compile TypeScript; the alternatives were no TypeScript (plain JavaScript) or Node and npm for tsc |
+| Version | v0.28.2, published 8 August 2026, the latest release |
+| Licence | MIT |
+| Requires | `golang.org/x/sys` only, at a 2022 version esbuild holds back on purpose for old Go releases; in the tools module, so it never enters the daemon's build |
+| Security | Runs only at development time and in CI, never in the daemon; its output is committed and reviewed like any other file |
+| Limit | esbuild strips types without checking them; type checking would need tsc and Node |
+| Test strategy | `scripts/check-editor-script.sh` rebuilds the script and fails if the served file differs; proven on a planted hand edit |
+| Replacement cost | One script, `scripts/build-editor-script.sh`; the TypeScript itself is plain and would build with tsc unchanged |
+
+Added with `go get -tool github.com/evanw/esbuild/cmd/esbuild@v0.28.2` in the
+tools module.
+
+#### What was built
+
+`internal/editor/web/drag.ts` is compiled by `scripts/build-editor-script.sh`
+(run by `go generate ./internal/editor/`) to `internal/editor/static/drag.js`,
+embedded and served under the editor's existing content security policy. Each
+grid cell carries `data-tile` (page, row and column) and `data-state` (key,
+empty or reserved); only a key's link is draggable and only an empty tile takes
+a drop, so a paging or occupied tile never does. A drop posts the same `POST
+/key/move` the move form sends, with the page's token, through the same guard
+and checks; Option or Alt held at the drop copies instead. A move that works
+loads the destination page with the saved message; a refusal is read from the
+server's alert into the page's live region. A hint above the grid is hidden
+unless the script runs, and names the move form as the keyboard way to do the
+same; the dragged key and the tile under the pointer are marked with outlines,
+not fading, so contrast holds.
+
+Tests first, failing before the change: the grid marking every tile and only a
+key draggable, the script tag, the hidden hint, and the script served as
+JavaScript. The drift check started as a Go test, which the repository's
+operating system check refused (only the adapters may start programs), so it
+became a script beside the duplicate code check, run in CI on both runners.
+
+In the browser pane on a scratch configuration, a real mouse drag of the Editor
+key onto a free tile moved it in the file and reloaded the page with the saved
+message, and dragging another key onto the forward paging tile did nothing and
+sent no request. Copying with Option held was not tried by hand, since the
+pane cannot hold a key during a drag; it is the same request with `action`
+copy, which the move tests cover.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

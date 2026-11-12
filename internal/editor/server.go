@@ -23,7 +23,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
-//go:embed templates/*.html static/editor.css static/htmx.min.js
+//go:embed templates/*.html static/editor.css static/htmx.min.js static/drag.js
 var embeddedFiles embed.FS
 
 // loopbackHost binds the editor to this machine only (specification section 1:

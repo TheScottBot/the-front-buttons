@@ -161,7 +161,18 @@ type cellView struct {
 	Text     string
 	Kind     string
 	Href     string
+	// Tile is the cell's page, row and column joined by dots, and State is
+	// "key", "empty" or "reserved": what the drag script needs to know.
+	Tile  string
+	State string
 }
+
+// The states a grid cell can be in, for the drag script.
+const (
+	tileHoldsKey  = "key"
+	tileIsEmpty   = "empty"
+	tileIsReserve = "reserved"
+)
 
 type pageLink struct {
 	Index   int
@@ -231,16 +242,20 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 		for column := range grid.Columns() {
 			position := layout.Position{Row: row, Column: column}
 			place := fmt.Sprintf("Row %d, column %d: ", row+1, column+1)
+			tile := fmt.Sprintf("%d.%d.%d", pageIndex, row, column)
 
 			switch {
 			case position == grid.BackPosition():
-				cells = append(cells,
-					cellView{Reserved: true, Name: place + "reserved for paging back", Text: "Back", Kind: "", Href: ""})
+				cells = append(cells, reservedCell(place+"reserved for paging back", "Back", tile))
 			case position == grid.ForwardPosition():
-				cells = append(cells,
-					cellView{Reserved: true, Name: place + "reserved for paging forward", Text: "Forward", Kind: "", Href: ""})
+				cells = append(cells, reservedCell(place+"reserved for paging forward", "Forward", tile))
 			default:
 				text, kindName := describeKey(page, position)
+
+				state := tileIsEmpty
+				if _, found := keyAt(page, position); found {
+					state = tileHoldsKey
+				}
 
 				name := place + text
 				if kindName != "" {
@@ -253,6 +268,8 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 					Text:     text,
 					Kind:     kindName,
 					Href:     fmt.Sprintf("/key?page=%d&row=%d&column=%d", pageIndex, row, column),
+					Tile:     tile,
+					State:    state,
 				})
 			}
 		}
@@ -261,6 +278,14 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 	}
 
 	return rows
+}
+
+// reservedCell is a paging position: named, shown, never a link or a drop
+// target.
+func reservedCell(name string, text string, tile string) cellView {
+	return cellView{
+		Reserved: true, Name: name, Text: text, Kind: "", Href: "", Tile: tile, State: tileIsReserve,
+	}
 }
 
 // describeKey names a grid cell: its label and, apart, its kind, which the grid

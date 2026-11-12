@@ -99,3 +99,8 @@ jobs:
       - name: Duplicate code across packages
         shell: bash
         run: scripts/check-duplicate-code.sh
+
+      # The editor's drag script is generated from TypeScript by the pinned
+      # esbuild; this rebuilds it and fails if the served file has drifted.
+      - name: Editor drag script matches its TypeScript
+        run: scripts/check-editor-script.sh
