@@ -2496,6 +2496,32 @@ keys are unchanged, and their golden images are identical. Seven golden images
 of icon keys were regenerated. The author's verdict on the deck: "Muuuuuch
 better".
 
+### TD13 amended by the author: Discord opens the app
+
+The author's Discord preset key opened the channel in the browser, as TD13's
+trade off foresaw ("Discord `https://` only"). With the author's go ahead,
+experiment 3 was run for Discord from a shell:
+
+```text
+$ open "discord://discord.com/channels/(server ID)/(channel ID)"
+exit 0
+```
+
+The Discord app registers the `discord` scheme (`CFBundleURLSchemes` in its
+Info.plist), and the author reported the app switching to the right channel.
+The author then chose the app form ("Yes, try it", then "That worked"), which
+amends TD13: the `discord_channel` preset now emits
+`discord://discord.com/channels/{server}/{channel}`.
+
+`open_url`'s field moves from `https_url` to a new format, `link_url`: an https
+URL, or a `discord://` link whose host is exactly discord.com with no user
+information. Every other scheme stays refused. The GitHub API base address keeps
+`https_url`. Tests first: the new format's eleven cases, the preset's expected
+link and the field's format, all failing before the change. The author pressed
+the key on the deck and the Discord app opened.
+
+Not yet seen: the `discord://` form on the Dell.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10). Everything on the Dell, including real

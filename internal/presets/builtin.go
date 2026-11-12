@@ -8,8 +8,11 @@ import (
 )
 
 // The built in presets' friendly fields. Formats are from the evaluation record,
-// section 6.6, as TD13 settled: Teams over https, Discord over https, D&D Beyond
-// as observed on its site, and no Roll20 preset until its launch URL is known.
+// section 6.6, as TD13 settled and the author amended: Teams over https, Discord
+// through its discord:// app scheme (an https link opened the browser; the app
+// form was seen working on the author's MacBook, evaluation, deck testing), D&D
+// Beyond as observed on its site, and no Roll20 preset until its launch URL is
+// known.
 
 // DiscordChannelFields are the IDs Discord's Developer Mode copies.
 type DiscordChannelFields struct {
@@ -70,7 +73,7 @@ func BuiltIn(registry *brick.Registry) (Table, error) {
 	}
 
 	addRow(Define[DiscordChannelFields]("discord_channel", openurl.KindName, urlTemplate(
-		"https://discord.com/channels/{{path_segment .server_id}}/{{path_segment .channel_id}}")))
+		"discord://discord.com/channels/{{path_segment .server_id}}/{{path_segment .channel_id}}")))
 	addRow(Define[TeamsChatFields]("teams_chat", openurl.KindName, urlTemplate(
 		"https://teams.microsoft.com/l/chat/0/0?users={{query .participants}}")))
 	addRow(Define[TeamsChatByIDFields]("teams_chat_by_id", openurl.KindName, urlTemplate(

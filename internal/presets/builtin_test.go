@@ -43,7 +43,7 @@ func builtInPresetCases() []presetExpansionCase {
 		{
 			"discord_channel",
 			map[string]any{"server_id": "123", "channel_id": "456"},
-			"https://discord.com/channels/123/456",
+			"discord://discord.com/channels/123/456",
 		},
 		{
 			"teams_chat",

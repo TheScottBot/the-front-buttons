@@ -45,6 +45,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   policy made browsers send Origin: null. The policy is now same-origin.
 - Reinstalling the macOS login agent could fail with launchd error 5; the
   script now waits for the old copy to stop.
+- The Discord preset opened the browser; it now emits Discord's discord:// app
+  link, and `open_url` accepts that one app scheme besides https (the author's
+  decision amending TD13).
 - Icons sat near the top of their keys; an icon and label without a status word
   are now centred together, and an icon alone is centred.
 

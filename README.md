@@ -175,7 +175,7 @@ A brick kind.
 | `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `url` | text | required | 1 to 2048 characters | https_url | The https address the key opens. |
+| `url` | text | required | 1 to 2048 characters | link_url | The address the key opens: https, or a discord:// link, which opens the Discord app. |
 
 ### `pipeline_status`
 

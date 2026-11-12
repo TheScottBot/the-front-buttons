@@ -17,7 +17,7 @@ const KindName = "open_url"
 type Parameters struct {
 	brick.Appearance
 
-	URL string `brick:"url,required" bounds:"1,2048" format:"https_url" description:"The https address the key opens."`
+	URL string `brick:"url,required" bounds:"1,2048" format:"link_url" description:"The address the key opens: https, or a discord:// link, which opens the Discord app."`
 }
 
 // Register adds the kind to a registry.

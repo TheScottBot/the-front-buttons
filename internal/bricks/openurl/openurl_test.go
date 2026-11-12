@@ -87,8 +87,8 @@ func TestOpenURL_SchemaRequiresAnHTTPSURL(t *testing.T) {
 	kind, _ := registry.Kind(openurl.KindName)
 	urlField, found := kind.Schema().Field("url")
 
-	if !found || !urlField.Required || urlField.Format != brick.FormatHTTPSURL {
-		t.Fatalf("want a required https url field, got %+v", urlField)
+	if !found || !urlField.Required || urlField.Format != brick.FormatLinkURL {
+		t.Fatalf("want a required link url field, got %+v", urlField)
 	}
 }
 

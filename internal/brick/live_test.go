@@ -43,3 +43,31 @@ func TestCheckFormat_RefusesAnUnknownFormat(t *testing.T) {
 		t.Fatal("want an unknown format to refuse every value")
 	}
 }
+
+// TestCheckFormat_LinkURL_AcceptsHTTPSAndTheDiscordAppOnly covers the format a
+// key's link must meet: https, or Discord's own scheme, which opens the app
+// where an https link opens the browser (the author's decision amending TD13,
+// evaluation, deck testing). Every other scheme stays refused.
+func TestCheckFormat_LinkURL_AcceptsHTTPSAndTheDiscordAppOnly(t *testing.T) {
+	t.Parallel()
+
+	linkCases := map[string]bool{
+		"https://example.com/":                     true,
+		"https://discord.com/channels/1/2":         true,
+		"discord://discord.com/channels/1/2":       true,
+		"http://example.com/":                      false,
+		"javascript:alert(1)":                      false,
+		"file:///etc/passwd":                       false,
+		"msteams://teams.microsoft.com/l/chat/0/0": false,
+		"discord:channels/1/2":                     false,
+		"discord:///channels/1/2":                  false,
+		"discord://someone@discord.com/channels/1": false,
+		"": false,
+	}
+
+	for value, want := range linkCases {
+		if got := brick.CheckFormat(brick.FormatLinkURL, value); got != want {
+			t.Errorf("CheckFormat(link_url, %q) = %v, want %v", value, got, want)
+		}
+	}
+}

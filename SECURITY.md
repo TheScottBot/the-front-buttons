@@ -44,8 +44,8 @@ acceptance.
 - The configuration can hold colleagues' email addresses inside Teams links
   (PRIVACY.md).
 - A key opens what it is configured to open. Someone who can edit the
-  configuration can make a key open a harmful https URL; https is the only
-  scheme allowed.
+  configuration can make a key open a harmful https URL. The only schemes
+  allowed are https and Discord's own `discord://`, on discord.com only.
 
 ## Limitations
 

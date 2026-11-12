@@ -30,6 +30,11 @@ type Format string
 const (
 	// FormatHTTPSURL is an absolute https URL with a host.
 	FormatHTTPSURL Format = "https_url"
+	// FormatLinkURL is what a key may open: an https URL, or a link in Discord's
+	// own discord:// scheme on discord.com, which opens the app where an https
+	// link opens the browser (the author's decision amending TD13). No other
+	// scheme is accepted.
+	FormatLinkURL Format = "link_url"
 	// FormatIdentifier is a lower case name such as a credential or icon name.
 	FormatIdentifier Format = "identifier"
 	// FormatDigits is one or more decimal digits, as in Discord's IDs.
@@ -126,6 +131,7 @@ var (
 func formatCheckers() map[Format]func(textValue string) bool {
 	return map[Format]func(textValue string) bool{
 		FormatHTTPSURL:   isHTTPSURL,
+		FormatLinkURL:    isLinkURL,
 		FormatIdentifier: identifierPattern.MatchString,
 		FormatDigits:     digitsPattern.MatchString,
 		FormatColour:     colourPattern.MatchString,
@@ -155,4 +161,22 @@ func isHTTPSURL(textValue string) bool {
 	parsedURL, parseError := url.Parse(textValue)
 
 	return parseError == nil && parsedURL.Scheme == "https" && parsedURL.Host != "" && parsedURL.User == nil
+}
+
+// discordAppScheme and discordAppHost are the one app link a key may open
+// besides https, seen working on the author's MacBook (evaluation, deck testing).
+const (
+	discordAppScheme = "discord"
+	discordAppHost   = "discord.com"
+)
+
+func isLinkURL(textValue string) bool {
+	if isHTTPSURL(textValue) {
+		return true
+	}
+
+	parsedURL, parseError := url.Parse(textValue)
+
+	return parseError == nil && parsedURL.Scheme == discordAppScheme && parsedURL.Host == discordAppHost &&
+		parsedURL.User == nil
 }
