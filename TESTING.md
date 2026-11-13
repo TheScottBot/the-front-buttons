@@ -76,6 +76,10 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 bin/golangci-lint run $(go list ./... | 
   THE_FRONT_BUTTONS_EXPERIMENT=1 go test -count=1 -v -run Experiment ./internal/deck/hidtransport/
   ```
 
+- Bringing an application to the front on macOS is not unit tested, since it
+  would take over the person's screen; the wait for it to come forward, and the
+  daemon's use of it, are tested with fakes, and it was verified on the deck.
+
 ## Author gates
 
 - TE1: the author reproduces the automated criteria on both machines, and CI is

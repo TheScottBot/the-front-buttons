@@ -337,7 +337,7 @@ func TestEditor_MoveListOffersOnlyFreeTiles(t *testing.T) {
 
 	addError := harness.store.Save(func() config.Configuration {
 		configuration, _ := harness.store.OnDisk()
-		configuration.Pages = append(configuration.Pages, config.Page{Name: "Games", Keys: nil})
+		configuration.Pages = append(configuration.Pages, config.Page{Name: "Games", Application: "", Keys: nil})
 
 		return configuration
 	}())

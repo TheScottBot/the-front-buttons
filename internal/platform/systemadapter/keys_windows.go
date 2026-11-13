@@ -124,6 +124,11 @@ func (WindowsKeyPresser) PressShortcut(_ context.Context, shortcut platform.Shor
 	return nil
 }
 
+// ForThisPlatform chooses the Windows half of a pair.
+func (WindowsKeyPresser) ForThisPlatform(pair platform.ShortcutPair) platform.Shortcut {
+	return pair.Windows
+}
+
 // DescribeShortcut writes a shortcut as Windows does.
 func (WindowsKeyPresser) DescribeShortcut(shortcut platform.Shortcut) string {
 	return WindowsShortcutText(shortcut)

@@ -175,12 +175,15 @@ func (pages *pageHandlers) resolveType(choice string) (keyType, error) {
 		fmt.Errorf("%w: %q", errUnknownType, choice)
 }
 
-// typeOptions lists every kind and every preset from the registry and the preset
-// table, so the editor keeps no list of its own (specification section 2).
+// typeOptions lists every general kind and every preset from the registry and
+// the preset table, so the editor keeps no list of its own (specification
+// section 2). An application's own kinds are offered apart, on its app screen
+// only (appTypeOptions).
 func (pages *pageHandlers) typeOptions(selected string) []typeOption {
-	options := make([]typeOption, 0, len(pages.options.Registry.KindNames())+len(pages.options.Presets.Names()))
+	kindNames := pages.options.Registry.KindNamesIn("")
+	options := make([]typeOption, 0, len(kindNames)+len(pages.options.Presets.Names()))
 
-	for _, kindName := range pages.options.Registry.KindNames() {
+	for _, kindName := range kindNames {
 		value := kindChoicePrefix + kindName
 		options = append(options, typeOption{Value: value, Label: "Brick: " + kindName, Selected: value == selected})
 	}

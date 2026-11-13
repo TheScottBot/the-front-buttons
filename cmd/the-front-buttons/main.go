@@ -567,6 +567,7 @@ func daemonOptions(
 		Counters:        counters,
 		CredentialStore: credentials,
 		IconFiles:       built.iconFiles,
+		Activator:       systemadapter.NewApplicationActivator(),
 		AppIcons:        built.appIcons,
 	}
 }

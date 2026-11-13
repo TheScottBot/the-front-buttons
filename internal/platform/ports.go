@@ -23,6 +23,21 @@ var ErrApplicationNotFound = errors.New("application not found")
 // applications' icons at all.
 var ErrIconUnavailable = errors.New("application icons are not available on this system")
 
+// ErrApplicationNotRunning reports an application that is not open, so cannot
+// be brought to the front.
+var ErrApplicationNotRunning = errors.New("application not running")
+
+// ErrApplicationNotInFront reports an application that was asked to come to
+// the front and did not.
+var ErrApplicationNotInFront = errors.New("application did not come to the front")
+
+// ApplicationActivator brings a running application to the front, so key
+// presses meant for it reach it rather than whatever was in front. It returns
+// once the application is in front, or fails.
+type ApplicationActivator interface {
+	ActivateApplication(activateContext context.Context, identifier string) error
+}
+
 // URLOpener opens a URL or deep link with the system's handler for it.
 type URLOpener interface {
 	OpenURL(openContext context.Context, address string) error

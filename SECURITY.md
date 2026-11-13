@@ -2,8 +2,9 @@
 
 What The Front Buttons does and does not do, what it trusts, and what it does
 not protect against. Every statement here names the code it rests on, so it can
-be checked rather than taken on trust; a test fails the build if the code runs a
-program this page does not list.
+be checked rather than taken on trust; a test fails the build if the platform
+code, where every call into the operating system is kept, names a program this
+page does not list.
 
 ## What runs
 
@@ -62,11 +63,15 @@ go through `SendInput`, both called directly.
 
 ## Operating system permissions and access
 
-- **Accessibility (macOS)**, granted by the person, for three things only:
+- **Accessibility (macOS)**, granted by the person, for four things only:
   posting the key presses keys are configured to send (`press_key`,
-  `press_shortcut`); reading and raising the windows of JetBrains IDEs when a
-  window key is pressed, and no other application's (`windows_darwin.go`); and
-  asking whether it is trusted. It never reads keystrokes.
+  `press_shortcut` and an application's own keys, such as GoLand's); reading
+  and raising the windows of JetBrains IDEs when a window key is pressed, and
+  no other application's (`windows_darwin.go`); bringing an app screen's
+  application to the front before one of its keys sends key presses, and
+  reading which application is in front to know it has come
+  (`activation_darwin.go`); and asking whether it is trusted. It never reads
+  keystrokes or window contents.
 - **Automation of Spotify (macOS)**, asked for on first use: play, pause, change
   track, and read whether it is playing and its art.
 - **USB**: opens Elgato devices only, vendor ID 0x0FD9

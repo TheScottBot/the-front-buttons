@@ -34,9 +34,13 @@ type Ports struct {
 // constructor.
 type Kind struct {
 	name      string
+	scope     string
 	schema    Schema
 	construct func(parameters any, ports Ports) (any, error)
 }
+
+// Scope is the app set the kind belongs to, empty for a general kind.
+func (kind Kind) Scope() string { return kind.scope }
 
 // Name is the kind's name as written in configuration.
 func (kind Kind) Name() string { return kind.name }
@@ -52,12 +56,13 @@ func (kind Kind) Construct(parameters any, ports Ports) (any, error) {
 // Registry holds every brick kind. It is a value the composition root builds,
 // not a package global, so tests build their own registries of fake kinds.
 type Registry struct {
-	kinds map[string]Kind
+	kinds   map[string]Kind
+	appSets []AppSet
 }
 
 // NewRegistry returns an empty registry.
 func NewRegistry() *Registry {
-	return &Registry{kinds: make(map[string]Kind)}
+	return &Registry{kinds: make(map[string]Kind), appSets: nil}
 }
 
 // Register adds a kind whose parameters are the struct P. It derives the schema
@@ -65,6 +70,17 @@ func NewRegistry() *Registry {
 // rule. Adding a kind is one package and one call to Register.
 func Register[P any](
 	registry *Registry,
+	kindName string,
+	construct func(parameters P, ports Ports) (any, error),
+) error {
+	return RegisterScoped(registry, "", kindName, construct)
+}
+
+// RegisterScoped adds a kind belonging to an application's set: the same as
+// Register, with the set's ID as its scope.
+func RegisterScoped[P any](
+	registry *Registry,
+	scope string,
 	kindName string,
 	construct func(parameters P, ports Ports) (any, error),
 ) error {
@@ -83,6 +99,7 @@ func Register[P any](
 
 	registry.kinds[kindName] = Kind{
 		name:   kindName,
+		scope:  scope,
 		schema: schema,
 		construct: func(parameters any, ports Ports) (any, error) {
 			typedParameters, isTyped := parameters.(*P)
@@ -115,4 +132,12 @@ func (registry *Registry) KindNames() []string {
 	slices.Sort(kindNames)
 
 	return kindNames
+}
+
+// KindNamesIn returns the kind names of one scope in sorted order: the
+// general kinds for an empty scope, or an app set's.
+func (registry *Registry) KindNamesIn(scope string) []string {
+	return slices.DeleteFunc(registry.KindNames(), func(kindName string) bool {
+		return registry.kinds[kindName].scope != scope
+	})
 }

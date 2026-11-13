@@ -148,6 +148,24 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   modifier is a chip, named as the Mac or Windows names it, with a switch
   between the two; each machine names them its own way first. A key without a
   label shows its shortcut.
+- App screens: an `open_application` key with App screen ticked also shows
+  that application's own page, with the application's icon top left to go
+  back. A page is an app screen when it names an `application`; there is one
+  per application, paging never reaches one, and back and forward leave it. The
+  editor lists app screens under the regular pages, numbers the regular pages
+  alone, and creates an application's screen the first time a key asks for it.
+- An application's own bricks, offered only on its app screen, starting with
+  GoLand: about fifty actions, among them run, debug, build, the debugger's
+  steps, navigation, refactoring, Git and the tool windows, each pressing the
+  shortcut of the default keymap for the platform it runs on. The drawer has a
+  GoLand section on GoLand's screen, with a 2x2 of run, debug, stop and rerun
+  and a 4x1 of the debugger's steps. GoLand EAP shares them.
+- A key that sends key presses on an app screen brings the application to the
+  front first, unless it is there already, so the presses reach it; if it is
+  not open, nothing is sent and the key says so. Windows does not bring it
+  forward yet.
+- A press taking a quarter of a second or more is logged as a slow key press,
+  with how long it took.
 
 ### Fixed
 
@@ -212,5 +230,7 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The protocol is confirmed on the MacBook only; the Dell is still owed.
 - No Roll20 preset until its launch URL is known (TD13).
 - Saving from the editor drops hand written comments.
+- Three GoLand shortcuts are not yet confirmed in GoLand: rerun on macOS
+  (⌘R), run tests on macOS (⌃⇧R) and optimise imports (⌃⌥O).
 - Windows packaged applications launch through the Apps folder rather than COM
   (DV3).

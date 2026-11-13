@@ -34,6 +34,12 @@ const (
 	settle           = 3 * time.Second
 )
 
+// The names of the two regular pages most tests page between.
+const (
+	firstPageName  = "First"
+	secondPageName = "Second"
+)
+
 // The XL's navigation key numbers (TE3).
 const (
 	backKey    = 24
@@ -69,6 +75,7 @@ func (locked *lockedBuffer) String() string {
 type harness struct {
 	watcher        *testsupport.DeckWatcherTestDouble
 	recorder       *testsupport.PressRecorder
+	launches       *testsupport.LaunchRecorder
 	live           *testsupport.LiveController
 	renderer       *render.Renderer
 	counters       *diagnostics.Counters
@@ -132,6 +139,7 @@ func startHarness(t *testing.T) *harness {
 	running := &harness{
 		watcher:        testsupport.NewDeckWatcherTestDouble(),
 		recorder:       recorder,
+		launches:       testsupport.NewLaunchRecorder(),
 		live:           liveController,
 		renderer:       renderer,
 		counters:       diagnostics.NewCounters(),
@@ -147,7 +155,7 @@ func startHarness(t *testing.T) *harness {
 		Registry: registry,
 		Ports: brick.Ports{
 			URLOpener:           nil,
-			ApplicationLauncher: testsupport.ApplicationLauncherTestDouble{Recorder: testsupport.NewLaunchRecorder()},
+			ApplicationLauncher: testsupport.ApplicationLauncherTestDouble{Recorder: running.launches},
 			PipelineProvider:    nil,
 		},
 		Logger:          slog.New(slog.NewJSONHandler(logs, nil)),
@@ -158,6 +166,9 @@ func startHarness(t *testing.T) *harness {
 		Brightness:      70,
 		IconFiles:       iconFilesTestDouble{},
 		AppIcons:        applicationIconsTestDouble{},
+		Activator: testsupport.ActivatorTestDouble{
+			Recorder: recorder, Running: []string{knownApplication, slowApplication}, Slow: []string{slowApplication},
+		},
 	})
 
 	go func() { running.done <- runner.Run(runContext, running.configurations) }()
@@ -196,8 +207,8 @@ func twoPages() config.Configuration {
 	return config.Configuration{
 		SchemaVersion: config.CurrentSchemaVersion,
 		Pages: []config.Page{
-			{Name: "First", Keys: []config.Key{button("first", 0, false)}},
-			{Name: "Second", Keys: []config.Key{button("second", 0, false), button("broken", 1, true)}},
+			{Name: firstPageName, Application: "", Keys: []config.Key{button("first", 0, false)}},
+			{Name: secondPageName, Application: "", Keys: []config.Key{button("second", 0, false), button("broken", 1, true)}},
 		},
 	}
 }

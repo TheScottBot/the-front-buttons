@@ -40,8 +40,8 @@ func livePages() config.Configuration {
 	return config.Configuration{
 		SchemaVersion: config.CurrentSchemaVersion,
 		Pages: []config.Page{
-			{Name: "First", Keys: []config.Key{button("first", 0, false), liveKey("shared", 0, 1, "")}},
-			{Name: "Second", Keys: []config.Key{liveKey("shared", 0, 0, "")}},
+			{Name: firstPageName, Application: "", Keys: []config.Key{button("first", 0, false), liveKey("shared", 0, 1, "")}},
+			{Name: secondPageName, Application: "", Keys: []config.Key{liveKey("shared", 0, 0, "")}},
 		},
 	}
 }
@@ -213,7 +213,9 @@ func TestDaemon_LogsAConfiguredCredentialThatIsMissing(t *testing.T) {
 		running := startHarness(t)
 		running.configurations <- config.Configuration{
 			SchemaVersion: config.CurrentSchemaVersion,
-			Pages:         []config.Page{{Name: "Only", Keys: []config.Key{liveKey("shared", 0, 0, "never-stored")}}},
+			Pages: []config.Page{{
+				Name: "Only", Application: "", Keys: []config.Key{liveKey("shared", 0, 0, "never-stored")},
+			}},
 		}
 
 		time.Sleep(settle)

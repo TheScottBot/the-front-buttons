@@ -46,21 +46,27 @@ func (state *loopState) repaintAll(runContext context.Context) {
 func (state *loopState) arrangeCurrentPage(runContext context.Context) []layout.Slot {
 	var positions []layout.Position
 
-	if state.paging.HasPage() {
-		for _, configured := range state.pages[state.paging.Current()] {
+	pageIndex, showing := state.showingPage()
+	if showing {
+		for _, configured := range state.pages[pageIndex] {
 			positions = append(positions, configured.key.Position)
 		}
 	}
 
-	slots, arrangeError := state.grid.Arrange(positions)
+	arrange := state.grid.Arrange
+	if state.appScreen != "" {
+		arrange = state.grid.ArrangeApplication
+	}
+
+	slots, arrangeError := arrange(positions)
 	if arrangeError == nil {
 		return slots
 	}
 
 	state.options.Logger.WarnContext(runContext, "page does not fit the attached deck",
-		slog.Int("page", state.paging.Current()))
+		slog.Int("page", pageIndex))
 
-	navigationOnly, _ := state.grid.Arrange(nil)
+	navigationOnly, _ := arrange(nil)
 
 	return navigationOnly
 }
@@ -85,9 +91,10 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 
 func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) image.Image {
 	renderer := state.options.Renderer
+	pageIndex, _ := state.showingPage()
 
 	if state.controls.off && (slot.Kind != layout.SlotBrick ||
-		state.hiddenByOff(state.pages[state.paging.Current()][slot.BrickIndex].key.Position)) {
+		state.hiddenByOff(state.pages[pageIndex][slot.BrickIndex].key.Position)) {
 		return renderer.RenderBlank()
 	}
 
@@ -101,8 +108,12 @@ func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) i
 		indication, hasIndication := state.paging.Indication(state.pageNames)
 
 		return renderer.RenderNavigation(direction, indication, hasIndication)
+	case layout.SlotApplication:
+		icon := state.appIcon(runContext, state.appScreen)
+
+		return renderer.Render(render.Appearance{IconImage: icon, IconMissing: icon == nil, BackgroundFromIcon: true})
 	case layout.SlotBrick:
-		return renderer.Render(state.appearanceFor(runContext, state.pages[state.paging.Current()][slot.BrickIndex]))
+		return renderer.Render(state.appearanceFor(runContext, state.pages[pageIndex][slot.BrickIndex]))
 	case layout.SlotEmpty:
 		return renderer.RenderBlank()
 	default:

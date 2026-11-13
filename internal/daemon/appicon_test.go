@@ -62,7 +62,7 @@ func appIconKey(column int, application string, background string) config.Key {
 		Position: layout.Position{Row: 0, Column: column},
 		Kind:     openapplication.KindName,
 		Parameters: &openapplication.Parameters{
-			Appearance: openAppAppearance(background), Application: application, UseAppIcon: true,
+			Appearance: openAppAppearance(background), Application: application, UseAppIcon: true, AppScreen: false,
 		},
 		Preset: nil,
 	}
@@ -79,7 +79,7 @@ func TestDaemon_DrawsTheApplicationsOwnIcon_OnItsEdgeColour(t *testing.T) {
 		running := startHarness(t)
 		running.configurations <- config.Configuration{
 			SchemaVersion: config.CurrentSchemaVersion,
-			Pages: []config.Page{{Name: "Apps", Keys: []config.Key{
+			Pages: []config.Page{{Name: "Apps", Application: "", Keys: []config.Key{
 				appIconKey(appIconTestColumn, knownApplication, ""),
 				appIconKey(1, knownApplication, "#800000"),
 				appIconKey(2, "com.example.gone", ""),
@@ -131,8 +131,8 @@ func TestDaemon_LogsAMissingApplicationIcon_OncePerConfiguration(t *testing.T) {
 		configuration := config.Configuration{
 			SchemaVersion: config.CurrentSchemaVersion,
 			Pages: []config.Page{
-				{Name: "Apps", Keys: []config.Key{appIconKey(appIconTestColumn, "com.example.gone", "")}},
-				{Name: "Other", Keys: []config.Key{button("other", 0, false)}},
+				{Name: "Apps", Application: "", Keys: []config.Key{appIconKey(appIconTestColumn, "com.example.gone", "")}},
+				{Name: "Other", Application: "", Keys: []config.Key{button("other", 0, false)}},
 			},
 		}
 		running.configurations <- configuration

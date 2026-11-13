@@ -30,6 +30,8 @@ var (
 	errMoveOffGrid   = errors.New(
 		"that destination is not on the deck; choose a free tile from the list")
 	errMoveReserved = errors.New("that destination is reserved for paging back or forward; choose another tile")
+	errMoveIconTile = errors.New("that destination is kept for the application's icon on its app screen; " +
+		"choose another tile")
 	errMoveOccupied = errors.New(
 		"that destination already has a key; choose a free tile, or remove that key first")
 )
@@ -82,7 +84,8 @@ func (pages *pageHandlers) moveChoices(context keyContext) moveView {
 		for row := range grid.Rows() {
 			for column := range grid.Columns() {
 				position := layout.Position{Row: row, Column: column}
-				if grid.IsReserved(position) || (pageIndex == context.pageIndex && position == context.position) {
+				if grid.IsReservedOn(position, page.IsAppScreen()) ||
+					(pageIndex == context.pageIndex && position == context.position) {
 					continue
 				}
 
@@ -185,12 +188,25 @@ func (pages *pageHandlers) refuseMove(
 	pages.renderKey(writer, request, http.StatusUnprocessableEntity, context)
 }
 
+// reservedRefusal refuses a destination kept for paging, or for the
+// application's icon on an app screen.
+func reservedRefusal(grid layout.Grid, page config.Page, position layout.Position) error {
+	switch {
+	case grid.IsReserved(position):
+		return errMoveReserved
+	case grid.IsReservedOn(position, page.IsAppScreen()):
+		return errMoveIconTile
+	default:
+		return nil
+	}
+}
+
 // isMoveRefusal reports a refusal explained in its own words rather than as a
 // failed save.
 func isMoveRefusal(saveError error) bool {
 	return errors.Is(saveError, errMoveNoSource) || errors.Is(saveError, errMoveSamePlace) ||
 		errors.Is(saveError, errMoveOffGrid) || errors.Is(saveError, errMoveReserved) ||
-		errors.Is(saveError, errMoveOccupied)
+		errors.Is(saveError, errMoveIconTile) || errors.Is(saveError, errMoveOccupied)
 }
 
 // relocateKey puts the key at a checked destination, removing it from the
@@ -245,8 +261,11 @@ func checkRelocation(
 		return key, errMoveSamePlace
 	case destination.page < 0 || destination.page >= len(configuration.Pages) || !grid.Contains(destination.position):
 		return key, errMoveOffGrid
-	case grid.IsReserved(destination.position):
-		return key, errMoveReserved
+	}
+
+	reservedError := reservedRefusal(grid, configuration.Pages[destination.page], destination.position)
+	if reservedError != nil {
+		return key, reservedError
 	}
 
 	if _, taken := keyAt(configuration.Pages[destination.page], destination.position); taken {

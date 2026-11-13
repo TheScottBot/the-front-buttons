@@ -77,3 +77,10 @@ func Categorised(category string, cause error) error {
 type DefaultLabelled interface {
 	DefaultLabel() string
 }
+
+// KeystrokeSender is a brick whose press sends keystrokes to whatever
+// application is in front, so on an application's screen the daemon brings
+// that application forward first (evaluation, app screens).
+type KeystrokeSender interface {
+	SendsKeystrokes()
+}

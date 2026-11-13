@@ -21,6 +21,8 @@ func (fake *presserFake) PressShortcut(_ context.Context, shortcut platform.Shor
 	return fake.failure
 }
 
+func (*presserFake) ForThisPlatform(pair platform.ShortcutPair) platform.Shortcut { return pair.Mac }
+
 func (*presserFake) DescribeShortcut(shortcut platform.Shortcut) string {
 	text := ""
 	if shortcut.Command {

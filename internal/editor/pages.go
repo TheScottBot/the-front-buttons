@@ -201,6 +201,9 @@ type cellView struct {
 	// "key", "empty" or "reserved": what the drag script needs to know.
 	Tile  string
 	State string
+	// Image is a picture the cell shows in place of its text: the
+	// application's icon on an app screen's return tile.
+	Image string
 }
 
 // The states a grid cell can be in, for the drag script.
@@ -225,12 +228,21 @@ type pageView struct {
 	PageName   string
 	HasPage    bool
 	Pages      []pageLink
-	Rows       [][]cellView
+	// AppScreens are listed apart, under the regular pages, unnumbered.
+	AppScreens []pageLink
+	// ScreenTitle names the application while an app screen is shown.
+	ScreenTitle string
+	Rows        [][]cellView
 	// CopyTargets are the pages this one can be copied onto: every other.
 	CopyTargets []copyTarget
 	// Types are the bricks and presets the drawer offers to drag onto an
 	// empty tile, the same list the key form chooses from.
 	Types []typeOption
+	// AppName, AppTypes and AppGroups are an app screen's own application's
+	// bricks and groups, in a drawer of their own.
+	AppName   string
+	AppTypes  []typeOption
+	AppGroups []appGroupView
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
@@ -249,30 +261,52 @@ func (pages *pageHandlers) renderPage(
 	pageIndex int,
 	problems []string,
 ) {
+	page := pageAt(configuration, pageIndex)
+	regular := regularPages(configuration.Pages)
+	appName := ""
+
+	if set, hasSet := pages.appSetOf(page); hasSet {
+		appName = set.Name
+	}
+
 	view := pageView{
-		baseView:   pages.base("Pages", request, problems),
-		PageIndex:  0,
-		PageNumber: 0,
-		PageCount:  len(configuration.Pages),
-		PageName:   "",
-		HasPage:    false,
-		Pages:      nil,
-		Rows:       nil,
+		baseView:    pages.base("Pages", request, problems),
+		PageIndex:   0,
+		PageNumber:  0,
+		PageCount:   len(regular),
+		PageName:    "",
+		HasPage:     false,
+		Pages:       nil,
+		AppScreens:  nil,
+		ScreenTitle: "",
+		Rows:        nil,
 
 		CopyTargets: copyTargets(configuration, pageIndex),
 		Types:       pages.typeOptions(""),
+		AppName:     appName,
+		AppTypes:    pages.appTypeOptions(page, ""),
+		AppGroups:   pages.appGroupViews(page),
 	}
 
-	for index, page := range configuration.Pages {
-		view.Pages = append(view.Pages, pageLink{Index: index, Name: page.Name, Current: index == pageIndex})
+	for index, listed := range configuration.Pages {
+		link := pageLink{Index: index, Name: listed.Name, Current: index == pageIndex}
+		if listed.IsAppScreen() {
+			view.AppScreens = append(view.AppScreens, link)
+		} else {
+			view.Pages = append(view.Pages, link)
+		}
 	}
 
 	if pageIndex >= 0 && pageIndex < len(configuration.Pages) {
 		view.HasPage = true
 		view.PageIndex = pageIndex
-		view.PageNumber = pageIndex + 1
-		view.PageName = configuration.Pages[pageIndex].Name
+		view.PageNumber = slices.Index(regular, pageIndex) + 1
+		view.PageName = page.Name
 		view.Rows = pages.gridRows(configuration.Pages, pageIndex)
+
+		if page.IsAppScreen() {
+			view.ScreenTitle = pages.screenTitle(page)
+		}
 	}
 
 	pages.render(writer, status, "page.html", view)
@@ -284,6 +318,7 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 	page := allPages[pageIndex]
 	back := pagingCell(allPages, pageIndex, -1, "Back")
 	forward := pagingCell(allPages, pageIndex, 1, "Forward")
+	returnTile := page.IsAppScreen()
 
 	for row := range grid.Rows() {
 		cells := make([]cellView, 0, grid.Columns())
@@ -298,6 +333,13 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 				cells = append(cells, back(place, tile))
 			case position == grid.ForwardPosition():
 				cells = append(cells, forward(place, tile))
+			case returnTile && position == grid.ReturnPosition():
+				cells = append(cells, cellView{
+					Reserved: true,
+					Name:     place + "reserved for the application's icon, which goes back to the regular pages",
+					Text:     "Back to the regular pages", Kind: "", Href: "", Tile: tile, State: tileIsReserve,
+					Image: fmt.Sprintf("/preview.png?page=%d&row=%d&column=%d", pageIndex, row, column),
+				})
 			default:
 				text, kindName := describeKey(pages.options.Presets, page, position)
 
@@ -319,6 +361,7 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 					Href:     fmt.Sprintf("/key?page=%d&row=%d&column=%d", pageIndex, row, column),
 					Tile:     tile,
 					State:    state,
+					Image:    "",
 				})
 			}
 		}
@@ -329,24 +372,37 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 	return rows
 }
 
-// reservedCell is a paging position: named, shown, never a link or a drop
-// target.
-// pagingCell builds a paging tile. With more than one page it links to the
-// page a step away, wrapping round at either end as the deck does, so the grid
-// pages like the deck (the author's request, evaluation, deck testing); with
-// one page there is nowhere to go, and it only says what the tile is for. It
-// stays reserved either way, so nothing is dropped on it or dragged from it.
+// pagingCell builds a paging tile. It links to the regular page a step away,
+// wrapping round at either end as the deck does, so the grid pages like the
+// deck (evaluation, deck testing). App screens are never paged to: from one,
+// back goes to the last regular page and forward to the first, as if the
+// screens sat after the regular pages, where the page list shows them. With
+// nowhere else to go, the tile only says what it is for. It stays reserved
+// either way, so nothing is dropped on it or dragged from it.
 func pagingCell(allPages []config.Page, pageIndex int, step int, text string) func(place string, tile string) cellView {
+	regular := regularPages(allPages)
+	position := slices.Index(regular, pageIndex)
+
 	return func(place string, tile string) cellView {
 		cell := cellView{
 			Reserved: true, Name: place + "reserved for paging " + strings.ToLower(text), Text: text, Kind: "",
-			Href: "", Tile: tile, State: tileIsReserve,
+			Href: "", Tile: tile, State: tileIsReserve, Image: "",
 		}
 
-		if len(allPages) > 1 {
-			target := (pageIndex + step + len(allPages)) % len(allPages)
-			cell.Href = fmt.Sprintf("/page?page=%d", target)
-			cell.Name = fmt.Sprintf("%s%s to page %d, %s", place, text, target+1, allPages[target].Name)
+		target := -1
+
+		switch {
+		case position >= 0 && len(regular) > 1:
+			target = (position + step + len(regular)) % len(regular)
+		case position < 0 && len(regular) > 0 && step < 0:
+			target = len(regular) - 1
+		case position < 0 && len(regular) > 0:
+			target = 0
+		}
+
+		if target >= 0 {
+			cell.Href = fmt.Sprintf("/page?page=%d", regular[target])
+			cell.Name = fmt.Sprintf("%s%s to page %d, %s", place, text, target+1, allPages[regular[target]].Name)
 		}
 
 		return cell
@@ -412,6 +468,9 @@ type keyView struct {
 	Fields        []fieldView
 	Errors        []string
 	Move          moveView
+	// ScreenHref and ScreenName link a key that opens an app screen to it.
+	ScreenHref string
+	ScreenName string
 }
 
 func (pages *pageHandlers) showKey(writer http.ResponseWriter, request *http.Request) {
@@ -450,10 +509,10 @@ func (pages *pageHandlers) storedKeyContext(
 	case choice == "" && hasKey:
 		choice = typeChoiceOf(existing)
 	case choice == "":
-		choice = kindChoicePrefix + pages.options.Registry.KindNames()[0]
+		choice = kindChoicePrefix + pages.options.Registry.KindNamesIn("")[0]
 	}
 
-	resolved, typeError := pages.resolveType(choice)
+	resolved, typeError := pages.resolveOn(choice, pageAt(configuration, pageIndex))
 	if typeError != nil {
 		var unknown keyContext
 
@@ -469,7 +528,8 @@ func (pages *pageHandlers) storedKeyContext(
 	return keyContext{
 		pageIndex: pageIndex, position: position, hasKey: hasKey, resolved: resolved,
 		fields: fieldViews(resolved.schema, filled, nil), errors: nil, problems: nil,
-		destinationPages: configuration.Pages, moveFailed: false,
+		destinationPages: configuration.Pages, moveFailed: false, screen: pages.screenLink(configuration, existing),
+		appTypes: pages.appTypeOptions(pageAt(configuration, pageIndex), choice),
 	}, nil
 }
 
@@ -496,6 +556,34 @@ type keyContext struct {
 	// lists the free tiles; the form is shown only for a stored key.
 	destinationPages []config.Page
 	moveFailed       bool
+	// screen is the app screen a stored key opens, if it opens one.
+	screen screenLink
+	// appTypes are the page's own application's bricks, offered on its app
+	// screen beside the rest.
+	appTypes []typeOption
+}
+
+// screenLink is where a key's app screen is edited.
+type screenLink struct {
+	href string
+	name string
+}
+
+// screenLink links a key that opens an app screen to that screen.
+func (pages *pageHandlers) screenLink(configuration config.Configuration, key config.Key) screenLink {
+	application, wanted := wantedScreen(key.Parameters)
+	if !wanted {
+		return screenLink{href: "", name: ""}
+	}
+
+	screenIndex, exists := appScreenIndex(configuration.Pages, application)
+	if !exists {
+		return screenLink{href: "", name: ""}
+	}
+
+	return screenLink{
+		href: fmt.Sprintf("/page?page=%d", screenIndex), name: pages.screenTitle(configuration.Pages[screenIndex]),
+	}
 }
 
 func (pages *pageHandlers) renderKey(
@@ -521,10 +609,12 @@ func (pages *pageHandlers) renderKey(
 		DisplayColumn: context.position.Column + 1,
 		HasKey:        context.hasKey,
 		TypeChoice:    context.resolved.choice,
-		Types:         pages.typeOptions(context.resolved.choice),
+		Types:         append(pages.typeOptions(context.resolved.choice), context.appTypes...),
 		Fields:        context.fields,
 		Errors:        context.errors,
 		Move:          pages.moveChoices(context),
+		ScreenHref:    context.screen.href,
+		ScreenName:    context.screen.name,
 	})
 }
 
@@ -533,13 +623,17 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 	pageIndex := integerParameter(form, "page")
 	position := layout.Position{Row: integerParameter(form, "row"), Column: integerParameter(form, "column")}
 
-	resolved, typeError := pages.resolveType(form.Get("type"))
+	configuration, _ := pages.configuration()
+	page := pageAt(configuration, pageIndex)
+
+	resolved, typeError := pages.resolveOn(form.Get("type"), page)
 	if typeError != nil {
 		http.Error(writer, "unknown key type", http.StatusBadRequest)
 
 		return
 	}
 
+	appTypes := pages.appTypeOptions(page, resolved.choice)
 	parameters, fieldErrors := parseFields(resolved.schema, form)
 	failed := func(general []string) {
 		views := fieldViews(resolved.schema, nil, fieldErrors)
@@ -551,6 +645,7 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 		pages.renderKey(writer, request, http.StatusUnprocessableEntity, keyContext{
 			pageIndex: pageIndex, position: position, hasKey: false, resolved: resolved,
 			fields: views, errors: general, problems: nil, destinationPages: nil, moveFailed: false,
+			screen: screenLink{href: "", name: ""}, appTypes: appTypes,
 		})
 	}
 
@@ -567,10 +662,9 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	saveError := pages.changePage(pageIndex, func(page *config.Page) {
-		page.Keys = slices.DeleteFunc(page.Keys, func(existing config.Key) bool { return existing.Position == position })
-		page.Keys = append(page.Keys, key)
-	})
+	screen, wantsScreen := pages.wantedScreenPage(request.Context(), key.Parameters)
+
+	saveError := pages.storeKey(pageIndex, key, screen, wantsScreen)
 	if saveError != nil {
 		general := []string{saveMessage(saveError)}
 		if rejection, isRejection := errors.AsType[*config.RejectionError](saveError); isRejection {
@@ -583,6 +677,27 @@ func (pages *pageHandlers) saveKey(writer http.ResponseWriter, request *http.Req
 	}
 
 	redirectToSavedPage(writer, request, pageIndex)
+}
+
+// storeKey puts a key on its page, replacing any at its position. A key that
+// asks for an app screen gets one in the same save, so the file never names a
+// screen that is not there.
+func (pages *pageHandlers) storeKey(pageIndex int, key config.Key, screen config.Page, wantsScreen bool) error {
+	return pages.changeConfiguration(func(configuration *config.Configuration) error {
+		if pageIndex < 0 || pageIndex >= len(configuration.Pages) {
+			return fmt.Errorf("%w: page %d", errUnknownType, pageIndex)
+		}
+
+		page := &configuration.Pages[pageIndex]
+		page.Keys = slices.DeleteFunc(page.Keys, func(existing config.Key) bool { return existing.Position == key.Position })
+		page.Keys = append(page.Keys, key)
+
+		if wantsScreen {
+			addScreen(configuration, screen)
+		}
+
+		return nil
+	})
 }
 
 // redirectToSavedPage sends the browser to a page after a saved change, with
@@ -637,7 +752,7 @@ func (pages *pageHandlers) addPage(writer http.ResponseWriter, request *http.Req
 	var newIndex int
 
 	saveError := pages.changeConfiguration(func(configuration *config.Configuration) error {
-		configuration.Pages = append(configuration.Pages, config.Page{Name: name, Keys: nil})
+		configuration.Pages = append(configuration.Pages, config.Page{Name: name, Application: "", Keys: nil})
 		newIndex = len(configuration.Pages) - 1
 
 		return nil
@@ -708,41 +823,17 @@ func saveProblems(saveError error) []string {
 func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Request) {
 	configuration, _ := pages.configuration()
 	query := request.URL.Query()
-	pageIndex := integerParameter(query, "page")
+	page := pageAt(configuration, integerParameter(query, "page"))
 	position := layout.Position{Row: integerParameter(query, "row"), Column: integerParameter(query, "column")}
 
-	appearance := render.Appearance{
-		Label: query.Get(fieldPrefix + "label"), Icon: query.Get(fieldPrefix + "icon"),
-	}
-	iconFile := query.Get(fieldPrefix + "icon_file")
-	parameters := pages.unsavedParameters(query)
+	var appearance render.Appearance
 
-	if query.Get("type") == "" && pageIndex >= 0 && pageIndex < len(configuration.Pages) {
-		if key, found := keyAt(configuration.Pages[pageIndex], position); found {
-			configured, _ := brick.AppearanceOf(key.Parameters)
-			appearance.Label, appearance.Icon, iconFile = configured.Label, configured.Icon, configured.IconFile
-			query.Set(fieldPrefix+"background", configured.Background)
-
-			parameters = key.Parameters
-		}
-	}
-
-	if iconFile != "" {
-		appearance.IconImage = pages.loadIconFile(iconFile)
-		appearance.IconMissing = appearance.IconImage == nil
-	}
-
-	if source, offers := parameters.(brick.ApplicationIconSource); offers {
-		if identifier, wanted := source.ApplicationIcon(); wanted {
-			appearance.IconImage = pages.loadAppIcon(request.Context(), identifier)
-			appearance.IconMissing = appearance.IconImage == nil
-			appearance.BackgroundFromIcon = true
-		}
-	}
-
-	background, parseError := render.ParseColour(query.Get(fieldPrefix + "background"))
-	if parseError == nil {
-		appearance.Background = background
+	// An app screen's return tile is the application's icon alone.
+	if query.Get("type") == "" && page.IsAppScreen() && position == pages.options.Grid.ReturnPosition() {
+		icon := pages.loadAppIcon(request.Context(), page.Application)
+		appearance = render.Appearance{IconImage: icon, IconMissing: icon == nil, BackgroundFromIcon: true}
+	} else {
+		appearance = pages.keyPreview(request.Context(), page, position, query)
 	}
 
 	var encoded bytes.Buffer
@@ -756,6 +847,49 @@ func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Req
 
 	writer.Header().Set("Content-Type", "image/png")
 	_, _ = writer.Write(encoded.Bytes())
+}
+
+// keyPreview is how a key is drawn: the form's unsaved fields, or with no
+// type chosen, the key stored at the position.
+func (pages *pageHandlers) keyPreview(
+	previewContext context.Context,
+	page config.Page,
+	position layout.Position,
+	query url.Values,
+) render.Appearance {
+	appearance := render.Appearance{
+		Label: query.Get(fieldPrefix + "label"), Icon: query.Get(fieldPrefix + "icon"),
+	}
+	iconFile := query.Get(fieldPrefix + "icon_file")
+	parameters := pages.unsavedParameters(query)
+
+	if key, found := keyAt(page, position); found && query.Get("type") == "" {
+		configured, _ := brick.AppearanceOf(key.Parameters)
+		appearance.Label, appearance.Icon, iconFile = configured.Label, configured.Icon, configured.IconFile
+		query.Set(fieldPrefix+"background", configured.Background)
+
+		parameters = key.Parameters
+	}
+
+	if iconFile != "" {
+		appearance.IconImage = pages.loadIconFile(iconFile)
+		appearance.IconMissing = appearance.IconImage == nil
+	}
+
+	if source, offers := parameters.(brick.ApplicationIconSource); offers {
+		if identifier, wanted := source.ApplicationIcon(); wanted {
+			appearance.IconImage = pages.loadAppIcon(previewContext, identifier)
+			appearance.IconMissing = appearance.IconImage == nil
+			appearance.BackgroundFromIcon = true
+		}
+	}
+
+	background, parseError := render.ParseColour(query.Get(fieldPrefix + "background"))
+	if parseError == nil {
+		appearance.Background = background
+	}
+
+	return appearance
 }
 
 type credentialRow struct {

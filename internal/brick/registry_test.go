@@ -141,3 +141,76 @@ func TestKindConstruct_RejectsParametersOfTheWrongType(t *testing.T) {
 		t.Fatal("want an error for parameters of another kind")
 	}
 }
+
+// TestRegisterScoped_KeepsAnAppsBricksToItself: an application's own bricks,
+// such as GoLand's actions, are kinds like any other but carry their app set's
+// scope, so the editor offers them only on that application's screen
+// testAppSetID is the app set the scope tests register.
+const testAppSetID = "goland"
+
+// (evaluation, app screens).
+func TestRegisterScoped_KeepsAnAppsBricksToItself(t *testing.T) {
+	t.Parallel()
+
+	registry := brick.NewRegistry()
+
+	registerErrors := []error{
+		brick.Register(registry, "general_kind", constructSampleTestDouble),
+		brick.RegisterScoped(registry, testAppSetID, "goland_build", constructSampleTestDouble),
+	}
+	for _, registerError := range registerErrors {
+		if registerError != nil {
+			t.Fatal(registerError)
+		}
+	}
+
+	if got := registry.KindNamesIn(""); !reflect.DeepEqual(got, []string{"general_kind"}) {
+		t.Errorf("want only the general kind listed generally, got %v", got)
+	}
+
+	if got := registry.KindNamesIn(testAppSetID); !reflect.DeepEqual(got, []string{"goland_build"}) {
+		t.Errorf("want GoLand's kind listed under its scope, got %v", got)
+	}
+
+	kind, _ := registry.Kind("goland_build")
+	if kind.Scope() != testAppSetID {
+		t.Errorf("want the kind to carry its scope, got %q", kind.Scope())
+	}
+
+	if len(registry.KindNames()) != 2 {
+		t.Error("want every kind still known, for decoding and the reference")
+	}
+}
+
+// TestAppSets_MatchTheirApplications: an app set names the applications it is
+// for, as a key's application field holds them: a bundle identifier on macOS,
+// an executable's path on Windows.
+func TestAppSets_MatchTheirApplications(t *testing.T) {
+	t.Parallel()
+
+	registry := brick.NewRegistry()
+
+	setError := registry.RegisterAppSet(brick.AppSet{
+		ID: testAppSetID, Name: "GoLand", Identifiers: []string{"com.jetbrains.goland", "goland64.exe"}, Groups: nil,
+	})
+	if setError != nil {
+		t.Fatal(setError)
+	}
+
+	for identifier, want := range map[string]bool{
+		"com.jetbrains.goland":                               true,
+		"COM.JETBRAINS.GOLAND":                               true,
+		`C:\Program Files\JetBrains\GoLand\bin\goland64.exe`: true,
+		"com.jetbrains.pycharm":                              false,
+		"":                                                   false,
+	} {
+		set, found := registry.AppSetFor(identifier)
+		if found != want || (found && set.ID != testAppSetID) {
+			t.Errorf("%q: want matched %v, got %v (%+v)", identifier, want, found, set)
+		}
+	}
+
+	if registry.RegisterAppSet(brick.AppSet{ID: testAppSetID, Name: "Again", Identifiers: nil, Groups: nil}) == nil {
+		t.Error("want a second set with the same ID refused")
+	}
+}

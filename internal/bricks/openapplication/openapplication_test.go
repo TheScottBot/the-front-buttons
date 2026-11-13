@@ -130,3 +130,30 @@ func TestOpenApplication_AsksForTheApplicationsIcon_OnlyWhenTicked(t *testing.T)
 		}
 	}
 }
+
+// TestParameters_OfferTheAppScreenWhenTicked: the App screen check box makes
+// the key open the application's screen as well as the application (the
+// author's request, evaluation, app screens); unticked, the key only launches,
+// as before.
+func TestParameters_OfferTheAppScreenWhenTicked(t *testing.T) {
+	t.Parallel()
+
+	unlabelled := brick.Appearance{Label: "", Icon: "", Background: "", IconFile: ""}
+
+	for ticked, wantWanted := range map[bool]bool{true: true, false: false} {
+		parameters := &openapplication.Parameters{
+			Appearance:  unlabelled,
+			Application: "com.jetbrains.goland", UseAppIcon: false, AppScreen: ticked,
+		}
+
+		source, isSource := any(parameters).(brick.ApplicationScreenSource)
+		if !isSource {
+			t.Fatal("want the parameters to offer an app screen")
+		}
+
+		application, wanted := source.ApplicationScreen()
+		if application != "com.jetbrains.goland" || wanted != wantWanted {
+			t.Errorf("ticked %v: want %v for GoLand, got %v for %q", ticked, wantWanted, wanted, application)
+		}
+	}
+}

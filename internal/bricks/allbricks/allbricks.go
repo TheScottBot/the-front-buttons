@@ -5,6 +5,7 @@ package allbricks
 
 import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/goland"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor"
@@ -30,6 +31,7 @@ func Register(registry *brick.Registry) error {
 		spotify.Register,
 		windowcycle.Register,
 		pressshortcut.Register,
+		goland.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

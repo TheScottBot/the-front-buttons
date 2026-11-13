@@ -385,3 +385,115 @@ func TestDecode_RejectionNeverEchoesAValue(t *testing.T) {
 		t.Fatalf("want a rejection that names the field but not the value, got %v", decodeError)
 	}
 }
+
+// appScreens is a regular page whose app key opens GoLand's screen, and that
+// screen: a page naming its application.
+const appScreens = `schema_version: 1
+pages:
+  - name: Work
+    keys:
+      - row: 0
+        column: 0
+        kind: test_screen
+        parameters:
+          application: com.jetbrains.goland
+          app_screen: true
+  - name: GoLand
+    application: com.jetbrains.goland
+    keys:
+      - row: 1
+        column: 1
+        kind: test_screen
+        parameters:
+          application: com.jetbrains.goland
+`
+
+// TestDecode_ReadsAndWritesAnAppScreen: a page may name its application,
+// making it that application's screen, outside the regular pages (evaluation,
+// app screens); a regular page names none, and the file round trips.
+func TestDecode_ReadsAndWritesAnAppScreen(t *testing.T) {
+	t.Parallel()
+
+	decoder := newTestDecoder(t)
+
+	configuration, decodeError := decoder.Decode([]byte(appScreens))
+	if decodeError != nil {
+		t.Fatal(decodeError)
+	}
+
+	if configuration.Pages[0].Application != "" || configuration.Pages[1].Application != "com.jetbrains.goland" {
+		t.Fatalf("want the second page GoLand's screen, got %+v", configuration.Pages)
+	}
+
+	encoded, encodeError := decoder.Encode(configuration)
+	if encodeError != nil {
+		t.Fatal(encodeError)
+	}
+
+	if strings.Count(string(encoded), "application: com.jetbrains.goland") != 3 {
+		t.Errorf("want the screen's application written once beside the two keys', got:\n%s", encoded)
+	}
+
+	again, againError := decoder.Decode(encoded)
+	if againError != nil || again.Pages[1].Application != "com.jetbrains.goland" {
+		t.Errorf("want the screen to round trip, got %+v (%v)", again.Pages, againError)
+	}
+}
+
+// TestDecode_RefusesWhatAnAppScreenCannotBe: one screen per application; its
+// top left tile kept for the application's icon; every key that opens a screen
+// has its screen; and the application named in bounds.
+func TestDecode_RefusesWhatAnAppScreenCannotBe(t *testing.T) {
+	t.Parallel()
+
+	twice := appScreens + `  - name: GoLand again
+    application: com.jetbrains.goland
+    keys: []
+`
+	requireProblem(t, twice, config.ReasonDuplicateApplication)
+
+	covered := strings.Replace(appScreens, "      - row: 1\n        column: 1\n        kind: test_screen",
+		"      - row: 0\n        column: 0\n        kind: test_screen", 1)
+	covered = strings.Replace(covered, "  - name: Work\n    keys:\n      - row: 0\n        column: 0",
+		"  - name: Work\n    keys:\n      - row: 1\n        column: 1", 1)
+	requireProblem(t, covered, config.ReasonReservedPosition)
+
+	orphan, _, _ := strings.Cut(appScreens, "  - name: GoLand\n")
+	if problem := requireProblem(t, orphan, config.ReasonMissing); !strings.Contains(problem.Detail,
+		"com.jetbrains.goland") {
+		t.Errorf("want the missing screen named, got %q", problem.Detail)
+	}
+
+	requireProblem(t, strings.Replace(appScreens, "    application: com.jetbrains.goland\n    keys:",
+		"    application: \"\"\n    keys:", 1), config.ReasonOutOfBounds)
+}
+
+// TestDecode_KeepsAnAppsBricksToItsScreen: an application's own bricks belong
+// on that application's screen only; on a regular page or another
+// application's screen they are refused, naming where they belong
+// (evaluation, app screens).
+func TestDecode_KeepsAnAppsBricksToItsScreen(t *testing.T) {
+	t.Parallel()
+
+	onPage := func(application string) string {
+		header := "  - name: Somewhere\n"
+		if application != "" {
+			header += "    application: " + application + "\n"
+		}
+
+		return "schema_version: 1\npages:\n" + header + "    keys:\n      - row: 1\n        column: 1\n" +
+			"        kind: test_app_action\n        parameters: {}\n"
+	}
+
+	_, homeError := newTestDecoder(t).Decode([]byte(onPage("com.example.app")))
+	if homeError != nil {
+		t.Fatalf("want the app's brick accepted on its own screen, got %v", homeError)
+	}
+
+	for _, application := range []string{"", "com.example.other"} {
+		problem := requireProblem(t, onPage(application), config.ReasonWrongApplication)
+		if !strings.Contains(problem.Detail, "Example") {
+			t.Errorf("on %q: want the refusal to name the application, got %q", application, problem.Detail)
+		}
+	}
+}

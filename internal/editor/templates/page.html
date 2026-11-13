@@ -1,19 +1,28 @@
 {{template "head" .}}
 <h1>Pages</h1>
-{{if .Pages}}<nav aria-label="Pages">
-<ol class="pages">{{range .Pages}}<li><a href="/page?page={{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ol>
+{{if or .Pages .AppScreens}}<nav aria-label="Pages">
+{{if .Pages}}<ol class="pages">{{range .Pages}}<li><a href="/page?page={{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ol>{{end}}
+{{if .AppScreens}}<h2 id="app-screens">App screens</h2>
+<ul class="pages app-screens" aria-labelledby="app-screens">{{range .AppScreens}}<li><a href="/page?page={{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ul>{{end}}
 </nav>{{end}}
 {{if .HasPage}}
 <p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Option (Alt on Windows) as you drop to copy it instead. The move form on each key's page does the same from the keyboard.</p>
 <table class="grid">
-<caption>Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
-{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{end}}{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
+<caption>{{if .ScreenTitle}}App screen for {{.ScreenTitle}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. Choose a key to edit it.</caption>
+{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{end}}{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
 <aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
 <div id="brick-list" class="drawer-panel" hidden>
 <p class="help">Drag a brick onto an empty tile to add it there; a bigger one needs that many free tiles, wide by high, from where it is dropped. From the keyboard, choose an empty tile in the grid instead.</p>
-<details class="drawer-section">
+{{if .AppName}}<details class="drawer-section" open>
+<summary>{{.AppName}}</summary>
+<ul>{{range .AppTypes}}
+<li draggable="true" data-type="{{.Value}}">{{.Label}}</li>{{end}}{{range .AppGroups}}
+<li draggable="true" data-group="{{.Name}}" data-width="{{.Width}}" data-height="{{.Height}}">{{.Label}}</li>{{end}}
+</ul>
+</details>
+{{end}}<details class="drawer-section">
 <summary>1x1</summary>
 <ul>{{range .Types}}
 <li draggable="true" data-type="{{.Value}}">{{.Label}}</li>{{end}}

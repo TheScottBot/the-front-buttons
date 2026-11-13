@@ -51,3 +51,6 @@ func (button keyBrick) Press(pressContext context.Context) error {
 
 	return nil
 }
+
+// SendsKeystrokes marks the key as sending keystrokes.
+func (keyBrick) SendsKeystrokes() {}

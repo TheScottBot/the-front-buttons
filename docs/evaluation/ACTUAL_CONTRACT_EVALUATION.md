@@ -3614,6 +3614,62 @@ as 0600, which is true on macOS, where a planted 0644 still fails it; on
 Windows the file is private because the state folder is in the person's own
 profile, as SECURITY.md now says.
 
+### App screens
+
+An application key can now show a page of that application's own keys. Ticking
+App screen on an `open_application` key makes pressing it switch the deck to
+the application's screen as well as open or raise the application. The
+screen's top left key is the application's icon alone, and pressing it returns
+to the regular page it was opened over. App screens sit outside paging: with
+three regular pages, back and forward cycle those three, and on an app screen
+they leave it for the regular page either side.
+
+In the file an app screen is a page naming an `application`, kept in the one
+`pages` list so every editor route still works. The decoder refuses a second
+screen for an application, a key on the screen's top left, and a key asking
+for a screen that does not exist. The editor lists app screens under the
+regular pages, numbers the regular pages alone, pages its grid through them
+only, and shows the return tile as the application's icon. Saving a key with
+App screen ticked creates the screen in the same save, named after the
+application, and the key's form links to it.
+
+Applications can have bricks of their own, registered under the application's
+scope with its identifiers and groups. GoLand is the first: about fifty
+JetBrains actions, each pressing the default keymap's shortcut for the platform
+it runs on, offered in the key form and in a GoLand section of the drawer on
+GoLand's screen only, with a 2x2 of run, debug, stop and rerun and a 4x1 of the
+debugger's steps. The decoder refuses them anywhere else. GoLand EAP shares the
+set. The security check now looks for programs only in the platform code and
+the composition root, as the application tables name programs they never run.
+
+A key that sends key presses on an app screen brings the application to the
+front first, so the presses reach it rather than whatever was in front; if it
+is not open nothing is sent and the key shows "not open", and if it will not
+come forward within half a second, "not in front". On macOS the daemon asks
+Accessibility which application is focused, since AppKit's idea of the
+frontmost application waits on a run loop the daemon does not run. Windows
+does not bring anything forward yet.
+
+Tests first, failing before the code: the decoder's four refusals and the
+round trip; scoped kinds and app sets; GoLand's actions on both platforms; the
+daemon opening and leaving a screen, paging round it, keeping it through a
+reload, numbering page markers by regular page and bringing the application
+forward only for key presses on its screen; the editor's page list, paging,
+return tile and its preview, the screen created on save, the key form's link,
+the drawer's GoLand section and its groups, and moves and groups kept off the
+icon tile; the wait for the application to come forward. Planted violations
+failed each of them, about thirty in all.
+
+Verified on the physical deck: the GoLand key opened GoLand's screen with its
+icon top left, the icon returned to the regular page, and Terminal and Comment
+line worked in GoLand. Comment line first took about two seconds a press: the
+daemon asked GoLand to come forward on every press, even when it was in front,
+and GoLand, a Java application, answers Accessibility slowly. It now asks the
+system first and leaves an application already in front alone, raising only
+its front window when it is not, and Comment line became almost instant. A
+press taking a quarter of a second or more is now logged with its time. Rerun,
+run tests and optimise imports are still to be tried in GoLand.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

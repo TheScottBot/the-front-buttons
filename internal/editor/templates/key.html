@@ -1,6 +1,7 @@
 {{template "head" .}}
 <h1>Key at row {{.DisplayRow}}, column {{.DisplayColumn}}</h1>
 <p><a href="/page?page={{.PageIndex}}">Back to the page</a></p>
+{{if .ScreenHref}}<p><a href="{{.ScreenHref}}">Edit the {{.ScreenName}} screen</a></p>{{end}}
 <div id="key-editor">
 {{if .Errors}}<div class="errors" role="alert"><ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
 <form method="get" action="/key" id="type-form">

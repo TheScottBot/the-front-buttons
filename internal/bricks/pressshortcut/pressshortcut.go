@@ -69,3 +69,6 @@ func (key shortcutKey) Press(pressContext context.Context) error {
 func (key shortcutKey) DefaultLabel() string {
 	return key.presser.DescribeShortcut(key.shortcut)
 }
+
+// SendsKeystrokes marks the key as sending keystrokes.
+func (shortcutKey) SendsKeystrokes() {}

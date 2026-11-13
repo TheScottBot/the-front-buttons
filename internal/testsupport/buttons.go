@@ -4,13 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
+	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
-// ButtonKindName is a fake pressable kind for daemon tests.
-const ButtonKindName = "test_button"
+// The fake pressable kinds for daemon tests: a plain button, and one that
+// counts as sending key presses, as press_shortcut does.
+const (
+	ButtonKindName          = "test_button"
+	KeystrokeButtonKindName = "test_keystroke_button"
+)
 
 // errButtonFailedOnPurpose is what a button configured to fail returns.
 var errButtonFailedOnPurpose = errors.New("fake button failed on purpose")
@@ -67,16 +74,58 @@ func (button *buttonTestDouble) Press(context.Context) error {
 	return nil
 }
 
-// RegisterButtonKind adds the fake button kind to a registry, recording presses
-// into the recorder.
+// keystrokeButtonTestDouble is a fake button that sends key presses.
+type keystrokeButtonTestDouble struct {
+	buttonTestDouble
+}
+
+// SendsKeystrokes marks the button as sending key presses.
+func (*keystrokeButtonTestDouble) SendsKeystrokes() {}
+
+// RegisterButtonKind adds the fake button kinds to a registry, recording
+// presses into the recorder.
 func RegisterButtonKind(registry *brick.Registry, recorder *PressRecorder) error {
-	registerError := brick.Register(registry, ButtonKindName,
-		func(parameters ButtonParameters, _ brick.Ports) (any, error) {
-			return &buttonTestDouble{parameters: parameters, recorder: recorder}, nil
-		})
+	registerError := errors.Join(
+		brick.Register(registry, ButtonKindName,
+			func(parameters ButtonParameters, _ brick.Ports) (any, error) {
+				return &buttonTestDouble{parameters: parameters, recorder: recorder}, nil
+			}),
+		brick.Register(registry, KeystrokeButtonKindName,
+			func(parameters ButtonParameters, _ brick.Ports) (any, error) {
+				return &keystrokeButtonTestDouble{parameters: parameters, recorder: recorder}, nil
+			}),
+	)
 	if registerError != nil {
-		return fmt.Errorf("registering the fake button kind: %w", registerError)
+		return fmt.Errorf("registering the fake button kinds: %w", registerError)
 	}
+
+	return nil
+}
+
+// ActivatorTestDouble brings forward only the applications it is told are
+// running, recording each into the press recorder as "forward <identifier>",
+// so a test sees it came before the press. Those it is told are slow take
+// SlowActivation to come forward.
+type ActivatorTestDouble struct {
+	Recorder *PressRecorder
+	Running  []string
+	Slow     []string
+}
+
+// SlowActivation is how long a slow application takes to come forward.
+const SlowActivation = 300 * time.Millisecond
+
+// ActivateApplication records the application, or fails if it is not running.
+func (activator ActivatorTestDouble) ActivateApplication(_ context.Context, identifier string) error {
+	if slices.Contains(activator.Slow, identifier) {
+		time.Sleep(SlowActivation)
+	}
+
+	if !slices.Contains(activator.Running, identifier) {
+		return fmt.Errorf("%w: %s", platform.ErrApplicationNotRunning, identifier)
+	}
+
+	activator.Recorder.record("forward " + identifier)
 
 	return nil
 }

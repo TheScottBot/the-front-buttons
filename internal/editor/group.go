@@ -58,6 +58,7 @@ var (
 	errGroupNoPage   = errors.New("that page no longer exists; the pages may have changed since this one was opened")
 	errGroupOffGrid  = errors.New("the group runs off the edge of the deck; drop it further up or left")
 	errGroupReserved = errors.New("the group would cover a tile kept for paging")
+	errGroupIconTile = errors.New("the group would cover the tile kept for the application's icon")
 	errGroupOccupied = errors.New("the group would cover a key")
 )
 
@@ -67,8 +68,32 @@ const (
 	groupSizeField  = "size"
 )
 
-// groupParts are the keys a group can place, by name.
-func groupParts() map[string]groupPart {
+// groupParts are the keys a group can place, by name: the drawer's own and
+// every application's bricks.
+func (pages *pageHandlers) groupParts() map[string]groupPart {
+	_, parts := pages.groups()
+
+	return parts
+}
+
+// groupSizes are the groups the drawer offers, by their name, width by
+// height: its own and every application's.
+func (pages *pageHandlers) groupSizes() map[string]groupSize {
+	sizes, _ := pages.groups()
+
+	return sizes
+}
+
+// groups are the drawer's own groups and parts, with every application's.
+func (pages *pageHandlers) groups() (map[string]groupSize, map[string]groupPart) {
+	sizes, parts := ownGroupSizes(), ownGroupParts()
+	pages.appGroups(sizes, parts)
+
+	return sizes, parts
+}
+
+// ownGroupParts are the keys the drawer's own groups place, by name.
+func ownGroupParts() map[string]groupPart {
 	return map[string]groupPart{
 		characterPart: {
 			name: characterPart, choice: presetChoicePrefix + "dndbeyond_character", title: "D&D Beyond character sheet",
@@ -116,9 +141,8 @@ const (
 	fourTiles  = 4
 )
 
-// groupSizes are the groups the drawer offers, by their name, width by
-// height.
-func groupSizes() map[string]groupSize {
+// ownGroupSizes are the drawer's own groups, by their name, width by height.
+func ownGroupSizes() map[string]groupSize {
 	return map[string]groupSize{
 		"1x2": {width: 1, height: twoTiles, parts: []string{characterPart, roll20Part}},
 		"1x3": {width: 1, height: threeTiles, parts: []string{characterPart, roll20Part, discordPart}},
@@ -176,7 +200,7 @@ func groupAtFrom(values url.Values) groupAt {
 func (pages *pageHandlers) showGroup(writer http.ResponseWriter, request *http.Request) {
 	placement := groupAtFrom(request.URL.Query())
 
-	size, known := groupSizes()[placement.size]
+	size, known := pages.groupSizes()[placement.size]
 	if !known {
 		http.Error(writer, "unknown group size", http.StatusBadRequest)
 
@@ -192,7 +216,7 @@ func (pages *pageHandlers) saveGroup(writer http.ResponseWriter, request *http.R
 	form := request.PostForm
 	placement := groupAtFrom(form)
 
-	size, known := groupSizes()[placement.size]
+	size, known := pages.groupSizes()[placement.size]
 	defaultOrder := size.parts
 
 	if !known {
@@ -258,7 +282,7 @@ func (pages *pageHandlers) groupKeys(
 	allErrors := map[string]string{}
 
 	for index, partName := range order {
-		part := groupParts()[partName]
+		part := pages.groupParts()[partName]
 
 		resolved, typeError := pages.resolveType(part.choice)
 		if typeError != nil {
@@ -322,6 +346,8 @@ func checkGroupTiles(page config.Page, grid layout.Grid, keys []config.Key) erro
 			return errGroupOffGrid
 		case grid.IsReserved(key.Position):
 			return fmt.Errorf("%w at %s", errGroupReserved, tileWords(key.Position))
+		case grid.IsReservedOn(key.Position, page.IsAppScreen()):
+			return fmt.Errorf("%w at %s", errGroupIconTile, tileWords(key.Position))
 		}
 
 		if _, taken := keyAt(page, key.Position); taken {
@@ -336,7 +362,7 @@ func checkGroupTiles(page config.Page, grid layout.Grid, keys []config.Key) erro
 // groupProblems explains a refused group in its own words, or as a failed
 // save.
 func groupProblems(saveError error) []string {
-	for _, known := range []error{errGroupNoPage, errGroupOffGrid, errGroupReserved, errGroupOccupied} {
+	for _, known := range []error{errGroupNoPage, errGroupOffGrid, errGroupReserved, errGroupIconTile, errGroupOccupied} {
 		if errors.Is(saveError, known) {
 			return []string{errorPrefix + saveError.Error()}
 		}
@@ -404,7 +430,7 @@ func (pages *pageHandlers) renderGroupForm(
 	}
 
 	for index, partName := range order {
-		view.Parts = append(view.Parts, pages.partView(groupParts()[partName], index+1, form, fieldErrors))
+		view.Parts = append(view.Parts, pages.partView(pages.groupParts()[partName], index+1, form, fieldErrors))
 	}
 
 	pages.render(writer, status, "group.html", view)

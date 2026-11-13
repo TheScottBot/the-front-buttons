@@ -103,3 +103,53 @@ func TestArrange_SlotAt_FindsTheSlotForAPressedKey(t *testing.T) {
 		t.Fatal("want no slot for a key the deck does not have")
 	}
 }
+
+// TestArrangeApplication_ReservesTheReturnTile: an app screen keeps the top
+// left tile for the application's own icon, which returns to the regular page,
+// as well as the paging tiles every page has (evaluation, app screens).
+func TestArrangeApplication_ReservesTheReturnTile(t *testing.T) {
+	t.Parallel()
+
+	grid := streamDeckXLTestGrid(t)
+
+	if grid.ReturnPosition() != (layout.Position{Row: 0, Column: 0}) {
+		t.Fatalf("want the return tile at the top left, got %+v", grid.ReturnPosition())
+	}
+
+	if !grid.IsReservedOn(grid.ReturnPosition(), true) || grid.IsReservedOn(grid.ReturnPosition(), false) {
+		t.Error("want the top left reserved on an app screen only")
+	}
+
+	if !grid.IsReservedOn(grid.BackPosition(), false) || !grid.IsReservedOn(grid.ForwardPosition(), true) {
+		t.Error("want the paging tiles reserved on every page")
+	}
+}
+
+// TestArrangeApplication_DrawsTheApplicationTopLeft: an app screen's top left
+// slot is the application's, and no brick may cover it; a regular page's top
+// left stays free for a brick.
+func TestArrangeApplication_DrawsTheApplicationTopLeft(t *testing.T) {
+	t.Parallel()
+
+	grid := streamDeckXLTestGrid(t)
+
+	slots, arrangeError := grid.ArrangeApplication([]layout.Position{{Row: 1, Column: 1}})
+	if arrangeError != nil {
+		t.Fatal(arrangeError)
+	}
+
+	if slots[0].Kind != layout.SlotApplication || slots[9].Kind != layout.SlotBrick {
+		t.Errorf("want the application slot top left and the brick at row 2 column 2, got %v and %v",
+			slots[0].Kind, slots[9].Kind)
+	}
+
+	_, coverError := grid.ArrangeApplication([]layout.Position{{Row: 0, Column: 0}})
+	if !errors.Is(coverError, layout.ErrUnplaceableBrick) {
+		t.Errorf("want a brick on the return tile refused, got %v", coverError)
+	}
+
+	regular, _ := grid.Arrange([]layout.Position{{Row: 0, Column: 0}})
+	if regular[0].Kind != layout.SlotBrick {
+		t.Error("want the top left free on a regular page")
+	}
+}

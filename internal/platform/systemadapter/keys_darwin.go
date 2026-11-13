@@ -161,6 +161,9 @@ func (presser MacOSKeyPresser) PressShortcut(_ context.Context, shortcut platfor
 	return presser.post(code, shortcut)
 }
 
+// ForThisPlatform chooses the macOS half of a pair.
+func (MacOSKeyPresser) ForThisPlatform(pair platform.ShortcutPair) platform.Shortcut { return pair.Mac }
+
 // DescribeShortcut writes a shortcut as macOS's menus do.
 func (MacOSKeyPresser) DescribeShortcut(shortcut platform.Shortcut) string {
 	return MacOSShortcutText(shortcut)

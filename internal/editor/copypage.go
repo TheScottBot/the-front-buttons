@@ -55,7 +55,7 @@ func (pages *pageHandlers) copyPageToNew(writer http.ResponseWriter, request *ht
 		}
 
 		configuration.Pages = append(configuration.Pages, config.Page{
-			Name: name, Keys: clonedKeys(configuration.Pages[source].Keys),
+			Name: name, Application: "", Keys: clonedKeys(configuration.Pages[source].Keys),
 		})
 		newIndex = len(configuration.Pages) - 1
 

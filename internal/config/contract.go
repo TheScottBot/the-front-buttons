@@ -25,6 +25,9 @@ const (
 	// MaximumPageNameCharacters bounds a page name, which is shown on a
 	// navigation key and so must fit on one.
 	MaximumPageNameCharacters = 24
+	// MaximumApplicationCharacters bounds an app screen's application, as an
+	// application key's own field is bounded.
+	MaximumApplicationCharacters = 512
 )
 
 // The names used in the file. Each appears once here and is used by both the
@@ -33,6 +36,7 @@ const (
 	schemaVersionName = "schema_version"
 	pagesName         = "pages"
 	pageNameName      = "name"
+	applicationName   = "application"
 	keysName          = "keys"
 	rowName           = "row"
 	columnName        = "column"
@@ -64,6 +68,12 @@ const (
 	ReasonWrongType          Reason = "wrong_type"
 	ReasonOutOfBounds        Reason = "out_of_bounds"
 	ReasonBadFormat          Reason = "bad_format"
+	// ReasonDuplicateApplication is a second page naming an application that
+	// already has its app screen.
+	ReasonDuplicateApplication Reason = "duplicate_application"
+	// ReasonWrongApplication is an application's own brick on a page that is
+	// not that application's screen.
+	ReasonWrongApplication Reason = "wrong_application"
 )
 
 // Problem is one thing wrong with a configuration file: where, why, and a
@@ -101,8 +111,16 @@ type Configuration struct {
 // Page is one page of keys.
 type Page struct {
 	Name string
-	Keys []Key
+	// Application, when set, makes the page that application's screen: shown
+	// in place of the regular pages when a key opens it, outside the regular
+	// paging, with its top left key kept for the application's icon, which
+	// returns (evaluation, app screens). Empty for a regular page.
+	Application string
+	Keys        []Key
 }
+
+// IsAppScreen reports whether the page is an application's screen.
+func (page Page) IsAppScreen() bool { return page.Application != "" }
 
 // Key is one configured key. Kind and Parameters are always the brick that runs;
 // for a key written as a preset they are the expansion, and Preset keeps the
@@ -132,7 +150,7 @@ func (configuration Configuration) clone() Configuration {
 			keys = append(keys, key.Clone())
 		}
 
-		pages = append(pages, Page{Name: page.Name, Keys: keys})
+		pages = append(pages, Page{Name: page.Name, Application: page.Application, Keys: keys})
 	}
 
 	return Configuration{SchemaVersion: configuration.SchemaVersion, Pages: pages}

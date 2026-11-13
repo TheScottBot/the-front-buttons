@@ -10,6 +10,7 @@ package daemon
 import (
 	"context"
 	"errors"
+	"fmt"
 	"image"
 	"log/slog"
 	"sync"
@@ -67,6 +68,10 @@ type Options struct {
 	// AppIcons reads applications' own icons, for keys that ask to show one;
 	// nil reads none, and such a key shows the missing icon marker.
 	AppIcons platform.ApplicationIcons
+	// Activator brings an app screen's application to the front before a key
+	// on the screen sends it key presses; nil sends them to whatever is in
+	// front.
+	Activator platform.ApplicationActivator
 }
 
 // IconFileLoader reads a key's own icon file by its name.
@@ -155,8 +160,12 @@ type configuredKey struct {
 	key         config.Key
 	instance    any
 	errorReason string
-	// pageIndex is the page the key is on, for a page marker to show.
-	pageIndex int
+	// pageNumber is the regular page the key is on, counting from one, for a
+	// page marker to show; 0 on an app screen.
+	pageNumber int
+	// pageName is the name of the page the key is on, which a page marker on an
+	// app screen shows.
+	pageName string
 }
 
 // The events the loop receives from its goroutines. Each carries the generation
@@ -177,6 +186,8 @@ type pressResultEvent struct {
 	pageIndex               int
 	brickIndex              int
 	failure                 error
+	// took is how long the press took, logged when it was slow.
+	took time.Duration
 }
 
 type loopState struct {
@@ -193,8 +204,16 @@ type loopState struct {
 	// and a failure logged, once per configuration.
 	appIcons map[string]image.Image
 
-	pages                   [][]configuredKey
-	pageNames               []string
+	pages     [][]configuredKey
+	pageNames []string
+	// regular lists the regular pages by their index in pages, in order:
+	// paging moves through these and never through an app screen.
+	regular []int
+	// appScreens finds each application's screen by its index in pages.
+	appScreens map[string]int
+	// appScreen is the application whose screen is showing, or empty while a
+	// regular page is.
+	appScreen               string
 	paging                  layout.Paging
 	hasConfiguration        bool
 	configurationGeneration int
@@ -221,6 +240,9 @@ func newLoopState(options Options) *loopState {
 		appIcons:                map[string]image.Image{},
 		pages:                   nil,
 		pageNames:               nil,
+		regular:                 nil,
+		appScreens:              map[string]int{},
+		appScreen:               "",
 		paging:                  layout.NewPaging(0),
 		hasConfiguration:        false,
 		configurationGeneration: 0,
@@ -278,22 +300,41 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.iconFiles = map[string]image.Image{}
 	state.appIcons = map[string]image.Image{}
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
-	state.pageNames = make([]string, 0, len(configuration.Pages))
+	state.pageNames = nil
+	state.regular = nil
+	state.appScreens = map[string]int{}
 
 	for pageIndex, page := range configuration.Pages {
+		pageNumber := 0
+
+		if page.IsAppScreen() {
+			state.appScreens[page.Application] = pageIndex
+		} else {
+			state.regular = append(state.regular, pageIndex)
+			state.pageNames = append(state.pageNames, page.Name)
+			pageNumber = len(state.regular)
+		}
+
 		keys := make([]configuredKey, 0, len(page.Keys))
 		for _, key := range page.Keys {
-			keys = append(keys, state.build(runContext, pageIndex, key))
+			built := state.build(runContext, pageIndex, key)
+			built.pageNumber, built.pageName = pageNumber, page.Name
+			keys = append(keys, built)
 		}
 
 		state.pages = append(state.pages, keys)
-		state.pageNames = append(state.pageNames, page.Name)
+	}
+
+	// A reload keeps the app screen showing while the application still has
+	// one.
+	if _, kept := state.appScreens[state.appScreen]; !kept {
+		state.appScreen = ""
 	}
 
 	if state.hasConfiguration {
-		state.paging = state.paging.Resize(len(state.pages))
+		state.paging = state.paging.Resize(len(state.regular))
 	} else {
-		state.paging = layout.NewPaging(len(state.pages))
+		state.paging = layout.NewPaging(len(state.regular))
 		state.hasConfiguration = true
 	}
 
@@ -371,11 +412,12 @@ func (state *loopState) handleLiveChanges(runContext context.Context, identities
 
 	state.clearPressErrors(identities)
 
-	if !state.paging.HasPage() {
+	pageIndex, showing := state.showingPage()
+	if !showing {
 		return
 	}
 
-	for _, configured := range state.pages[state.paging.Current()] {
+	for _, configured := range state.pages[pageIndex] {
 		source, isLive := configured.instance.(brick.LiveSource)
 		if isLive && identities[source.LiveIdentity()] {
 			state.repaintKey(runContext, configured.key.Position, configured)
@@ -422,7 +464,7 @@ func (state *loopState) logLiveReason(runContext context.Context, identity strin
 // build constructs one key's brick. A brick that cannot be built shows its error
 // on its key rather than taking the page down (specification section 2).
 func (state *loopState) build(runContext context.Context, pageIndex int, key config.Key) configuredKey {
-	built := configuredKey{key: key, instance: nil, errorReason: "", pageIndex: pageIndex}
+	built := configuredKey{key: key, instance: nil, errorReason: "", pageNumber: 0, pageName: ""}
 
 	kind, kindFound := state.options.Registry.Kind(key.Kind)
 	if !kindFound {
@@ -595,18 +637,46 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 			continue
 		}
 
-		switch slot.Kind {
-		case layout.SlotBack:
-			state.paging = state.paging.Back()
-			state.repaintAll(runContext)
-		case layout.SlotForward:
-			state.paging = state.paging.Forward()
-			state.repaintAll(runContext)
-		case layout.SlotBrick:
-			state.press(runContext, state.paging.Current(), slot.BrickIndex)
-		case layout.SlotEmpty:
-		}
+		state.pressSlot(runContext, slot)
 	}
+}
+
+// pressSlot does what a key does: back and forward page through the regular
+// pages, leaving an app screen; the return tile leaves it for the regular page
+// it was opened over; a brick is pressed.
+func (state *loopState) pressSlot(runContext context.Context, slot layout.Slot) {
+	switch slot.Kind {
+	case layout.SlotBack:
+		state.appScreen = ""
+		state.paging = state.paging.Back()
+		state.repaintAll(runContext)
+	case layout.SlotForward:
+		state.appScreen = ""
+		state.paging = state.paging.Forward()
+		state.repaintAll(runContext)
+	case layout.SlotApplication:
+		state.appScreen = ""
+		state.repaintAll(runContext)
+	case layout.SlotBrick:
+		if pageIndex, showing := state.showingPage(); showing {
+			state.press(runContext, pageIndex, slot.BrickIndex)
+		}
+	case layout.SlotEmpty:
+	}
+}
+
+// showingPage is the index in pages of the page on the deck: the app screen
+// while one is showing, otherwise the current regular page, if there is one.
+func (state *loopState) showingPage() (int, bool) {
+	if pageIndex, showing := state.appScreens[state.appScreen]; showing {
+		return pageIndex, true
+	}
+
+	if !state.paging.HasPage() {
+		return 0, false
+	}
+
+	return state.regular[state.paging.Current()], true
 }
 
 func (state *loopState) press(runContext context.Context, pageIndex int, brickIndex int) {
@@ -617,6 +687,7 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 		slog.Int("row", configured.key.Position.Row), slog.Int("column", configured.key.Position.Column))
 
 	state.options.Counters.Increment("key_presses." + configured.key.Kind)
+	state.openAppScreen(runContext, configured)
 
 	if control, isControl := configured.instance.(brick.DeckControl); isControl {
 		state.pressControl(runContext, pageIndex, brickIndex, control.DeckControl())
@@ -624,7 +695,7 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 		return
 	}
 
-	pressFunction := state.pressFunction(configured)
+	pressFunction := state.bringingForward(pageIndex, configured, state.pressFunction(configured))
 	if pressFunction == nil {
 		return
 	}
@@ -635,13 +706,87 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 		pressContext, cancel := context.WithTimeout(runContext, pressTimeout)
 		defer cancel()
 
+		started := time.Now()
+		failure := pressFunction(pressContext)
+
 		state.send(runContext, pressResultEvent{
 			configurationGeneration: configurationGeneration,
 			pageIndex:               pageIndex,
 			brickIndex:              brickIndex,
-			failure:                 pressFunction(pressContext),
+			failure:                 failure,
+			took:                    time.Since(started),
 		})
 	}()
+}
+
+// openAppScreen shows the application's screen when a key with its app screen
+// ticked is pressed, before the key launches the application.
+func (state *loopState) openAppScreen(runContext context.Context, configured configuredKey) {
+	source, offers := configured.key.Parameters.(brick.ApplicationScreenSource)
+	if !offers {
+		return
+	}
+
+	application, wanted := source.ApplicationScreen()
+	if _, hasScreen := state.appScreens[application]; !wanted || !hasScreen || application == state.appScreen {
+		return
+	}
+
+	state.appScreen = application
+	state.repaintAll(runContext)
+}
+
+// slowPress is how long a press takes before it is logged as slow, enough to
+// be felt between pressing a key and seeing what it does.
+const slowPress = 250 * time.Millisecond
+
+// What a key on an app screen shows when its application could not be brought
+// forward for its key presses: it is not open, or it would not come forward.
+const (
+	reasonNotOpen    = "not open"
+	reasonNotInFront = "not in front"
+)
+
+// bringingForward has a key that sends key presses on an app screen bring the
+// application to the front first, so the presses reach it; if it cannot, they
+// are not sent to whatever is in front instead.
+func (state *loopState) bringingForward(
+	pageIndex int,
+	configured configuredKey,
+	press func(pressContext context.Context) error,
+) func(pressContext context.Context) error {
+	_, sendsKeystrokes := configured.instance.(brick.KeystrokeSender)
+	application, onScreen := state.applicationOf(pageIndex)
+	activator := state.options.Activator
+
+	if press == nil || !sendsKeystrokes || !onScreen || activator == nil {
+		return press
+	}
+
+	return func(pressContext context.Context) error {
+		activateError := activator.ActivateApplication(pressContext, application)
+		if activateError == nil {
+			return press(pressContext)
+		}
+
+		reason := reasonNotInFront
+		if errors.Is(activateError, platform.ErrApplicationNotRunning) {
+			reason = reasonNotOpen
+		}
+
+		return brick.Categorised(reason, fmt.Errorf("bringing %s forward: %w", application, activateError))
+	}
+}
+
+// applicationOf is the application whose screen a page is, if it is one.
+func (state *loopState) applicationOf(pageIndex int) (string, bool) {
+	for application, screenIndex := range state.appScreens {
+		if screenIndex == pageIndex {
+			return application, true
+		}
+	}
+
+	return "", false
 }
 
 // pressFunction returns what a press of the key does, or nil if the brick does
@@ -669,6 +814,11 @@ func (state *loopState) handlePressResult(runContext context.Context, result pre
 	configured := &state.pages[result.pageIndex][result.brickIndex]
 	previousReason := configured.errorReason
 
+	if result.took >= slowPress {
+		state.options.Logger.InfoContext(runContext, "slow key press",
+			slog.String("kind", configured.key.Kind), slog.Duration("took", result.took))
+	}
+
 	configured.errorReason = ""
 	if result.failure != nil {
 		configured.errorReason = brick.ReasonCategoryOf(result.failure)
@@ -679,7 +829,8 @@ func (state *loopState) handlePressResult(runContext context.Context, result pre
 			slog.String("reason", configured.errorReason))
 	}
 
-	if configured.errorReason != previousReason && result.pageIndex == state.paging.Current() {
+	showingIndex, showing := state.showingPage()
+	if configured.errorReason != previousReason && showing && result.pageIndex == showingIndex {
 		state.repaintKey(runContext, configured.key.Position, *configured)
 	}
 }

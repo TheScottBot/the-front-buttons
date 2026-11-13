@@ -24,6 +24,9 @@ const (
 	SlotBack SlotKind = "back"
 	// SlotForward is the reserved key that pages forward.
 	SlotForward SlotKind = "forward"
+	// SlotApplication is an app screen's reserved key, showing the
+	// application's icon, that returns to the regular page.
+	SlotApplication SlotKind = "application"
 )
 
 // Slot is what one key holds. BrickIndex is the brick's index in the page's list
@@ -37,6 +40,16 @@ type Slot struct {
 // on every page, each brick at its position, and every other key empty. The
 // result is indexed by device key number.
 func (grid Grid) Arrange(brickPositions []Position) ([]Slot, error) {
+	return grid.arrange(brickPositions, false)
+}
+
+// ArrangeApplication lays out an app screen: as Arrange, with the return key
+// in its reserved position too.
+func (grid Grid) ArrangeApplication(brickPositions []Position) ([]Slot, error) {
+	return grid.arrange(brickPositions, true)
+}
+
+func (grid Grid) arrange(brickPositions []Position, appScreen bool) ([]Slot, error) {
 	slots := make([]Slot, grid.KeyCount())
 	for keyIndex := range slots {
 		slots[keyIndex] = Slot{Kind: SlotEmpty, BrickIndex: 0}
@@ -46,6 +59,11 @@ func (grid Grid) Arrange(brickPositions []Position) ([]Slot, error) {
 	forwardIndex, _ := grid.KeyIndex(grid.ForwardPosition())
 	slots[backIndex] = Slot{Kind: SlotBack, BrickIndex: 0}
 	slots[forwardIndex] = Slot{Kind: SlotForward, BrickIndex: 0}
+
+	if appScreen {
+		returnIndex, _ := grid.KeyIndex(grid.ReturnPosition())
+		slots[returnIndex] = Slot{Kind: SlotApplication, BrickIndex: 0}
+	}
 
 	for brickIndex, position := range brickPositions {
 		keyIndex, onGrid := grid.KeyIndex(position)

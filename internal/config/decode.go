@@ -208,18 +208,54 @@ func (decoder Decoder) decodeRoot(root *yaml.Node, list *problemList) Configurat
 		configuration.Pages = append(configuration.Pages, decoder.decodePage(pageNode, pagePath, list))
 	}
 
+	checkAppScreens(configuration, pagesNode, list)
+
 	return configuration
 }
 
-func (decoder Decoder) decodePage(pageNode *yaml.Node, pagePath string, list *problemList) Page {
-	page := Page{Name: "", Keys: nil}
+// checkAppScreens refuses a second screen for one application, and a key that
+// opens an application's screen when no page is that screen.
+func checkAppScreens(configuration Configuration, pagesNode *yaml.Node, list *problemList) {
+	screens := map[string]bool{}
 
-	entries, isMapping := list.mappingEntries(pageNode, pagePath, pageNameName, keysName)
+	for pageIndex, page := range configuration.Pages {
+		if !page.IsAppScreen() {
+			continue
+		}
+
+		if screens[page.Application] {
+			list.addf(pagesNode.Content[pageIndex], fmt.Sprintf("%s[%d].%s", pagesName, pageIndex, applicationName),
+				ReasonDuplicateApplication, "%s already has an app screen", page.Application)
+		}
+
+		screens[page.Application] = true
+	}
+
+	for pageIndex, page := range configuration.Pages {
+		for keyIndex, key := range page.Keys {
+			source, opensScreen := key.Parameters.(brick.ApplicationScreenSource)
+			if !opensScreen {
+				continue
+			}
+
+			if application, wanted := source.ApplicationScreen(); wanted && !screens[application] {
+				list.addf(pagesNode.Content[pageIndex], fmt.Sprintf("%s[%d].%s[%d]", pagesName, pageIndex, keysName,
+					keyIndex), ReasonMissing, "no page is the app screen for %s", application)
+			}
+		}
+	}
+}
+
+func (decoder Decoder) decodePage(pageNode *yaml.Node, pagePath string, list *problemList) Page {
+	page := Page{Name: "", Application: "", Keys: nil}
+
+	entries, isMapping := list.mappingEntries(pageNode, pagePath, pageNameName, applicationName, keysName)
 	if !isMapping {
 		return page
 	}
 
 	page.Name = decodePageName(entries, pageNode, pagePath, list)
+	page.Application = decodePageApplication(entries, pagePath, list)
 
 	keysNode, keysPresent := entries[keysName]
 	if !keysPresent {
@@ -254,18 +290,91 @@ func (decoder Decoder) decodePage(pageNode *yaml.Node, pagePath string, list *pr
 			continue
 		}
 
-		if occupied[key.Position] {
-			list.addf(keyNode, keyPath, ReasonDuplicatePosition,
-				"row %d column %d already has a key on this page", key.Position.Row, key.Position.Column)
-
-			continue
+		if decoder.placeable(key, page, occupied, keyNode, keyPath, list) {
+			occupied[key.Position] = true
+			page.Keys = append(page.Keys, key)
 		}
-
-		occupied[key.Position] = true
-		page.Keys = append(page.Keys, key)
 	}
 
 	return page
+}
+
+// placeable reports whether a decoded key may go on its page: a brick of the
+// page's own application, or of none; off the return tile of an app screen;
+// and on a position no other key holds. Each refusal is listed.
+func (decoder Decoder) placeable(
+	key Key,
+	page Page,
+	occupied map[layout.Position]bool,
+	keyNode *yaml.Node,
+	keyPath string,
+	list *problemList,
+) bool {
+	switch belongsElsewhere, setName := decoder.belongsElsewhere(key, page); {
+	case belongsElsewhere:
+		list.addf(keyNode, keyPath, ReasonWrongApplication,
+			"%s is one of %s's own bricks, offered only on %s's app screen", key.Kind, setName, setName)
+	case page.IsAppScreen() && key.Position == decoder.grid.ReturnPosition():
+		list.addf(keyNode, keyPath, ReasonReservedPosition,
+			"row 1 column 1 is kept for the application's icon on an app screen")
+	case occupied[key.Position]:
+		list.addf(keyNode, keyPath, ReasonDuplicatePosition,
+			"row %d column %d already has a key on this page", key.Position.Row, key.Position.Column)
+	default:
+		return true
+	}
+
+	return false
+}
+
+// belongsElsewhere reports whether a key is an application's own brick on a
+// page that is not that application's screen, and names the application.
+func (decoder Decoder) belongsElsewhere(key Key, page Page) (bool, string) {
+	kind, found := decoder.registry.Kind(key.Kind)
+	if !found || kind.Scope() == "" {
+		return false, ""
+	}
+
+	set, hasSet := decoder.registry.AppSetFor(page.Application)
+	if page.IsAppScreen() && hasSet && set.ID == kind.Scope() {
+		return false, ""
+	}
+
+	return true, decoder.scopeName(kind.Scope())
+}
+
+// scopeName is an app set's name for its scope, or the scope itself.
+func (decoder Decoder) scopeName(scope string) string {
+	if name, found := decoder.registry.AppSetName(scope); found {
+		return name
+	}
+
+	return scope
+}
+
+// decodePageApplication reads a page's optional application, which makes it
+// that application's screen.
+func decodePageApplication(entries map[string]*yaml.Node, pagePath string, list *problemList) string {
+	applicationNode, present := entries[applicationName]
+	if !present {
+		return ""
+	}
+
+	application, isText := textOf(applicationNode)
+	if !isText {
+		list.addf(applicationNode, pagePath+"."+applicationName, ReasonWrongType, "expected text")
+
+		return ""
+	}
+
+	if length := utf8.RuneCountInString(application); length < 1 || length > MaximumApplicationCharacters {
+		list.addf(applicationNode, pagePath+"."+applicationName, ReasonOutOfBounds,
+			"must be between 1 and %d characters", MaximumApplicationCharacters)
+
+		return ""
+	}
+
+	return application
 }
 
 func decodePageName(entries map[string]*yaml.Node, pageNode *yaml.Node, pagePath string, list *problemList) string {

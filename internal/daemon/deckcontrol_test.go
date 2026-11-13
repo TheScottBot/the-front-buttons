@@ -35,7 +35,7 @@ func noAppearance() brick.Appearance {
 func controlPage() config.Configuration {
 	return config.Configuration{
 		SchemaVersion: config.CurrentSchemaVersion,
-		Pages: []config.Page{{Name: "Controls", Keys: []config.Key{
+		Pages: []config.Page{{Name: "Controls", Application: "", Keys: []config.Key{
 			button("first", 0, false),
 			liveKey("controls", 1, 0, ""),
 			{
@@ -225,8 +225,10 @@ func TestDaemon_UnlabelledPageMarkerShowsItsPage(t *testing.T) {
 		running.configurations <- config.Configuration{
 			SchemaVersion: config.CurrentSchemaVersion,
 			Pages: []config.Page{
-				{Name: "Plain", Keys: []config.Key{button("first", 0, false)}},
-				{Name: "Marked", Keys: []config.Key{{
+				{Name: "Plain", Application: "", Keys: []config.Key{button("first", 0, false)}},
+				// An app screen is not a numbered page.
+				{Name: "Blue", Application: knownApplication, Keys: nil},
+				{Name: "Marked", Application: "", Keys: []config.Key{{
 					Position:   layout.Position{Row: 0, Column: 0},
 					Kind:       pagemarker.KindName,
 					Parameters: &pagemarker.Parameters{Appearance: noAppearance()},

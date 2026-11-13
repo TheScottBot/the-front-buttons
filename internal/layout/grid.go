@@ -62,6 +62,19 @@ func (grid Grid) IsReserved(position Position) bool {
 	return position == grid.BackPosition() || position == grid.ForwardPosition()
 }
 
+// ReturnPosition is the top left key, reserved on an app screen for the
+// application's own icon, which returns to the regular page (evaluation, app
+// screens). On a regular page it is free.
+func (grid Grid) ReturnPosition() Position {
+	return Position{Row: 0, Column: 0}
+}
+
+// IsReservedOn reports whether a position is kept from bricks on a page: the
+// paging keys on every page, and the return key on an app screen.
+func (grid Grid) IsReservedOn(position Position, appScreen bool) bool {
+	return grid.IsReserved(position) || (appScreen && position == grid.ReturnPosition())
+}
+
 // Contains reports whether a position is on the grid.
 func (grid Grid) Contains(position Position) bool {
 	return position.Row >= 0 && position.Row < grid.rows && position.Column >= 0 && position.Column < grid.columns

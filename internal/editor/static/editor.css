@@ -220,6 +220,21 @@ main:focus-visible {
   text-decoration-thickness: 2px;
 }
 
+/* App screens, listed under the regular pages: outlined, not filled, since
+   they are not paged to. */
+
+#app-screens {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: lowercase;
+}
+
+.app-screens a {
+  color: var(--text);
+  background: transparent;
+  border: 3px dashed var(--rule);
+}
+
 /* The deck: black keys on the page, configured keys in yellow, empty ones in
    cyan; the words "empty" and the key's name say which, not the colour. */
 
@@ -295,6 +310,17 @@ main:focus-visible {
 
 a.reserved {
   text-decoration: none;
+}
+
+/* An app screen's return tile: the application's icon, as on the deck. */
+.reserved.app-icon {
+  padding: 0;
+}
+
+.reserved.app-icon img {
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
 }
 
 a.reserved:hover {

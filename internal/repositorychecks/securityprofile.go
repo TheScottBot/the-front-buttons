@@ -16,8 +16,11 @@ import (
 // does not do; anyone may check it against the code.
 const securityProfilePath = "SECURITY.md"
 
-// The Go folders the daemon is built from.
-var programRoots = []string{"internal", "cmd"} //nolint:gochecknoglobals // a fixed list
+// The Go folders that may run a program: the repository's operating system
+// check keeps every call into the operating system in the platform packages,
+// and the composition in cmd. Elsewhere a name such as goland64.exe is only
+// matched against, never run.
+var programRoots = []string{"internal/platform", "cmd"} //nolint:gochecknoglobals // a fixed list
 
 // UnlistedPrograms lists the programs the daemon's Go code names, as string
 // literals of a fixed path under /usr/bin or /bin or a Windows .exe, that

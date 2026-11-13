@@ -42,10 +42,13 @@ func (decoder Decoder) Encode(configuration Configuration) ([]byte, error) {
 			keysNode.Content = append(keysNode.Content, keyNode)
 		}
 
-		pagesNode.Content = append(pagesNode.Content, mappingNode(
-			textNode(pageNameName), textNode(page.Name),
-			textNode(keysName), keysNode,
-		))
+		pageNode := mappingNode(textNode(pageNameName), textNode(page.Name))
+		if page.IsAppScreen() {
+			pageNode.Content = append(pageNode.Content, textNode(applicationName), textNode(page.Application))
+		}
+
+		pageNode.Content = append(pageNode.Content, textNode(keysName), keysNode)
+		pagesNode.Content = append(pagesNode.Content, pageNode)
 	}
 
 	root := mappingNode(

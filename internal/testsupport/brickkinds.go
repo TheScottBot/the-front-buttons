@@ -1,6 +1,7 @@
 package testsupport
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,8 +11,14 @@ import (
 
 // The fake kind and preset names, written once for every test that uses them.
 const (
-	LinkKindName       = "test_link"
-	PollerKindName     = "test_poller"
+	LinkKindName   = "test_link"
+	PollerKindName = "test_poller"
+	ScreenKindName = "test_screen"
+	// AppActionKindName is the fake app set's one kind, offered only on the
+	// screen of AppSetIdentifier.
+	AppActionKindName  = "test_app_action"
+	AppSetID           = "test_app"
+	AppSetIdentifier   = "com.example.app"
 	ChannelPresetName  = "test_channel"
 	SegmentPresetName  = "test_segment"
 	ChannelAction      = "open_test_channel"
@@ -28,6 +35,25 @@ type LinkParameters struct {
 	brick.Appearance
 
 	Address string `brick:"address,required" bounds:"1,2048" format:"https_url" description:"Where the fake link goes."`
+}
+
+// ScreenParameters are the fake screen kind's: a key that opens an
+// application's screen when AppScreen is set, as open_application's does.
+type ScreenParameters struct {
+	brick.Appearance
+
+	Application string `brick:"application,required" bounds:"1,512"                                                description:"The fake application's identifier."`
+	AppScreen   bool   `brick:"app_screen"           description:"Whether the key opens the application's screen."`
+}
+
+// ApplicationScreen reports the application and whether its screen is wanted.
+func (parameters *ScreenParameters) ApplicationScreen() (string, bool) {
+	return parameters.Application, parameters.AppScreen
+}
+
+// AppActionParameters are the fake app set's kind's: only an appearance.
+type AppActionParameters struct {
+	brick.Appearance
 }
 
 // PollerParameters is a fake kind shaped like a live brick, covering every
@@ -85,6 +111,25 @@ func NewRegistry() (*brick.Registry, error) {
 	})
 	if pollerError != nil {
 		return nil, fmt.Errorf("registering the fake poller kind: %w", pollerError)
+	}
+
+	screenError := brick.Register(registry, ScreenKindName, func(parameters ScreenParameters, _ brick.Ports) (any, error) {
+		return &parameters, nil
+	})
+	if screenError != nil {
+		return nil, fmt.Errorf("registering the fake screen kind: %w", screenError)
+	}
+
+	appError := errors.Join(
+		registry.RegisterAppSet(brick.AppSet{
+			ID: AppSetID, Name: "Example", Identifiers: []string{AppSetIdentifier}, Groups: nil,
+		}),
+		brick.RegisterScoped(registry, AppSetID, AppActionKindName, func(_ AppActionParameters, _ brick.Ports) (any, error) {
+			return struct{}{}, nil
+		}),
+	)
+	if appError != nil {
+		return nil, fmt.Errorf("registering the fake app set: %w", appError)
 	}
 
 	return registry, nil

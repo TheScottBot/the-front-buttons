@@ -45,9 +45,18 @@ type Shortcut struct {
 	Command bool
 }
 
-// ShortcutPresser sends shortcuts to whatever has the keyboard focus, and
-// writes them as this system does, for a key that shows its shortcut.
+// ShortcutPair is one action's shortcut on each platform, as an IDE's default
+// keymaps give it: ⌘F9 on macOS, Ctrl+F9 on Windows.
+type ShortcutPair struct {
+	Mac     Shortcut
+	Windows Shortcut
+}
+
+// ShortcutPresser sends shortcuts to whatever has the keyboard focus, writes
+// them as this system does, for a key that shows its shortcut, and chooses
+// this system's half of a pair.
 type ShortcutPresser interface {
 	PressShortcut(pressContext context.Context, shortcut Shortcut) error
 	DescribeShortcut(shortcut Shortcut) string
+	ForThisPlatform(pair ShortcutPair) Shortcut
 }
