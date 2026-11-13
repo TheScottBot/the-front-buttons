@@ -89,6 +89,9 @@ they hold anything private:
 - **Written**: the configuration file, atomically; the rotating log, mode 0600,
   in the state folder, mode 0700; the editor's session file, mode 0600, holding
   its address and token for `-open-editor` (`cmd/the-front-buttons/session.go`).
+  Windows keeps no permission bits; there these files are private because the
+  state folder is in the person's own profile, which other accounts cannot
+  open.
 
 ## Secrets
 

@@ -35,10 +35,7 @@ func TestEditorSession_KeepsItsTokenPrivateAndAcrossRestarts(t *testing.T) {
 		t.Fatal(writeError)
 	}
 
-	info, statError := os.Stat(filepath.Join(stateDirectory, editorSessionFileName))
-	if statError != nil || info.Mode().Perm() != 0o600 {
-		t.Fatalf("want the session file readable by its owner only, got %v (%v)", info.Mode().Perm(), statError)
-	}
+	assertOwnerOnly(t, filepath.Join(stateDirectory, editorSessionFileName))
 
 	second, _ := editorSessionToken(stateDirectory)
 	if second != first {
@@ -49,6 +46,49 @@ func TestEditorSession_KeepsItsTokenPrivateAndAcrossRestarts(t *testing.T) {
 	if readError != nil || address != "127.0.0.1:48080" || token != first {
 		t.Errorf("want the address and token read back, got %q %q (%v)", address, token, readError)
 	}
+}
+
+// assertOwnerOnly checks a file is its owner's alone where the file system
+// keeps permission bits, as macOS does. Windows keeps none (every writable file
+// reads back as 0666); there the session file is private because the state
+// folder is in the person's own profile.
+func assertOwnerOnly(t *testing.T, path string) {
+	t.Helper()
+
+	info, statError := os.Stat(path)
+	if statError != nil {
+		t.Fatal(statError)
+	}
+
+	if honoursPermissionBits(t) && info.Mode().Perm() != 0o600 {
+		t.Fatalf("want the session file readable by its owner only, got %v", info.Mode().Perm())
+	}
+}
+
+// honoursPermissionBits reports whether files here keep the permission bits
+// they are given, found by giving a scratch file 0600 and reading it back.
+func honoursPermissionBits(t *testing.T) bool {
+	t.Helper()
+
+	probe := filepath.Join(t.TempDir(), "probe")
+
+	writeError := os.WriteFile(probe, nil, 0o600)
+	if writeError != nil {
+		t.Fatal(writeError)
+	}
+
+	info, statError := os.Stat(probe)
+	if statError != nil {
+		t.Fatal(statError)
+	}
+
+	if info.Mode().Perm() != 0o600 {
+		t.Log("this file system keeps no permission bits; the session file's mode is not checked")
+
+		return false
+	}
+
+	return true
 }
 
 // TestOpenEditor_AsksTheDaemonForALoginLink: -open-editor sends the token as a

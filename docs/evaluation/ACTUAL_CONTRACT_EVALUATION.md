@@ -3604,6 +3604,15 @@ the installed daemon: a page without a session answers 403 with how to open the
 editor, the stylesheet loads, a link request without the token is refused, and
 the session file is mode 0600. govulncheck rerun on Go 1.27.4 found no
 vulnerabilities.
+The deck's editor key opened the editor with a fresh login link on the
+physical deck.
+
+CI then failed on Windows only: the session file test wanted mode 0600, and
+Windows keeps no permission bits, every writable file reading back as 0666.
+The test now checks the mode only where a scratch file given 0600 reads back
+as 0600, which is true on macOS, where a planted 0644 still fails it; on
+Windows the file is private because the state folder is in the person's own
+profile, as SECURITY.md now says.
 
 ### Still owed
 
