@@ -483,6 +483,7 @@ func daemonOptions(
 			EditorAddress:       func() string { return editorAddress },
 			KeyPresser:          keyPresser,
 			MediaPlayer:         systemadapter.NewMediaPlayer(),
+			WindowCycler:        systemadapter.NewWindowCycler(),
 		},
 		Logger:          logger,
 		PollInterval:    deckPollInterval,

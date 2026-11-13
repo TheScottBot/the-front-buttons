@@ -292,3 +292,32 @@ func TestEditor_SpotifyRowFillsFourAcross(t *testing.T) {
 		t.Errorf("want a row running off the right edge refused, got %d", got.Code)
 	}
 }
+
+// TestEditor_JetBrainsPairSitsSideBySide: the author's JetBrains window keys
+// come as a 2x1, previous on the left and next on the right.
+func TestEditor_JetBrainsPairSitsSideBySide(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	if body := harness.get(t, "/page?page=0").Body.String(); !strings.Contains(body,
+		`<li draggable="true" data-group="2x1" data-width="2" data-height="1">`) {
+		t.Error("want the 2x1 in the drawer")
+	}
+
+	pair := spotifySquare("1", "4", "previous_window", "next_window")
+	pair.Set(sizeField, "2x1")
+
+	response := harness.post(t, groupPath, pair)
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("want the pair saved, got %d: %s", response.Code, response.Body.String())
+	}
+
+	page := harness.onDisk(t).Pages[0]
+
+	for column, wantKind := range map[int]string{4: "jetbrains_previous_window", 5: "jetbrains_next_window"} {
+		if key, found := keyAtPosition(page, layout.Position{Row: 1, Column: column}); !found || key.Kind != wantKind {
+			t.Errorf("column %d: want %s, got %+v", column+1, wantKind, key)
+		}
+	}
+}

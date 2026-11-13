@@ -3399,6 +3399,38 @@ no link with one page. A planted missing wrap-around failed them. In the
 browser pane, back on page one went to page three, whose forward leads to
 page one.
 
+### JetBrains next and previous window
+
+The author asked for keys that cycle GoLand, PyCharm and Rider windows. The
+IDEs' own next project window shortcut only moves within one IDE, so the
+daemon moves between windows itself, through the Accessibility API it is
+already trusted for because of F13.
+
+A WindowCycler port takes a group, every running application whose
+identifier starts with a prefix but those excluded, and a step. Its logic is
+plain Go: the group's windows are put in order of their application then
+their title, so the order holds however macOS lists them, and the one a step
+from the window in front is raised, wrapping round; with no group window in
+front, forward goes to the first and back to the last. The macOS part, in
+cgo, lists each regular application's standard windows (leaving out dialogs
+and palettes), marks the focused window of the frontmost application, and
+raises one: restored if minimised, raised, made main, and its application
+brought to the front both through Accessibility and NSRunningApplication. On
+Windows every cycle reports moving between windows unavailable.
+
+The bricks, jetbrains_next_window and jetbrains_previous_window in
+internal/bricks/windowcycle, cycle every com.jetbrains. application but
+Toolbox. A 2x1 in the drawer places previous on the left and next on the
+right, starting at the left and right arrow icons.
+
+Tests first, failing before the code: the order across IDEs whatever macOS's
+order, both directions with wrapping, starting from no IDE window, Toolbox
+left out, the snapshot released, refusals without Accessibility or windows,
+the failure categories, the bricks' group and steps, and the 2x1's placement.
+Planted violations (Toolbox included, the previous key stepping forward)
+failed them. The macOS part is built but only the author can try it on the
+deck; Accessibility must be granted again after the reinstall.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

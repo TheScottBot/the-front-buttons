@@ -109,3 +109,47 @@ func MediaFailureCategory(failure error) string {
 		return "failed"
 	}
 }
+
+// The ways moving between windows fails, each shown on the key by its
+// category.
+var (
+	// ErrWindowsNotPermitted reports that macOS has not given the daemon
+	// Accessibility, which reading and raising other applications' windows
+	// needs.
+	ErrWindowsNotPermitted = errors.New("not permitted to move between windows")
+	// ErrNoWindow reports that no window of the group is open.
+	ErrNoWindow = errors.New("no window to move to")
+	// ErrWindowsUnavailable reports that this system's adapter cannot move
+	// between windows at all.
+	ErrWindowsUnavailable = errors.New("moving between windows is not available on this system")
+)
+
+// WindowGroup names the applications whose windows a key moves through: every
+// running application whose identifier starts with Prefix, but those named in
+// Excluded.
+type WindowGroup struct {
+	Prefix   string
+	Excluded []string
+}
+
+// WindowCycler brings forward the window a step from the one in front, among
+// a group's windows in a stable order, wrapping round: the author's JetBrains
+// next and previous window keys (evaluation, deck testing).
+type WindowCycler interface {
+	CycleWindows(cycleContext context.Context, group WindowGroup, step int) error
+}
+
+// WindowFailureCategory is the reason category a window key shows for a
+// failure: permission, no_window, unavailable, or failed.
+func WindowFailureCategory(failure error) string {
+	switch {
+	case errors.Is(failure, ErrWindowsNotPermitted):
+		return "permission"
+	case errors.Is(failure, ErrNoWindow):
+		return "no_window"
+	case errors.Is(failure, ErrWindowsUnavailable):
+		return "unavailable"
+	default:
+		return "failed"
+	}
+}

@@ -16,7 +16,8 @@ import (
 // deck testing). Its size is written width by height: the 1x2 and 1x3 run down
 // a column, the author's D&D session, a D&D Beyond sheet and a Roll20 campaign
 // and a Discord channel for the 1x3; the 2x2 and the 4x1 are Spotify, the
-// album, play or pause, and the previous and next tracks. Parts fill the group left to right,
+// album, play or pause, and the previous and next tracks; the 2x1 is the
+// JetBrains previous and next window keys. Parts fill the group left to right,
 // then top to bottom. Each becomes an ordinary key, re-edited like any other.
 
 // The parts' names in the form.
@@ -28,6 +29,8 @@ const (
 	playPart      = "play"
 	previousPart  = "previous"
 	nextPart      = "next"
+	backWindow    = "previous_window"
+	forwardWindow = "next_window"
 )
 
 // groupPart is one key a group places: its name in the form, the type choice
@@ -95,6 +98,14 @@ func groupParts() map[string]groupPart {
 			name: nextPart, choice: kindChoicePrefix + "spotify_next", title: "Spotify next track",
 			label: "", icon: "player-track-next",
 		},
+		backWindow: {
+			name: backWindow, choice: kindChoicePrefix + "jetbrains_previous_window", title: "JetBrains previous window",
+			label: "", icon: "arrow-big-left",
+		},
+		forwardWindow: {
+			name: forwardWindow, choice: kindChoicePrefix + "jetbrains_next_window", title: "JetBrains next window",
+			label: "", icon: "arrow-big-right",
+		},
 	}
 }
 
@@ -113,6 +124,7 @@ func groupSizes() map[string]groupSize {
 		"1x3": {width: 1, height: threeTiles, parts: []string{characterPart, roll20Part, discordPart}},
 		"2x2": {width: twoTiles, height: twoTiles, parts: []string{albumPart, playPart, previousPart, nextPart}},
 		"4x1": {width: fourTiles, height: 1, parts: []string{albumPart, playPart, previousPart, nextPart}},
+		"2x1": {width: twoTiles, height: 1, parts: []string{backWindow, forwardWindow}},
 	}
 }
 

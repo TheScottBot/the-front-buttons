@@ -24,6 +24,8 @@ type Ports struct {
 	KeyPresser platform.KeyPresser
 	// MediaPlayer controls the music player, for the Spotify keys.
 	MediaPlayer platform.MediaPlayer
+	// WindowCycler moves between windows, for the JetBrains window keys.
+	WindowCycler platform.WindowCycler
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

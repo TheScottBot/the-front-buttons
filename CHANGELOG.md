@@ -137,6 +137,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   top to bottom. A 4x1 places the four Spotify keys in a row.
 - The editor grid's back and forward tiles page as the deck's do, wrapping
   round at either end, each named for the page it goes to.
+- `jetbrains_next_window` and `jetbrains_previous_window` bring forward the
+  next or previous window across every running JetBrains IDE, GoLand, PyCharm
+  and Rider among them, in a stable order, wrapping round; a 2x1 in the drawer
+  places both. They use the Accessibility permission F13 already needs; on
+  Windows they say moving between windows is unavailable.
 
 ### Fixed
 
