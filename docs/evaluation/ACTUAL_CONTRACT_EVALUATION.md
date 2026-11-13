@@ -3268,6 +3268,45 @@ occupied tile refused the brick and showed dimmed, an empty one took it and
 opened its editor with the brick chosen and its level at 50, and the copy
 drawer showed closed with its chevron.
 
+### Drawers by size, and keys placed down a column
+
+The author asked for the brick drawer to hold drawers of its own: 1x1 with
+every existing brick, and a 1x2 and a 1x3 that add a D&D Beyond character
+sheet and a Roll20 page, and a Discord server for the 1x3, down a column. A
+group carried over the grid shows the tiles it would fill numbered 1 and 2, or
+1 to 3; dropped, it opens one form for every part's details, whose parts can be
+reordered.
+
+The drawer's panel now holds three details elements. The 1x2 and 1x3 groups
+need that many empty tiles from the drop tile down its column, each on the
+deck and none kept for paging; carried, the tiles are outlined and numbered,
+and a column without room refuses the drop. Dropped, the group's form opens in
+the key dialog from GET /group: each part's label and icon (starting at Sheet
+and wand, Roll20 and dice-5, Discord and brand-discord) and its preset's own
+IDs, each field named for its part. Up and Down buttons, shown by the script,
+move a part, its number following and focus staying on the button; the parts'
+hidden order fields go in the order they sit. POST /group places every key or
+none: an order that is not the group's parts, a field in error, a page gone, or
+a tile off the deck, kept for paging or holding a key is refused in words, the
+form kept as typed. Each part becomes an ordinary preset key, built as the key
+form builds one, so it is re-edited like any other.
+
+Roll20 gained a preset, roll20_campaign (open_campaign), at the campaign launch
+address the author's own Roll20 keys use; the preset table had waited for a
+known Roll20 address, and those keys are it.
+
+Tests first, failing before the code: the Roll20 expansion and action; the
+group form's parts, in order, with Discord only in the 1x3; an unknown size
+refused; a group placed down the column in the chosen order as preset keys;
+each refusal, with the file untouched and the form kept; the drawers by size;
+and the script's stack marking. Planted violations (no check for a key in the
+way, no check on the order) failed them; the first first passed, as the store
+also refuses a key on a key, so the test now asks for the tile named. A
+variable rename that caught the word "at" in two messages was caught by the
+same test. In the browser pane, with simulated drags, a 1x3 numbered three free
+tiles down column 3, refused a column without room, and opened its form, where
+moving the sheet down put Roll20 first and renumbered the parts.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

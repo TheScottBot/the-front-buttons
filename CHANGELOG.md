@@ -121,6 +121,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   tile's key editor with it chosen; while one is carried, keys and paging tiles
   are dimmed and crossed, as only an empty tile takes one.
 - The page copy forms sit in a drawer, closed until opened, with a chevron.
+- The brick drawer holds a drawer for each size: 1x1 with every brick and
+  preset, and 1x2 and 1x3 with keys placed down a column at once, a D&D Beyond
+  sheet and a Roll20 campaign, and a Discord channel for the 1x3. Carried over
+  the grid, a group numbers the free tiles it would fill; dropped, it opens one
+  form for every part's details, whose parts can be reordered.
+- A `roll20_campaign` preset opens a Roll20 campaign by its ID.
 
 ### Fixed
 

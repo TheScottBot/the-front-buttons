@@ -794,6 +794,76 @@ label[for$="-picker"] {
   cursor: grab;
 }
 
+.drawer-section {
+  margin-top: 0.6rem;
+  border: 2px solid var(--rule);
+}
+
+.drawer-section > summary {
+  padding: 0.3rem 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawer-section > ul {
+  padding: 0 0.5rem 0.5rem;
+}
+
+/* The tiles a carried brick or group would fill, numbered down the column
+   for a group. */
+
+.grid td.stack-target {
+  position: relative;
+  outline: 5px solid var(--accent);
+  outline-offset: -5px;
+}
+
+.grid td.stack-target[data-slot]::after {
+  content: attr(data-slot);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: 2.2rem;
+  color: var(--on-block);
+  background: var(--block);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* The group form: each part numbered by its place down the column, with its
+   Up and Down buttons beside its title. */
+
+.group-parts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-part fieldset {
+  margin: 0 0 1rem;
+}
+
+.group-part .slot {
+  display: inline-block;
+  min-width: 1.6rem;
+  margin-right: 0.4rem;
+  text-align: center;
+  color: var(--on-block);
+  background: var(--block);
+}
+
+.group-moves {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.group-moves[hidden] {
+  display: none;
+}
+
 .grid.placing td[data-state="key"],
 .grid.placing td[data-state="reserved"] {
   opacity: 0.6;

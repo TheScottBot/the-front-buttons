@@ -1,0 +1,31 @@
+{{template "head" .}}
+<h1>Keys down column {{.DisplayColumn}} from row {{.DisplayRow}}</h1>
+<p><a href="/page?page={{.PageIndex}}">Back to the page</a></p>
+<div id="key-editor">
+{{if .Errors}}<div class="errors" role="alert"><ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+<form method="post" action="/group" class="group-form">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="hidden" name="row" value="{{.Row}}">
+<input type="hidden" name="column" value="{{.Column}}">
+<input type="hidden" name="size" value="{{.Size}}">
+<p class="help">Each part becomes a key of its own, top to bottom in this order. Move a part up or down to change where it goes.</p>
+<ol class="group-parts">
+{{range .Parts}}<li class="group-part">
+<input type="hidden" name="order" value="{{.Name}}">
+<fieldset>
+<legend><span class="slot">{{.Slot}}</span> {{.Title}}</legend>
+<div class="group-moves" hidden><button type="button" class="move-up" aria-label="Move {{.Title}} up">Up</button>
+<button type="button" class="move-down" aria-label="Move {{.Title}} down">Down</button></div>
+{{range .Fields}}<div class="field">
+<label for="{{.ID}}">{{.Label}}{{if .Required}} (required){{end}}</label>
+<input id="{{.ID}}" name="{{.Name}}" type="text" value="{{.Value}}"{{if .Required}} required{{end}}{{if .MaximumLength}} maxlength="{{.MaximumLength}}"{{end}}{{if .Error}} aria-invalid="true"{{end}} aria-describedby="{{.DescribedBy}}">
+{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}<p class="help" id="{{.DescriptionID}}">{{if eq .Label "Icon"}}<a href="/icons" target="_blank" rel="noopener">Browse the icons</a> in a new tab. {{end}}{{.Description}}</p>
+</div>
+{{end}}</fieldset>
+</li>
+{{end}}</ol>
+<button type="submit">Add these keys</button>
+</form>
+</div>
+{{template "foot" .}}

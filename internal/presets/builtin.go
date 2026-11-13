@@ -11,8 +11,8 @@ import (
 // section 6.6, as TD13 settled and the author amended: Teams over https, Discord
 // through its discord:// app scheme (an https link opened the browser; the app
 // form was seen working on the author's MacBook, evaluation, deck testing), D&D
-// Beyond as observed on its site, and no Roll20 preset until its launch URL is
-// known.
+// Beyond as observed on its site, and Roll20's campaign launch address as the
+// author's own keys use it (evaluation, deck testing).
 
 // DiscordChannelFields are the IDs Discord's Developer Mode copies.
 type DiscordChannelFields struct {
@@ -53,6 +53,13 @@ type DnDBeyondCharacterFields struct {
 	CharacterID string `brick:"character_id,required" bounds:"1,32" format:"digits" description:"The number at the end of the character sheet's address."`
 }
 
+// Roll20CampaignFields open a Roll20 campaign.
+type Roll20CampaignFields struct {
+	brick.Appearance
+
+	CampaignID string `brick:"campaign_id,required" bounds:"1,32" format:"digits" description:"The number at the end of the campaign's address."`
+}
+
 // teamsChannelBase is the documented channel link; private and shared channels
 // add their documented parameters to it.
 const teamsChannelBase = "https://teams.microsoft.com/l/channel/{{uri_component .channel_id}}/" +
@@ -85,6 +92,8 @@ func BuiltIn(registry *brick.Registry) (Table, error) {
 		teamsChannelBase+"&ngc=true&allowXTenantAccess=true")))
 	addRow(Define[DnDBeyondCharacterFields]("dndbeyond_character", "open_character", openurl.KindName, urlTemplate(
 		"https://www.dndbeyond.com/characters/{{path_segment .character_id}}")))
+	addRow(Define[Roll20CampaignFields]("roll20_campaign", "open_campaign", openurl.KindName, urlTemplate(
+		"https://app.roll20.net/editor/setcampaign/{{path_segment .campaign_id}}")))
 
 	for _, rowError := range rowErrors {
 		if rowError != nil {

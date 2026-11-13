@@ -8,6 +8,7 @@
 // inside, closes on Escape and leaves the page behind it inert. When it closes,
 // focus goes back to the tile that opened it.
 
+import { showGroupMoves } from "./group";
 import { applyReplacements } from "./replaces";
 import { showSliders } from "./slider";
 
@@ -117,6 +118,7 @@ async function load(parts: Elements, url: string, init?: RequestInit): Promise<v
   htmx()?.process(parts.body);
   applyReplacements(document);
   showSliders(document);
+  showGroupMoves(document);
 
   if (!parts.dialog.open) {
     parts.dialog.showModal();

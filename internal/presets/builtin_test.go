@@ -73,6 +73,11 @@ func builtInPresetCases() []presetExpansionCase {
 			map[string]any{"character_id": "133058471"},
 			"https://www.dndbeyond.com/characters/133058471",
 		},
+		{
+			"roll20_campaign",
+			map[string]any{"campaign_id": "19929142"},
+			"https://app.roll20.net/editor/setcampaign/19929142",
+		},
 	}
 }
 
@@ -134,6 +139,7 @@ func TestBuiltIn_DeclaresEachPresetsAction(t *testing.T) {
 	wantActions := map[string]string{
 		"discord_channel":       "open_server",
 		"dndbeyond_character":   "open_character",
+		"roll20_campaign":       "open_campaign",
 		"teams_chat":            "open_chat",
 		"teams_chat_by_id":      "open_chat",
 		"teams_channel":         openChannel,

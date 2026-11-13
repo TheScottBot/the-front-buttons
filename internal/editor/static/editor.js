@@ -1,4 +1,38 @@
 (() => {
+  // internal/editor/web/group.ts
+  var partSelector = "li.group-part";
+  function renumber(list) {
+    list.querySelectorAll(partSelector).forEach((part, index) => {
+      const slot = part.querySelector(".slot");
+      if (slot !== null) {
+        slot.textContent = String(index + 1);
+      }
+    });
+  }
+  function showGroupMoves(root) {
+    for (const moves of root.querySelectorAll(".group-moves")) {
+      moves.hidden = false;
+    }
+  }
+  function enableGroupOrder(root) {
+    root.addEventListener("click", (event) => {
+      const button = event.target instanceof Element ? event.target.closest(".move-up, .move-down") : null;
+      const part = button?.closest(partSelector);
+      const list = part?.parentElement;
+      if (button === null || button === void 0 || part === null || part === void 0 || list === null || list === void 0) {
+        return;
+      }
+      if (button.classList.contains("move-up") && part.previousElementSibling !== null) {
+        list.insertBefore(part, part.previousElementSibling);
+      } else if (button.classList.contains("move-down") && part.nextElementSibling !== null) {
+        list.insertBefore(part.nextElementSibling, part);
+      }
+      renumber(list);
+      button.focus();
+    });
+    showGroupMoves(root);
+  }
+
   // internal/editor/web/replaces.ts
   var replacedClass = "replaced";
   function setAside(checkBox, root) {
@@ -129,6 +163,7 @@
     htmx()?.process(parts.body);
     applyReplacements(document);
     showSliders(document);
+    showGroupMoves(document);
     if (!parts.dialog.open) {
       parts.dialog.showModal();
     }
@@ -347,14 +382,46 @@
   var brickType = "application/x-front-buttons-brick";
   var placingClass = "placing";
   var carryingClass = "carrying";
-  var dropTargetClass2 = "drop-target";
-  function emptyCellOf(target) {
-    const cell = target instanceof Element ? target.closest("td[data-tile]") : null;
-    return cell?.dataset.state === "empty" ? cell : null;
+  var stackClass = "stack-target";
+  function placeOf(cell) {
+    const parts = (cell.dataset.tile ?? "").split(".");
+    if (parts.length !== 3) {
+      return null;
+    }
+    return { page: parts[0], row: Number(parts[1]), column: parts[2] };
+  }
+  function cellOf2(target) {
+    return target instanceof Element ? target.closest("td[data-tile]") : null;
+  }
+  function stackFrom(grid2, cell, size) {
+    const place = placeOf(cell);
+    if (place === null) {
+      return null;
+    }
+    const stack = [];
+    for (let offset = 0; offset < size; offset++) {
+      const tile = `${place.page}.${place.row + offset}.${place.column}`;
+      const below = grid2.querySelector(`td[data-tile="${tile}"]`);
+      if (below === null || below.dataset.state !== "empty") {
+        return null;
+      }
+      stack.push(below);
+    }
+    return stack;
   }
   function setOpen(toggle, panel, open) {
     toggle.setAttribute("aria-expanded", String(open));
     panel.hidden = !open;
+  }
+  function carriedFrom(item) {
+    if (item.dataset.type !== void 0) {
+      return { type: item.dataset.type, group: null, size: 1 };
+    }
+    const size = Number(item.dataset.size);
+    if (item.dataset.group !== void 0 && Number.isInteger(size) && size > 1) {
+      return { type: null, group: item.dataset.group, size };
+    }
+    return null;
   }
   function enableDrawer(grid2) {
     const drawer = document.getElementById("brick-drawer");
@@ -364,51 +431,84 @@
       return;
     }
     let carried = null;
+    let marked = [];
+    const unmark = () => {
+      for (const cell of marked) {
+        cell.classList.remove(stackClass);
+        delete cell.dataset.slot;
+      }
+      marked = [];
+    };
+    const mark = (stack) => {
+      unmark();
+      stack.forEach((cell, index) => {
+        cell.classList.add(stackClass);
+        if (stack.length > 1) {
+          cell.dataset.slot = String(index + 1);
+        }
+      });
+      marked = stack;
+    };
     toggle.addEventListener("click", () => setOpen(toggle, panel, panel.hidden));
     panel.addEventListener("dragstart", (event) => {
-      const item = event.target instanceof Element ? event.target.closest("li[data-type]") : null;
-      if (item === null || event.dataTransfer === null) {
+      const item = event.target instanceof Element ? event.target.closest("li[draggable]") : null;
+      const picked = item === null ? null : carriedFrom(item);
+      if (picked === null || event.dataTransfer === null) {
         return;
       }
-      carried = item.dataset.type ?? null;
+      carried = picked;
       event.dataTransfer.effectAllowed = "copy";
-      event.dataTransfer.setData(brickType, carried ?? "");
+      event.dataTransfer.setData(brickType, picked.type ?? picked.group ?? "");
       grid2.classList.add(placingClass);
       window.setTimeout(() => drawer.classList.add(carryingClass), 0);
     });
     panel.addEventListener("dragend", () => {
       carried = null;
+      unmark();
       grid2.classList.remove(placingClass);
       drawer.classList.remove(carryingClass);
-      for (const cell of grid2.querySelectorAll(`.${dropTargetClass2}`)) {
-        cell.classList.remove(dropTargetClass2);
-      }
     });
     grid2.addEventListener("dragover", (event) => {
-      const cell = emptyCellOf(event.target);
+      const cell = cellOf2(event.target);
       if (carried === null || cell === null || event.dataTransfer === null) {
+        return;
+      }
+      const stack = stackFrom(grid2, cell, carried.size);
+      if (stack === null) {
+        unmark();
         return;
       }
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
-      cell.classList.add(dropTargetClass2);
+      mark(stack);
     });
     grid2.addEventListener("dragleave", (event) => {
-      if (carried !== null) {
-        emptyCellOf(event.target)?.classList.remove(dropTargetClass2);
+      if (carried !== null && !(event.relatedTarget instanceof Node && grid2.contains(event.relatedTarget))) {
+        unmark();
       }
     });
     grid2.addEventListener("drop", (event) => {
-      const cell = emptyCellOf(event.target);
+      const cell = cellOf2(event.target);
       const link = cell?.querySelector('a[href^="/key?"]');
-      if (carried === null || cell === null || link === null || link === void 0) {
+      const place = cell === null ? null : placeOf(cell);
+      if (carried === null || cell === null || link === null || link === void 0 || place === null || stackFrom(grid2, cell, carried.size) === null) {
         return;
       }
       event.preventDefault();
-      cell.classList.remove(dropTargetClass2);
-      const address = new URL(link.href);
-      address.searchParams.set("type", carried);
+      unmark();
       setOpen(toggle, panel, false);
+      if (carried.group !== null) {
+        const query = new URLSearchParams({
+          page: place.page,
+          row: String(place.row),
+          column: place.column,
+          size: carried.group
+        });
+        openKeyDialog(`/group?${query.toString()}`, link);
+        return;
+      }
+      const address = new URL(link.href);
+      address.searchParams.set("type", carried.type ?? "");
       openKeyDialog(address.pathname + address.search, link);
     });
     drawer.hidden = false;
@@ -459,6 +559,7 @@
   enablePickers(document);
   enableReplacements(document);
   enableSliders(document);
+  enableGroupOrder(document);
   enableThemeToggle(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
