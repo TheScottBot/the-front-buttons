@@ -3544,6 +3544,15 @@ and a shortcut key needing Accessibility worked on the physical deck with no
 grant. CI checks only that the script refuses a missing binary; installing for
 real remains a check on the machine.
 
+### Deck away overnight and back
+
+The deck was unplugged from the Mac overnight and used on another machine
+the next day, then returned. On logging back in to the Mac's session, the
+running daemon found it again and drew the page it had been showing,
+verified on the physical deck. This exercises the dock switching path, not
+TE10: the session was not logged out, so the daemon was not started afresh
+at login.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
