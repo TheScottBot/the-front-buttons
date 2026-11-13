@@ -35,6 +35,10 @@ const (
 	closedInterval  = 5 * time.Second
 )
 
+// readTimeout bounds one read of Spotify, so a script stuck waiting, as one
+// is while macOS asks for the Automation permission, cannot freeze the keys.
+const readTimeout = 10 * time.Second
+
 // The play key's icons: the one a press will do.
 const (
 	playIcon  = "player-play"
@@ -85,7 +89,10 @@ func watch(watchContext context.Context, player platform.MediaPlayer, publish fu
 	var last brick.LiveState
 
 	for first := true; ; first = false {
-		playing, readError := player.NowPlaying(watchContext)
+		readContext, cancel := context.WithTimeout(watchContext, readTimeout)
+		playing, readError := player.NowPlaying(readContext)
+
+		cancel()
 
 		state := brick.LiveState{
 			Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,

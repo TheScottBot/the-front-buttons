@@ -141,6 +141,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - Icons and labels are centred on the key: icons sat up to a pixel and a half
   left of centre on the XL, and labels up to a pixel, which showed on the off
   key's power icon.
+- The Spotify album and play keys showed "failed": the script reading Spotify
+  set a variable named after one of Spotify's own properties. Each read is now
+  also bounded in time.
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now
   initialised once per process, behind one lock (first run on a real deck).

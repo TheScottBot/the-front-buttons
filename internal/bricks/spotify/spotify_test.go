@@ -21,11 +21,17 @@ type playerFake struct {
 	playing  platform.NowPlaying
 	failure  error
 	commands []string
+	// unbounded counts reads made with no deadline.
+	unbounded int
 }
 
-func (fake *playerFake) NowPlaying(context.Context) (platform.NowPlaying, error) {
+func (fake *playerFake) NowPlaying(nowContext context.Context) (platform.NowPlaying, error) {
 	fake.mutex.Lock()
 	defer fake.mutex.Unlock()
+
+	if _, bounded := nowContext.Deadline(); !bounded {
+		fake.unbounded++
+	}
 
 	return fake.playing, fake.failure
 }
@@ -48,7 +54,7 @@ func (fake *playerFake) record(command string) error {
 func newPlayerFake() *playerFake {
 	return &playerFake{
 		mutex: sync.Mutex{}, playing: platform.NowPlaying{Running: false, Playing: false, Artwork: nil},
-		failure: nil, commands: nil,
+		failure: nil, commands: nil, unbounded: 0,
 	}
 }
 
@@ -105,7 +111,7 @@ func TestSpotify_EachKeyPressSendsItsCommand(t *testing.T) {
 
 	refused := &playerFake{
 		mutex: sync.Mutex{}, playing: platform.NowPlaying{Running: false, Playing: false, Artwork: nil},
-		failure: platform.ErrMediaNotAllowed, commands: nil,
+		failure: platform.ErrMediaNotAllowed, commands: nil, unbounded: 0,
 	}
 	pressable, _ := construct(t, spotify.NextKindName, refused).(brick.Pressable)
 
@@ -162,10 +168,11 @@ func TestSpotify_AlbumWatchesThePlayer(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		art := image.NewRGBA(image.Rect(0, 0, 4, 4))
 		player := &playerFake{
-			mutex:    sync.Mutex{},
-			playing:  platform.NowPlaying{Running: true, Playing: true, Artwork: art},
-			failure:  nil,
-			commands: nil,
+			mutex:     sync.Mutex{},
+			playing:   platform.NowPlaying{Running: true, Playing: true, Artwork: art},
+			failure:   nil,
+			commands:  nil,
+			unbounded: 0,
 		}
 
 		album, _ := construct(t, spotify.AlbumKindName, player).(brick.LiveSource)
@@ -207,6 +214,11 @@ func TestSpotify_AlbumWatchesThePlayer(t *testing.T) {
 
 		if last := published[len(published)-1]; last.ErrorReason != "permission" || last.Picture != nil {
 			t.Errorf("want a refused read shown as permission without art, got %+v", last)
+		}
+
+		// A stuck script must not freeze the keys, so every read has a deadline.
+		if player.unbounded != 0 {
+			t.Errorf("want every read bounded in time, %d were not", player.unbounded)
 		}
 	})
 }

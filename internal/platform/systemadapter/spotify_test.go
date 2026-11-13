@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"image"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -122,5 +124,40 @@ func TestSpotify_SendsEachCommandAndNamesARefusal(t *testing.T) {
 
 	if !errors.Is(readError, platform.ErrMediaNotAllowed) || !errors.Is(nextError, platform.ErrMediaNotAllowed) {
 		t.Errorf("want the Automation refusal named, got %v", readError)
+	}
+}
+
+// spotifyTerms are the words Spotify's own scripting dictionary defines
+// (Spotify.app/Contents/Resources/Spotify.sdef). Inside a tell block a
+// variable with one of these names is Spotify's property instead: the reading
+// script's "set artwork to" tried to set Spotify's read only artwork, so every
+// read failed and the album and play keys showed "failed" while their presses
+// worked (the author's photograph, evaluation, deck testing).
+func spotifyTerms() []string {
+	return []string{
+		"album artist", "album", "application", "artist", "artwork url", "artwork", "current track",
+		"disc number", "duration", "frontmost", "id", "image data", "in context", "name", "next track", "pause",
+		"paused", "play track", "play", "played count", "player position", "player state", "playing",
+		"playpause", "popularity", "previous track", "repeating enabled", "repeating", "shuffling enabled",
+		"shuffling", "sound volume", "spotify url", "starred", "stopped", "track number", "track", "version",
+	}
+}
+
+func TestSpotify_ReadingScriptSetsOnlyNamesOfItsOwn(t *testing.T) {
+	t.Parallel()
+
+	fake := &spotifyFake{output: "stopped\n", failure: nil, scripts: nil, fetched: nil}
+	_, _ = newSpotify(fake).NowPlaying(t.Context())
+
+	assigned := regexp.MustCompile(`(?m)\bset ([A-Za-z][A-Za-z ]*?) to\b`).FindAllStringSubmatch(fake.scripts[0], -1)
+	if len(assigned) == 0 {
+		t.Fatal("want the reading script to set a name of its own for the art address")
+	}
+
+	for _, match := range assigned {
+		if slices.Contains(spotifyTerms(), strings.TrimSpace(match[1])) {
+			t.Errorf("the reading script sets %q, one of Spotify's own terms; name it something Spotify does not define",
+				match[1])
+		}
 	}
 }

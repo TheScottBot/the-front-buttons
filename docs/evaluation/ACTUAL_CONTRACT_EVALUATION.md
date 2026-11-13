@@ -3347,7 +3347,18 @@ refusals at the edge and over paging. Planted violations (art from any host,
 the play icons swapped, a 2x2 laid down one column, no live drawing in the
 daemon) failed them. A restore after planting copied the brick package over
 the adapter, both files being named spotify.go; it was caught at once by the
-build and the adapter rewritten from its source. Not yet seen on the deck.
+build and the adapter rewritten from its source.
+
+On the deck the album and play keys showed "failed" while every press worked.
+The reading script named its variable artwork, and inside the tell block that
+is Spotify's own read only property (its dictionary, Spotify.sdef), so
+setting it failed every read; the commands never touch it. The variable is now
+coverAddress, and a test fails if the reading script sets any of the terms
+Spotify's dictionary defines. Each read is also bounded to ten seconds, so a
+script stuck waiting, as the first was for about a minute while macOS asked
+for the Automation permission, cannot freeze the keys. Both tests failed
+before the fix. Reinstalled, the keys showed the art and play or pause, and
+the author confirmed it works.
 
 ### Centring icons and labels
 

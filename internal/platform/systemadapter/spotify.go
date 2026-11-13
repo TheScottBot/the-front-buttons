@@ -28,14 +28,18 @@ const spotifyNotAuthorised = "-1743"
 // The scripts the Spotify adapter runs. Reading what is playing checks first
 // that Spotify is running, because telling an application anything launches
 // it; the commands may launch it, as pressing play on a closed player should.
+// Inside the tell block a name Spotify defines is Spotify's own property, so
+// the script's own names must be none of Spotify's: "artwork" was Spotify's
+// read only property, and setting it failed every read (evaluation, deck
+// testing).
 const (
 	spotifyNowPlayingScript = `if application "Spotify" is running then
 	tell application "Spotify"
-		set artwork to ""
+		set coverAddress to ""
 		try
-			set artwork to artwork url of current track
+			set coverAddress to artwork url of current track
 		end try
-		return "running" & linefeed & (player state as string) & linefeed & artwork
+		return "running" & linefeed & (player state as string) & linefeed & coverAddress
 	end tell
 else
 	return "stopped"
