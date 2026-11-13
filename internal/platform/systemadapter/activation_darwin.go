@@ -24,17 +24,21 @@ static pid_t frontButtonsRunningProcess(const char *identifier) {
 	}
 }
 
-// frontButtonsActivate asks the process to come to the front, through AppKit
-// and through Accessibility, bringing its front window only: asking for every
-// window would reorder an IDE's other projects too.
+// frontButtonsMakeFrontmost asks the process to come to the front through
+// Accessibility, which takes milliseconds and brings its front window only.
+static void frontButtonsMakeFrontmost(pid_t process) {
+	AXUIElementRef element = AXUIElementCreateApplication(process);
+	AXUIElementSetAttributeValue(element, kAXFrontmostAttribute, kCFBooleanTrue);
+	CFRelease(element);
+}
+
+// frontButtonsActivate asks AppKit to bring the process to the front, which
+// on the deck took a second every time, so it is asked only when
+// Accessibility has not brought the application forward.
 static void frontButtonsActivate(pid_t process) {
 	@autoreleasepool {
 		[[NSRunningApplication runningApplicationWithProcessIdentifier:process] activateWithOptions:0];
 	}
-
-	AXUIElementRef element = AXUIElementCreateApplication(process);
-	AXUIElementSetAttributeValue(element, kAXFrontmostAttribute, kCFBooleanTrue);
-	CFRelease(element);
 }
 
 // frontButtonsInFront reports whether the process is the focused application:
@@ -79,6 +83,9 @@ import (
 const (
 	frontWait  = 500 * time.Millisecond
 	frontCheck = 20 * time.Millisecond
+	// accessibilityWait is how long Accessibility alone has, before AppKit is
+	// asked as well.
+	accessibilityWait = 200 * time.Millisecond
 )
 
 // frontStates reads frontButtonsInFront's answers.
@@ -93,7 +100,8 @@ type ApplicationActivator struct{}
 func NewApplicationActivator() ApplicationActivator { return ApplicationActivator{} }
 
 // ActivateApplication brings the application to the front, if it is not there
-// already, and waits until it is. An application already in front is left
+// already, and waits until it is: through Accessibility first, and through
+// AppKit only if that has not worked within a fifth of a second. An application already in front is left
 // alone, so a key pressed while working in it costs one question to the
 // system rather than a round trip to the application, which for a Java IDE is
 // slow. Asking needs no permission; seeing where it is needs the
@@ -117,6 +125,12 @@ func (ApplicationActivator) ActivateApplication(activateContext context.Context,
 	}
 
 	if inFront() == FrontYes {
+		return nil
+	}
+
+	C.frontButtonsMakeFrontmost(process)
+
+	if WaitUntilInFront(activateContext, identifier, inFront, accessibilityWait, frontCheck) == nil {
 		return nil
 	}
 

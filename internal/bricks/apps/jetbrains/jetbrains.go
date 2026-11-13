@@ -12,59 +12,30 @@
 package jetbrains
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/appkeys"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
-// Action is one IDE action: its name in kind names, its label on a key, and
-// its shortcut on each platform.
-type Action struct {
-	Name    string
-	Label   string
-	Mac     platform.Shortcut
-	Windows platform.Shortcut
-}
-
-// The modifiers, as shortcuts write them.
+// The modifiers, as the table writes them.
 const (
-	command = iota
-	control
-	option
-	shift
+	command = appkeys.Command
+	control = appkeys.Control
+	option  = appkeys.Option
+	shift   = appkeys.Shift
 )
 
 // keys builds a shortcut from a key and its modifiers.
-func keys(key string, held ...int) platform.Shortcut {
-	shortcut := platform.Shortcut{Key: key, Control: false, Alt: false, Shift: false, Command: false}
-
-	for _, modifier := range held {
-		switch modifier {
-		case command:
-			shortcut.Command = true
-		case control:
-			shortcut.Control = true
-		case option:
-			shortcut.Alt = true
-		case shift:
-			shortcut.Shift = true
-		}
-	}
-
-	return shortcut
-}
+func keys(key string, held ...int) platform.Shortcut { return appkeys.Keys(key, held...) }
 
 // action builds a table row.
-func action(name string, label string, mac platform.Shortcut, windows platform.Shortcut) Action {
-	return Action{Name: name, Label: label, Mac: mac, Windows: windows}
+func action(name string, label string, mac platform.Shortcut, windows platform.Shortcut) appkeys.Action {
+	return appkeys.Action{Name: name, Label: label, Mac: mac, Windows: windows}
 }
 
 // Actions is every action, grouped as the IDE's menus group them. On Windows
 // Alt is option's place, and Ctrl command's.
-func Actions() []Action {
-	return []Action{
+func Actions() []appkeys.Action {
+	return []appkeys.Action{
 		// Build and run.
 		action("run", "Run", keys("R", control), keys("F10", shift)),
 		action("run_choose", "Run...", keys("R", control, option), keys("F10", option, shift)),
@@ -125,57 +96,3 @@ func Actions() []Action {
 		action("hide_tool_windows", "Hide windows", keys("F12", command, shift), keys("F12", control, shift)),
 	}
 }
-
-// Parameters is every action kind's one declaration of its parameters: only
-// its appearance.
-type Parameters struct {
-	brick.Appearance
-}
-
-// RegisterActions registers each action as a kind of an IDE's set, scoped to
-// it and named with its prefix, such as jetbrains_build.
-func RegisterActions(registry *brick.Registry, scope string, prefix string) error {
-	for _, row := range Actions() {
-		kindName := prefix + row.Name
-		pair := platform.ShortcutPair{Mac: row.Mac, Windows: row.Windows}
-		label := row.Label
-
-		registerError := brick.RegisterScoped(registry, scope, kindName, func(_ Parameters, ports brick.Ports) (any, error) {
-			if ports.ShortcutPresser == nil {
-				return nil, fmt.Errorf("%w: %s needs its port", brick.ErrPortMissing, kindName)
-			}
-
-			return actionKey{label: label, pair: pair, presser: ports.ShortcutPresser}, nil
-		})
-		if registerError != nil {
-			return registerError //nolint:wrapcheck // RegisterScoped already names the kind
-		}
-	}
-
-	return nil
-}
-
-// actionKey presses one action's shortcut.
-type actionKey struct {
-	label   string
-	pair    platform.ShortcutPair
-	presser platform.ShortcutPresser
-}
-
-// Press sends this platform's shortcut for the action, naming any failure on
-// the key by its category.
-func (key actionKey) Press(pressContext context.Context) error {
-	pressError := key.presser.PressShortcut(pressContext, key.presser.ForThisPlatform(key.pair))
-	if pressError != nil {
-		return fmt.Errorf("pressing %s: %w", key.label,
-			brick.Categorised(platform.KeyFailureCategory(pressError), pressError))
-	}
-
-	return nil
-}
-
-// DefaultLabel is the action's label, shown when the key has none of its own.
-func (key actionKey) DefaultLabel() string { return key.label }
-
-// SendsKeystrokes marks the key as sending keystrokes.
-func (actionKey) SendsKeystrokes() {}

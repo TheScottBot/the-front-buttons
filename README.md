@@ -138,7 +138,7 @@ A page names an `application` to be its screen, one per application, and row 0,
 column 0 is kept for the icon. Some applications have bricks of their own,
 the `jetbrains_` keys every JetBrains IDE shares, GoLand, IntelliJ IDEA,
 PyCharm, Rider and the rest, which only those applications' screens may hold;
-each IDE has its own screen. A key that
+each IDE has its own screen. GitKraken has `gitkraken_` keys of its own. A key that
 sends key presses on an app screen, a shortcut or one of the application's own,
 brings the application to the front first unless it is there already; if it is
 not open, nothing is sent and the key shows "not open".
@@ -289,6 +289,391 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `level` | integer | optional | 1 to 100 |  | How bright the deck is, in percent, while every other key is off; 20 if left out. Pressing this key, or any other, turns the keys back on. |
+
+### `gitkraken_close_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_close_terminal_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_command_palette`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_commit`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_commit_message`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_create_branch`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_diff_tool`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_fetch_all`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_file_history`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_first_commit`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_full_screen`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_keyboard_shortcuts`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_last_commit`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_new_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_new_terminal_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_next_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_next_terminal_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_open_in_file_manager`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_open_in_terminal`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_open_repo`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_previous_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_previous_terminal_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_redo`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_reopen_tab`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_search`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_stage_all`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_stage_and_commit`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_tabs_list`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_toggle_commit_detail`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_toggle_left_panel`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_undo`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_unstage_all`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_zoom_in`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_zoom_out`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `gitkraken_zoom_reset`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
 ### `jetbrains_back`
 

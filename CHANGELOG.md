@@ -172,6 +172,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   same platform. They share one set of keys, renamed from `goland_` to
   `jetbrains_`, such as `jetbrains_build`; each IDE has its own screen, named
   for itself. A configuration using the `goland_` names needs them changed.
+- GitKraken has its own app screen keys, `gitkraken_`: its tabs, next and
+  previous among them, its built in terminal's tabs, opening the repository
+  in a terminal or the file manager, the command palette, search, fetch,
+  branch, stage, commit, undo and the view's panels and zoom. The drawer
+  offers previous and next tab as a 2x1 and the terminal's tabs as a 4x1.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two
@@ -179,6 +184,13 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   is never asked. Windows does not show badges yet.
 
 ### Fixed
+
+- Window keys took about a second a press and landed a quick burst all at
+  once: raising a window also asked AppKit to activate its application, which
+  took a second every time. Accessibility alone raises it, in milliseconds.
+  Presses made while a change is under way now add up, and the next change
+  moves by every step pressed since. Keys that bring an app screen's
+  application forward ask AppKit only if Accessibility has not worked.
 
 - Security: Go 1.27.4, fixing GO-2026-6859, a crash in `net/http` the editor's
   request size limit could reach. A GitHub token is sent only to the host it

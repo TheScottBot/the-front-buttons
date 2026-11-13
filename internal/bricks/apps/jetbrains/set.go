@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/appkeys"
 )
 
 // SetID is the JetBrains IDEs' app set, the scope their kinds carry.
@@ -99,5 +100,5 @@ func Register(registry *brick.Registry) error {
 		return setError //nolint:wrapcheck // RegisterAppSet already names the set
 	}
 
-	return RegisterActions(registry, SetID, kindPrefix)
+	return appkeys.Register(registry, SetID, kindPrefix, Actions()) //nolint:wrapcheck // it names the kind
 }

@@ -5,6 +5,7 @@ package allbricks
 
 import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/gitkraken"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/jetbrains"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
@@ -32,6 +33,7 @@ func Register(registry *brick.Registry) error {
 		windowcycle.Register,
 		pressshortcut.Register,
 		jetbrains.Register,
+		gitkraken.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

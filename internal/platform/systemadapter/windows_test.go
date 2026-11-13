@@ -3,7 +3,10 @@ package systemadapter_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
@@ -37,6 +40,7 @@ type snapshotFake struct {
 	windows  []systemadapter.AppWindow
 	raised   []string
 	released bool
+	onRaise  func(title string)
 }
 
 func (fake *snapshotFake) Windows() []systemadapter.AppWindow { return fake.windows }
@@ -45,6 +49,10 @@ func (fake *snapshotFake) Raise(index int) error {
 	for _, window := range fake.windows {
 		if window.Index == index {
 			fake.raised = append(fake.raised, window.Title)
+
+			if fake.onRaise != nil {
+				fake.onRaise(window.Title)
+			}
 		}
 	}
 
@@ -68,7 +76,7 @@ func openWindows(focused string) *snapshotFake {
 		windows[index].Focused = windows[index].Title == focused
 	}
 
-	return &snapshotFake{windows: windows, raised: nil, released: false}
+	return &snapshotFake{windows: windows, raised: nil, released: false, onRaise: nil}
 }
 
 func cycleFrom(t *testing.T, fake *snapshotFake, trusted bool, step int) error {
@@ -148,7 +156,7 @@ func TestWindowCycler_RefusesWithoutPermissionOrWindows(t *testing.T) {
 			refusedError, fake.raised, asked)
 	}
 
-	empty := &snapshotFake{windows: nil, raised: nil, released: false}
+	empty := &snapshotFake{windows: nil, raised: nil, released: false, onRaise: nil}
 
 	emptyError := cycleFrom(t, empty, true, 1)
 	if !errors.Is(emptyError, platform.ErrNoWindow) {
@@ -164,4 +172,52 @@ func TestWindowCycler_RefusesWithoutPermissionOrWindows(t *testing.T) {
 			t.Errorf("%v: want category %q, got %q", failure, want, got)
 		}
 	}
+}
+
+// TestWindowCycler_AddsUpPressesMadeWhileOneIsUnderWay: a busy IDE can take a
+// second to list its windows, and presses made meanwhile once ran side by
+// side and landed in a burst (evaluation, app screens). Now they add up: the
+// cycle under way finishes, then one more moves by every step pressed since,
+// from the window the first one raised.
+func TestWindowCycler_AddsUpPressesMadeWhileOneIsUnderWay(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		// In order: GoLand punchline, GoLand the-front-buttons, PyCharm
+		// scripts, Rider Game. Each listing takes a second and sees the window
+		// the last raise brought forward.
+		focused, listings, raised := punchTitle, 0, []string(nil)
+
+		list := func(context.Context, string) (systemadapter.WindowSnapshot, error) {
+			listings++
+
+			time.Sleep(time.Second)
+
+			snapshot := openWindows(focused)
+			snapshot.onRaise = func(title string) { focused = title; raised = append(raised, title) }
+
+			return snapshot, nil
+		}
+
+		cycler := systemadapter.NewWindowCyclerWith(func() bool { return true }, list, func() {})
+		results := make(chan error, 3)
+
+		for range 3 {
+			go func() { results <- cycler.CycleWindows(t.Context(), jetbrains(), 1) }()
+
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		for range 3 {
+			cycleError := <-results
+			if cycleError != nil {
+				t.Errorf("want every press to succeed, got %v", cycleError)
+			}
+		}
+
+		if listings != 2 || !slices.Equal(raised, []string{buttonsTitle, gameTitle}) {
+			t.Fatalf("want one step then two, raising %s then %s, got %d listings raising %v",
+				buttonsTitle, gameTitle, listings, raised)
+		}
+	})
 }

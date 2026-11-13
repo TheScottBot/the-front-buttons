@@ -145,8 +145,11 @@ static frontButtonsWindows frontButtonsListWindows(const char *prefix) {
 }
 
 // frontButtonsRaiseWindow brings one window forward: restored if minimised,
-// raised, made its application's main window, and its application brought to
-// the front. It reports whether the window was raised.
+// raised, made its application's main window, and its application made
+// frontmost, all through Accessibility. AppKit's activation is not asked as
+// well: on the deck it took a second every time, while these took a few
+// milliseconds between them and brought the window forward. It reports
+// whether the window was raised.
 static int frontButtonsRaiseWindow(frontButtonsWindows list, int index) {
 	if (index < 0 || index >= list.count) {
 		return 0;
@@ -170,10 +173,6 @@ static int frontButtonsRaiseWindow(frontButtonsWindows list, int index) {
 	AXUIElementRef application = AXUIElementCreateApplication(window.pid);
 	AXUIElementSetAttributeValue(application, kAXFrontmostAttribute, kCFBooleanTrue);
 	CFRelease(application);
-
-	@autoreleasepool {
-		[[NSRunningApplication runningApplicationWithProcessIdentifier:window.pid] activateWithOptions:0];
-	}
 
 	return raised == kAXErrorSuccess;
 }

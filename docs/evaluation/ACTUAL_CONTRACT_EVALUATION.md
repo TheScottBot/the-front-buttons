@@ -3727,6 +3727,64 @@ every IDE and no early access builds, failed them.
 Verified on the physical deck: PyCharm's and Rider's app screens opened from
 their keys and their keys worked in each IDE.
 
+### GitKraken
+
+GitKraken Desktop has its own app screen keys, apart from the JetBrains IDEs'
+as it is a different application from a different company: its tabs, its
+built in terminal's tabs, opening the repository in a terminal or the file
+manager, the command palette, search, file history, the diff tool, fetch,
+branch, stage, commit, undo and redo, and the view's panels, zoom and full
+screen. The drawer offers previous and next tab as a 2x1 and the terminal's
+new, previous, next and close as a 4x1.
+
+The shortcuts come from GitKraken's keyboard shortcuts and terminal guides,
+last updated November 2026, and were checked against the menus of GitKraken
+12.6.2 installed on the Mac, which confirmed opening in a terminal as Option T
+where the two guides disagreed, and added reopen closed tab and the tabs list.
+The guides give no shortcut for the built in terminal's panel itself, so the
+terminal key opens a new terminal tab. Reopening a tab and opening a
+repository are unconfirmed on Windows. The bundle identifier,
+com.axosoft.gitkraken, was read from the installed application.
+
+The code that turns an application's table of actions into keys moved out of
+the JetBrains package into one of its own, appkeys, which both use; it now
+refuses a table with a repeated or empty name, a missing label or a key no
+shortcut may name. Tests first, failing before the code: the table check;
+GitKraken's table, its set matched on both platforms and by nothing of
+JetBrains', its groups, and Ctrl on Windows where macOS holds Command.
+Planted violations failed them.
+
+### Window keys taking a second
+
+On the deck the window keys on GoLand's screen often seemed to miss a press,
+then raced through several windows. The slow press log showed every window
+press taking almost exactly a second. PyCharm, opened to try its app screen,
+was busy at the time and was first suspected, but with it closed and only
+GoLand open each change still took a second.
+
+Presses made during a change were first made to add up, so the burst would
+become one move; it did not help, since the first press then made every change
+for the rest until they stopped, logged as seven seconds. A temporary build
+then timed each step on the deck: finding the window in front, listing
+GoLand's windows, raising the window, making it main and making GoLand
+frontmost through Accessibility each took a few milliseconds, while asking
+AppKit to activate GoLand as well took 1,001 to 1,006 milliseconds every time.
+The window code had not changed since window keys were first verified;
+whether AppKit's activation always took that second, hidden while presses ran
+side by side, is not known.
+
+Raising a window now uses Accessibility alone, with no AppKit activation.
+Presses made during a change still add up, now that a change takes
+milliseconds: steps pressed while one runs are made in one more change.
+Bringing an app screen's application forward before its keys type makes it
+frontmost through Accessibility first, and asks AppKit only if that has not
+worked within a fifth of a second. The timing build was removed. A test with a
+listing that takes a second, pressed three times, sees one step then two; a
+planted violation letting every press cycle on its own failed it.
+
+Verified on the physical deck: the window keys were quick again, single
+presses and bursts alike.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
