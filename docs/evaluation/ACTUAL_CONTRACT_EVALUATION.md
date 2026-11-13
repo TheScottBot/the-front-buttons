@@ -3483,6 +3483,11 @@ violations (modifiers released in the wrong order, the editor ignoring the
 platform) failed them. In the browser pane the switch renamed the chips and a
 chip toggled. The Windows sending is built and linted but not run.
 
+Verified on the physical deck: a press_shortcut key set to ⌘C copied text
+on the Mac. The brick drawer has also been used over several rounds with a
+real mouse, placing single bricks and every group size (1x2, 1x3, 2x1, 2x2
+and 4x1).
+
 ### CI on Windows after the alignment fix
 
 The first CI run after the alignment fix failed on Windows only: the
