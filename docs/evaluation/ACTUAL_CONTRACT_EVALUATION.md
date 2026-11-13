@@ -3507,6 +3507,43 @@ itself, so it was rewritten with fixed shifts, after which planted tolerances
 of zero and forty both failed it. Whether eight is enough on Windows is for
 the next CI run to show.
 
+### Installing to a fixed place, signed with a certificate
+
+Every reinstall needed the Accessibility permission granted again, and a
+stale entry for the previous build could stop the new grant taking: an ad
+hoc signature's designated requirement is the build's own hash, so each
+build is a new identity to macOS. Looking at the install script also showed
+that the login agent ran the binary from wherever it was built; the builds
+installed during deck testing were in a temporary folder macOS clears on
+restart, so the daemon would not have started at the next login (TE10).
+
+The install script now copies the binary to
+~/Library/Application Support/the-front-buttons/bin, staged and moved into
+place so a running copy keeps its file until stopped, and takes the login
+agent's definition from the copy, so the agent runs it from there. It signs
+with the code signing certificate "The Front Buttons Signing" when
+security find-identity lists it, the label as identifier; the designated
+requirement is then the identifier and the certificate's leaf hash, the same
+for every build. Without the certificate it signs ad hoc, as before, and says
+how to set one up. FRONT_BUTTONS_SIGNING_IDENTITY names another certificate.
+The uninstall script removes the copy too, and the README describes both and
+how to create the certificate.
+
+Keychain Access, though still on disk under /System/Library/CoreServices,
+did not open on macOS 27.2, so the self signed code signing certificate was
+made with /usr/bin/openssl and imported with security import, granting
+codesign use of its key. It lists as not trusted, as a self signed
+certificate does, and signs.
+
+Verified on this machine: installed without the certificate, the agent ran
+the copy in the fixed folder, signed ad hoc; installed with it, the
+designated requirement was the identifier and the certificate leaf hash. The
+permission was granted once. A second build made with -trimpath, its CDHash
+changed (b59fd975 to 713e752f) and its requirement unchanged, was installed,
+and a shortcut key needing Accessibility worked on the physical deck with no
+grant. CI checks only that the script refuses a missing binary; installing for
+real remains a check on the machine.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

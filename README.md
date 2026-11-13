@@ -50,8 +50,10 @@ Neither needs administrator rights. Build the binary first, then on macOS:
 scripts/install-macos.sh ./the-front-buttons
 ```
 
-This installs a per user login agent and starts it. `scripts/uninstall-macos.sh`
-removes it. On Windows, in PowerShell:
+This copies the binary to `~/Library/Application Support/the-front-buttons/bin`,
+installs a per user login agent that runs it from there, and starts it, so the
+agent never depends on where the binary was built. `scripts/uninstall-macos.sh`
+removes both. On Windows, in PowerShell:
 
 ```powershell
 scripts\install-windows.ps1 -BinaryPath .\the-front-buttons.exe
@@ -129,10 +131,11 @@ refused shows the missing icon marker, and the log says why.
 
 ### Key presses on macOS
 
-A `press_key` key sends F13 to F24 (F13 to F20 on macOS). It needs macOS's
-Accessibility permission, which recent macOS lists in System Settings, Privacy
-and Security, as Device Control and Data Access. macOS ties the permission to
-the exact build, so after installing or reinstalling:
+A `press_key` key sends F13 to F24 (F13 to F20 on macOS), and `press_shortcut`
+and the JetBrains window keys need the same permission: macOS's Accessibility,
+which recent macOS lists in System Settings, Privacy and Security, as Device
+Control and Data Access. Signed ad hoc, macOS ties the permission to the exact
+build, so after each install it needs granting again:
 
 1. Remove any old the-front-buttons entry from that list; do not add one with
    the plus button, which macOS does not match to this program.
@@ -144,6 +147,19 @@ A daemon run from a terminal rather than the login agent stops instead of
 restarting, and says so in its log.
 
 The install script signs the binary as `io.github.thescottbot.the-front-buttons`.
+
+To keep the permission across reinstalls, sign with a certificate of your own,
+once:
+
+1. In Keychain Access, choose Certificate Assistant, Create a Certificate.
+2. Name it `The Front Buttons Signing`, with Identity Type Self Signed Root and
+   Certificate Type Code Signing, and create it.
+3. Install again. The script signs with the certificate when it finds it (macOS
+   may ask once to let codesign use its key), and macOS then ties the permission
+   to the certificate and the name rather than the build: grant it once more,
+   and rebuilds keep it.
+
+`FRONT_BUTTONS_SIGNING_IDENTITY` names a different certificate.
 
 ## Credentials
 

@@ -23,9 +23,16 @@ if launchctl print "$domain/$label" >/dev/null 2>&1; then
 	launchctl bootout "$domain/$label"
 fi
 
-# Only the file this product installed is removed.
+# Only the files this product installed are removed: the agent, and the copy
+# of the binary the install script runs it from.
 if [[ -f "$plist_path" ]]; then
 	rm "$plist_path"
+fi
+
+installed_binary="$HOME/Library/Application Support/the-front-buttons/bin/the-front-buttons"
+if [[ -f "$installed_binary" ]]; then
+	rm "$installed_binary"
+	rmdir "$(dirname "$installed_binary")" 2>/dev/null || true
 fi
 
 echo "Removed $label."

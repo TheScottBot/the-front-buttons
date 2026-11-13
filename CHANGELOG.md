@@ -151,6 +151,14 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- The macOS install script copies the binary to
+  `~/Library/Application Support/the-front-buttons/bin` and runs the login agent
+  from there, so the agent no longer depends on where the binary was built,
+  which may be a temporary folder cleared on restart. It signs with the code
+  signing certificate "The Front Buttons Signing" when the keychain has one, so
+  the Accessibility permission survives reinstalls; otherwise ad hoc, as before.
+  The uninstall script removes the copy too.
+
 - CI on Windows: the golden image comparison allows a few shades of rounding,
   as the regenerated icon goldens, made on an arm64 Mac, differed by four
   pixels on the amd64 Windows runner. A failure now says by how much.
