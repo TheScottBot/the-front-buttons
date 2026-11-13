@@ -256,3 +256,39 @@ func TestEditor_SpotifySquareFillsTwoByTwoInReadingOrder(t *testing.T) {
 		}
 	}
 }
+
+// TestEditor_SpotifyRowFillsFourAcross: the author's 4x1 is the same four
+// Spotify keys in a row: the album, play or pause, previous and next.
+func TestEditor_SpotifyRowFillsFourAcross(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	if body := harness.get(t, "/page?page=0").Body.String(); !strings.Contains(body,
+		`<li draggable="true" data-group="4x1" data-width="4" data-height="1">`) {
+		t.Error("want the 4x1 in the drawer")
+	}
+
+	row := spotifySquare("1", "2", "album", "play", "previous", "next")
+	row.Set(sizeField, "4x1")
+
+	response := harness.post(t, groupPath, row)
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("want the row saved, got %d: %s", response.Code, response.Body.String())
+	}
+
+	page := harness.onDisk(t).Pages[0]
+
+	for column, wantKind := range []string{"spotify_album", "spotify_play_pause", "spotify_previous", "spotify_next"} {
+		if key, found := keyAtPosition(page, layout.Position{Row: 1, Column: column + 2}); !found || key.Kind != wantKind {
+			t.Errorf("column %d: want %s, got %+v", column+3, wantKind, key)
+		}
+	}
+
+	offEdge := spotifySquare("2", "5", "album", "play", "previous", "next")
+	offEdge.Set(sizeField, "4x1")
+
+	if got := harness.post(t, groupPath, offEdge); got.Code != http.StatusUnprocessableEntity {
+		t.Errorf("want a row running off the right edge refused, got %d", got.Code)
+	}
+}

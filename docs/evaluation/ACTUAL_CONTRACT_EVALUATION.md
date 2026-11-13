@@ -3360,6 +3360,13 @@ for the Automation permission, cannot freeze the keys. Both tests failed
 before the fix. Reinstalled, the keys showed the art and play or pause, and
 the author confirmed it works.
 
+The author then asked for a 4x1 of the same four keys in a row: album, play
+or pause, back and forward. It is one more group size, four wide and one
+high, with its own drawer section; the parts are the 2x2's, so they can be
+reordered the same way. Tests first, failing before the code: the drawer
+entry, the four keys placed across one row in order, and a row running off
+the right edge refused. A planted 4x1 laid down a column instead failed it.
+
 ### Centring icons and labels
 
 The author's photograph of the off key showed its power icon left of centre

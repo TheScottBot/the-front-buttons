@@ -15,8 +15,8 @@ import (
 // size, set up in one form whose parts can be put in any order (evaluation,
 // deck testing). Its size is written width by height: the 1x2 and 1x3 run down
 // a column, the author's D&D session, a D&D Beyond sheet and a Roll20 campaign
-// and a Discord channel for the 1x3; the 2x2 is Spotify, the album, play or
-// pause, and the previous and next tracks. Parts fill the group left to right,
+// and a Discord channel for the 1x3; the 2x2 and the 4x1 are Spotify, the
+// album, play or pause, and the previous and next tracks. Parts fill the group left to right,
 // then top to bottom. Each becomes an ordinary key, re-edited like any other.
 
 // The parts' names in the form.
@@ -102,6 +102,7 @@ func groupParts() map[string]groupPart {
 const (
 	twoTiles   = 2
 	threeTiles = 3
+	fourTiles  = 4
 )
 
 // groupSizes are the groups the drawer offers, by their name, width by
@@ -111,6 +112,7 @@ func groupSizes() map[string]groupSize {
 		"1x2": {width: 1, height: twoTiles, parts: []string{characterPart, roll20Part}},
 		"1x3": {width: 1, height: threeTiles, parts: []string{characterPart, roll20Part, discordPart}},
 		"2x2": {width: twoTiles, height: twoTiles, parts: []string{albumPart, playPart, previousPart, nextPart}},
+		"4x1": {width: fourTiles, height: 1, parts: []string{albumPart, playPart, previousPart, nextPart}},
 	}
 }
 

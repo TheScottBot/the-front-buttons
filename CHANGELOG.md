@@ -134,7 +134,7 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   Spotify through AppleScript, which asks once for the Automation permission;
   on Windows they say media control is unavailable.
 - Groups in the drawer may be any width and height, filled left to right, then
-  top to bottom.
+  top to bottom. A 4x1 places the four Spotify keys in a row.
 
 ### Fixed
 
