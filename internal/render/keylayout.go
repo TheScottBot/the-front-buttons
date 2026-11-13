@@ -77,7 +77,16 @@ func (renderer *Renderer) drawStatusGlyph(box glyphBox, status Status, backgroun
 // named icon does not exist, and reports whether the key has an icon area at
 // all.
 func (renderer *Renderer) drawIcon(key *image.RGBA, box glyphBox, appearance Appearance, foreground color.RGBA) bool {
-	iconRectangle := image.Rect(int(box.left), int(box.top), int(box.left+box.size), int(box.top+box.size))
+	// The icon is drawn on whole pixels, so a square whose spare width is odd
+	// cannot be centred and fell half a pixel left; it is grown by a pixel
+	// instead (evaluation, deck testing).
+	size := int(box.size)
+	if (renderer.keyPixels-size)%centringDivisor != 0 {
+		size++
+	}
+
+	left, top := (renderer.keyPixels-size)/centringDivisor, int(box.top)
+	iconRectangle := image.Rect(left, top, left+size, top+size)
 
 	switch {
 	case appearance.IconImage != nil:
@@ -120,4 +129,16 @@ func fitWithin(area image.Rectangle, imageBounds image.Rectangle) image.Rectangl
 	top := area.Min.Y + (area.Dy()-height)/centringDivisor
 
 	return image.Rect(left, top, left+width, top+height)
+}
+
+// fillWithPicture covers the key with a picture, its middle square scaled to
+// fill it edge to edge, as album art is shown.
+func fillWithPicture(key *image.RGBA, picture image.Image) {
+	bounds := picture.Bounds()
+	side := min(bounds.Dx(), bounds.Dy())
+	left := bounds.Min.X + (bounds.Dx()-side)/centringDivisor
+	top := bounds.Min.Y + (bounds.Dy()-side)/centringDivisor
+	square := image.Rect(left, top, left+side, top+side)
+
+	xdraw.CatmullRom.Scale(key, key.Bounds(), picture, square, xdraw.Src, nil)
 }

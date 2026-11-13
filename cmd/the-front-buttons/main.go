@@ -482,6 +482,7 @@ func daemonOptions(
 			PipelineProvider:    pipelineProvider,
 			EditorAddress:       func() string { return editorAddress },
 			KeyPresser:          keyPresser,
+			MediaPlayer:         systemadapter.NewMediaPlayer(),
 		},
 		Logger:          logger,
 		PollInterval:    deckPollInterval,

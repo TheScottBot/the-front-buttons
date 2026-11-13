@@ -12,7 +12,7 @@
 <aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
 <div id="brick-list" class="drawer-panel" hidden>
-<p class="help">Drag a brick onto an empty tile to add it there; a 1x2 or 1x3 needs that many free tiles down the column. From the keyboard, choose an empty tile in the grid instead.</p>
+<p class="help">Drag a brick onto an empty tile to add it there; a bigger one needs that many free tiles, wide by high, from where it is dropped. From the keyboard, choose an empty tile in the grid instead.</p>
 <details class="drawer-section">
 <summary>1x1</summary>
 <ul>{{range .Types}}
@@ -22,13 +22,19 @@
 <details class="drawer-section">
 <summary>1x2</summary>
 <ul>
-<li draggable="true" data-group="1x2" data-size="2">D&amp;D Beyond sheet and Roll20</li>
+<li draggable="true" data-group="1x2" data-width="1" data-height="2">D&amp;D Beyond sheet and Roll20</li>
 </ul>
 </details>
 <details class="drawer-section">
 <summary>1x3</summary>
 <ul>
-<li draggable="true" data-group="1x3" data-size="3">D&amp;D Beyond sheet, Roll20 and Discord</li>
+<li draggable="true" data-group="1x3" data-width="1" data-height="3">D&amp;D Beyond sheet, Roll20 and Discord</li>
+</ul>
+</details>
+<details class="drawer-section">
+<summary>2x2</summary>
+<ul>
+<li draggable="true" data-group="2x2" data-width="2" data-height="2">Spotify: album, play, previous and next</li>
 </ul>
 </details>
 </div>

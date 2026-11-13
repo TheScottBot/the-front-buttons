@@ -1,5 +1,5 @@
 {{template "head" .}}
-<h1>Keys down column {{.DisplayColumn}} from row {{.DisplayRow}}</h1>
+<h1>Keys from row {{.DisplayRow}}, column {{.DisplayColumn}}</h1>
 <p><a href="/page?page={{.PageIndex}}">Back to the page</a></p>
 <div id="key-editor">
 {{if .Errors}}<div class="errors" role="alert"><ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
@@ -9,7 +9,7 @@
 <input type="hidden" name="row" value="{{.Row}}">
 <input type="hidden" name="column" value="{{.Column}}">
 <input type="hidden" name="size" value="{{.Size}}">
-<p class="help">Each part becomes a key of its own, top to bottom in this order. Move a part up or down to change where it goes.</p>
+<p class="help">Each part becomes a key of its own, filling the group left to right, then top to bottom, in this order. Move a part up or down to change where it goes.</p>
 <ol class="group-parts">
 {{range .Parts}}<li class="group-part">
 <input type="hidden" name="order" value="{{.Name}}">

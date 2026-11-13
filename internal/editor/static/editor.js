@@ -388,24 +388,26 @@
     if (parts.length !== 3) {
       return null;
     }
-    return { page: parts[0], row: Number(parts[1]), column: parts[2] };
+    return { page: parts[0], row: Number(parts[1]), column: Number(parts[2]) };
   }
   function cellOf2(target) {
     return target instanceof Element ? target.closest("td[data-tile]") : null;
   }
-  function stackFrom(grid2, cell, size) {
+  function stackFrom(grid2, cell, carried) {
     const place = placeOf(cell);
     if (place === null) {
       return null;
     }
     const stack = [];
-    for (let offset = 0; offset < size; offset++) {
-      const tile = `${place.page}.${place.row + offset}.${place.column}`;
-      const below = grid2.querySelector(`td[data-tile="${tile}"]`);
-      if (below === null || below.dataset.state !== "empty") {
-        return null;
+    for (let down = 0; down < carried.height; down++) {
+      for (let across = 0; across < carried.width; across++) {
+        const tile = `${place.page}.${place.row + down}.${place.column + across}`;
+        const covered = grid2.querySelector(`td[data-tile="${tile}"]`);
+        if (covered === null || covered.dataset.state !== "empty") {
+          return null;
+        }
+        stack.push(covered);
       }
-      stack.push(below);
     }
     return stack;
   }
@@ -415,11 +417,12 @@
   }
   function carriedFrom(item) {
     if (item.dataset.type !== void 0) {
-      return { type: item.dataset.type, group: null, size: 1 };
+      return { type: item.dataset.type, group: null, width: 1, height: 1 };
     }
-    const size = Number(item.dataset.size);
-    if (item.dataset.group !== void 0 && Number.isInteger(size) && size > 1) {
-      return { type: null, group: item.dataset.group, size };
+    const width = Number(item.dataset.width);
+    const height = Number(item.dataset.height);
+    if (item.dataset.group !== void 0 && Number.isInteger(width) && Number.isInteger(height) && width > 0 && height > 0) {
+      return { type: null, group: item.dataset.group, width, height };
     }
     return null;
   }
@@ -473,7 +476,7 @@
       if (carried === null || cell === null || event.dataTransfer === null) {
         return;
       }
-      const stack = stackFrom(grid2, cell, carried.size);
+      const stack = stackFrom(grid2, cell, carried);
       if (stack === null) {
         unmark();
         return;
@@ -491,7 +494,7 @@
       const cell = cellOf2(event.target);
       const link = cell?.querySelector('a[href^="/key?"]');
       const place = cell === null ? null : placeOf(cell);
-      if (carried === null || cell === null || link === null || link === void 0 || place === null || stackFrom(grid2, cell, carried.size) === null) {
+      if (carried === null || cell === null || link === null || link === void 0 || place === null || stackFrom(grid2, cell, carried) === null) {
         return;
       }
       event.preventDefault();
@@ -501,7 +504,7 @@
         const query = new URLSearchParams({
           page: place.page,
           row: String(place.row),
-          column: place.column,
+          column: String(place.column),
           size: carried.group
         });
         openKeyDialog(`/group?${query.toString()}`, link);

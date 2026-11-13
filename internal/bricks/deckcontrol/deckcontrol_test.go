@@ -13,6 +13,7 @@ import (
 func noPorts() brick.Ports {
 	return brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: nil,
+		MediaPlayer: nil,
 	}
 }
 

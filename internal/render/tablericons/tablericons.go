@@ -139,17 +139,20 @@ func (icons *IconSet) IconMask(iconName string, sizePixels int) (*image.Alpha, b
 		return nil, false
 	}
 
-	glyphWidth := (glyphBounds.Max.X - glyphBounds.Min.X).Ceil()
-	glyphHeight := (glyphBounds.Max.Y - glyphBounds.Min.Y).Ceil()
-
+	// The ink's middle is placed on the square's middle exactly. Rounding the
+	// ink's width up and the spare space down each moved the ink left and up
+	// by up to half a pixel, and dropped the ink's fractional start, so the
+	// off key's power icon sat over a pixel left of centre (evaluation, deck
+	// testing).
+	middle := fixed.I(sizePixels) / centringDivisor
 	mask := image.NewAlpha(image.Rect(0, 0, sizePixels, sizePixels))
 	drawer := font.Drawer{
 		Dst:  mask,
 		Src:  image.Opaque,
 		Face: face,
 		Dot: fixed.Point26_6{
-			X: fixed.I((sizePixels-glyphWidth)/centringDivisor) - glyphBounds.Min.X,
-			Y: fixed.I((sizePixels-glyphHeight)/centringDivisor) - glyphBounds.Min.Y,
+			X: middle - (glyphBounds.Min.X+glyphBounds.Max.X)/centringDivisor,
+			Y: middle - (glyphBounds.Min.Y+glyphBounds.Max.Y)/centringDivisor,
 		},
 	}
 	drawer.DrawString(string(codepoint))

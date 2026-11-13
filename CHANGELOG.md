@@ -127,8 +127,20 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   the grid, a group numbers the free tiles it would fill; dropped, it opens one
   form for every part's details, whose parts can be reordered.
 - A `roll20_campaign` preset opens a Roll20 campaign by its ID.
+- Four Spotify keys, and a 2x2 in the drawer that places them at once:
+  `spotify_album` shows the current track's art and brings Spotify forward,
+  `spotify_play_pause` plays or pauses and shows which a press will do, and
+  `spotify_previous` and `spotify_next` change track. On macOS they drive
+  Spotify through AppleScript, which asks once for the Automation permission;
+  on Windows they say media control is unavailable.
+- Groups in the drawer may be any width and height, filled left to right, then
+  top to bottom.
 
 ### Fixed
+
+- Icons and labels are centred on the key: icons sat up to a pixel and a half
+  left of centre on the XL, and labels up to a pixel, which showed on the off
+  key's power icon.
 
 - Two watchers initialising hidapi at once aborted the process; hidapi is now
   initialised once per process, behind one lock (first run on a real deck).

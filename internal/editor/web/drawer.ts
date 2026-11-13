@@ -1,9 +1,9 @@
 // The brick drawer the author asked for (evaluation, deck testing): a tab in
 // the left gutter that opens on a click into drawers of bricks to drag, 1x1
-// for every brick and preset, 1x2 and 1x3 for keys placed down a column. A
-// brick dropped on an empty tile opens that tile's key editor with the brick
-// chosen; a group needs as many empty tiles down the column, numbered as it is
-// carried over them, and opens its own form there. Nothing is saved until that
+// for every brick and preset, and bigger ones, width by height, for keys placed
+// at once. A brick dropped on an empty tile opens that tile's key editor with
+// the brick chosen; a group needs as many empty tiles from its top left,
+// numbered as it is carried over them, and opens its own form there. Nothing is saved until that
 // form is. While anything is carried the grid is marked "placing", and the
 // stylesheet crosses each key and paging tile to say it cannot be replaced
 // this way. The grid's empty tiles stay the way to add a key from the keyboard.
@@ -16,17 +16,18 @@ const carryingClass = "carrying";
 const stackClass = "stack-target";
 
 // Carried is what is being dragged: one brick or preset, or a group of keys
-// that many tiles high.
+// that many tiles wide and high.
 interface Carried {
   readonly type: string | null;
   readonly group: string | null;
-  readonly size: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 interface Place {
   readonly page: string;
   readonly row: number;
-  readonly column: string;
+  readonly column: number;
 }
 
 function placeOf(cell: HTMLTableCellElement): Place | null {
@@ -35,16 +36,17 @@ function placeOf(cell: HTMLTableCellElement): Place | null {
     return null;
   }
 
-  return { page: parts[0], row: Number(parts[1]), column: parts[2] };
+  return { page: parts[0], row: Number(parts[1]), column: Number(parts[2]) };
 }
 
 function cellOf(target: EventTarget | null): HTMLTableCellElement | null {
   return target instanceof Element ? target.closest<HTMLTableCellElement>("td[data-tile]") : null;
 }
 
-// stackFrom is the tiles a carried brick or group would fill from a cell down
-// its column, or null unless every one is there and empty.
-function stackFrom(grid: HTMLTableElement, cell: HTMLTableCellElement, size: number): HTMLTableCellElement[] | null {
+// stackFrom is the tiles a carried brick or group would fill from a cell as
+// its top left, left to right then top to bottom, or null unless every one is
+// there and empty.
+function stackFrom(grid: HTMLTableElement, cell: HTMLTableCellElement, carried: Carried): HTMLTableCellElement[] | null {
   const place = placeOf(cell);
   if (place === null) {
     return null;
@@ -52,14 +54,16 @@ function stackFrom(grid: HTMLTableElement, cell: HTMLTableCellElement, size: num
 
   const stack: HTMLTableCellElement[] = [];
 
-  for (let offset = 0; offset < size; offset++) {
-    const tile = `${place.page}.${place.row + offset}.${place.column}`;
-    const below = grid.querySelector<HTMLTableCellElement>(`td[data-tile="${tile}"]`);
-    if (below === null || below.dataset.state !== "empty") {
-      return null;
-    }
+  for (let down = 0; down < carried.height; down++) {
+    for (let across = 0; across < carried.width; across++) {
+      const tile = `${place.page}.${place.row + down}.${place.column + across}`;
+      const covered = grid.querySelector<HTMLTableCellElement>(`td[data-tile="${tile}"]`);
+      if (covered === null || covered.dataset.state !== "empty") {
+        return null;
+      }
 
-    stack.push(below);
+      stack.push(covered);
+    }
   }
 
   return stack;
@@ -72,12 +76,14 @@ function setOpen(toggle: HTMLButtonElement, panel: HTMLElement, open: boolean): 
 
 function carriedFrom(item: HTMLElement): Carried | null {
   if (item.dataset.type !== undefined) {
-    return { type: item.dataset.type, group: null, size: 1 };
+    return { type: item.dataset.type, group: null, width: 1, height: 1 };
   }
 
-  const size = Number(item.dataset.size);
-  if (item.dataset.group !== undefined && Number.isInteger(size) && size > 1) {
-    return { type: null, group: item.dataset.group, size };
+  const width = Number(item.dataset.width);
+  const height = Number(item.dataset.height);
+  if (item.dataset.group !== undefined && Number.isInteger(width) && Number.isInteger(height) &&
+    width > 0 && height > 0) {
+    return { type: null, group: item.dataset.group, width, height };
   }
 
   return null;
@@ -146,7 +152,7 @@ export function enableDrawer(grid: HTMLTableElement): void {
       return;
     }
 
-    const stack = stackFrom(grid, cell, carried.size);
+    const stack = stackFrom(grid, cell, carried);
     if (stack === null) {
       unmark();
 
@@ -169,7 +175,7 @@ export function enableDrawer(grid: HTMLTableElement): void {
     const link = cell?.querySelector<HTMLAnchorElement>('a[href^="/key?"]');
     const place = cell === null ? null : placeOf(cell);
     if (carried === null || cell === null || link === null || link === undefined || place === null ||
-      stackFrom(grid, cell, carried.size) === null) {
+      stackFrom(grid, cell, carried) === null) {
       return;
     }
 
@@ -179,7 +185,7 @@ export function enableDrawer(grid: HTMLTableElement): void {
 
     if (carried.group !== null) {
       const query = new URLSearchParams({
-        page: place.page, row: String(place.row), column: place.column, size: carried.group,
+        page: place.page, row: String(place.row), column: String(place.column), size: carried.group,
       });
       openKeyDialog(`/group?${query.toString()}`, link);
 

@@ -115,13 +115,18 @@ func (watcher pipelineBrick) Watch(watchContext context.Context, publish func(st
 		wait := watcher.interval
 
 		if pollError != nil {
-			publish(brick.LiveState{Status: render.StatusNone, ErrorReason: brick.ReasonCategoryOf(pollError), TargetURL: ""})
+			publish(brick.LiveState{
+				Status: render.StatusNone, ErrorReason: brick.ReasonCategoryOf(pollError), TargetURL: "",
+				Picture: nil, Playing: false,
+			})
 
 			if failure, isFailure := errors.AsType[*pipeline.PollError](pollError); isFailure {
 				wait = max(wait, failure.RetryAfter)
 			}
 		} else {
-			publish(brick.LiveState{Status: statusOf(result.Run.State), ErrorReason: "", TargetURL: result.Run.TargetURL})
+			publish(brick.LiveState{
+				Status: statusOf(result.Run.State), ErrorReason: "", TargetURL: result.Run.TargetURL, Picture: nil, Playing: false,
+			})
 
 			if result.Run.State == pipeline.StateQueued || result.Run.State == pipeline.StateInProgress {
 				wait = min(wait, activeInterval)

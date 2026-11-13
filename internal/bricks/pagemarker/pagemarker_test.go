@@ -27,6 +27,7 @@ func TestPageMarker_MarksItsPageAndDoesNothingWhenPressed(t *testing.T) {
 
 	constructed, constructError := kind.Construct(kind.Schema().NewParameters(), brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: nil,
+		MediaPlayer: nil,
 	})
 	if constructError != nil {
 		t.Fatal(constructError)

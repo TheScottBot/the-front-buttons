@@ -78,7 +78,7 @@ func TestEditor_GroupFormAsksForEveryPartInOrder(t *testing.T) {
 		t.Error("want the parts first in the order sheet, Roll20, Discord")
 	}
 
-	if got := harness.get(t, "/group?page=0&row=1&column=2&size=2x2"); got.Code != http.StatusBadRequest {
+	if got := harness.get(t, "/group?page=0&row=1&column=2&size=3x3"); got.Code != http.StatusBadRequest {
 		t.Errorf("want an unknown size refused, got %d", got.Code)
 	}
 }
@@ -169,8 +169,10 @@ func TestEditor_DrawerHoldsADrawerForEachSize(t *testing.T) {
 		`<summary>1x1</summary>`,
 		`<summary>1x2</summary>`,
 		`<summary>1x3</summary>`,
-		`<li draggable="true" data-group="1x2" data-size="2">`,
-		`<li draggable="true" data-group="1x3" data-size="3">`,
+		`<summary>2x2</summary>`,
+		`<li draggable="true" data-group="1x2" data-width="1" data-height="2">`,
+		`<li draggable="true" data-group="1x3" data-width="1" data-height="3">`,
+		`<li draggable="true" data-group="2x2" data-width="2" data-height="2">`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("want %s in the drawer", want)
@@ -203,4 +205,54 @@ func withValues(form url.Values, pairs ...string) url.Values {
 	}
 
 	return changed
+}
+
+// spotifySquare is a 2x2 dropped at row 2, column 2 of the first page.
+func spotifySquare(row string, column string, order ...string) url.Values {
+	return url.Values{
+		pageField: {"0"}, rowField: {row}, columnField: {column}, sizeField: {"2x2"}, orderField: order,
+	}
+}
+
+// TestEditor_SpotifySquareFillsTwoByTwoInReadingOrder: the author's first
+// 2x2 is Spotify: the album, play or pause, previous track and next track,
+// left to right then top to bottom, in whatever order the form gives.
+func TestEditor_SpotifySquareFillsTwoByTwoInReadingOrder(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	form := harness.get(t, "/group?page=0&row=1&column=1&size=2x2").Body.String()
+	for _, part := range []string{"album", "play", "previous", "next"} {
+		if !strings.Contains(form, `<input type="hidden" name="order" value="`+part+`">`) {
+			t.Errorf("want the %s part in the form", part)
+		}
+	}
+
+	response := harness.post(t, groupPath, spotifySquare("1", "1", "album", "play", "previous", "next"))
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("want the square saved, got %d: %s", response.Code, response.Body.String())
+	}
+
+	page := harness.onDisk(t).Pages[0]
+
+	for position, wantKind := range map[layout.Position]string{
+		{Row: 1, Column: 1}: "spotify_album",
+		{Row: 1, Column: 2}: "spotify_play_pause",
+		{Row: 2, Column: 1}: "spotify_previous",
+		{Row: 2, Column: 2}: "spotify_next",
+	} {
+		if key, found := keyAtPosition(page, position); !found || key.Kind != wantKind {
+			t.Errorf("%+v: want %s, got %+v", position, wantKind, key)
+		}
+	}
+
+	for name, refused := range map[string]url.Values{
+		"off the right edge": spotifySquare("1", "7", "album", "play", "previous", "next"),
+		"onto paging":        spotifySquare("2", "0", "album", "play", "previous", "next"),
+	} {
+		if got := harness.post(t, groupPath, refused); got.Code != http.StatusUnprocessableEntity {
+			t.Errorf("%s: want refused, got %d", name, got.Code)
+		}
+	}
 }

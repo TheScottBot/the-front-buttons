@@ -161,7 +161,24 @@ func (state *loopState) appearanceFor(runContext context.Context, configured con
 		}
 	}
 
+	state.drawLive(configured, &appearance)
+
 	return appearance
+}
+
+// drawLive lets a live brick draw part of its key from its latest state, as
+// the album key shows the art and the play key play or pause.
+func (state *loopState) drawLive(configured configuredKey, appearance *render.Appearance) {
+	drawn, isDrawn := configured.instance.(brick.LiveDrawn)
+	source, isLive := configured.instance.(brick.LiveSource)
+
+	if !isDrawn || !isLive {
+		return
+	}
+
+	if liveState, published := state.hub.State(source.LiveIdentity()); published {
+		drawn.DrawLive(liveState, appearance)
+	}
 }
 
 // iconFile returns a key's own icon, loading it once per configuration, or nil

@@ -288,6 +288,50 @@ A brick kind.
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `key` | text | required |  | function_key | The key to press: F13 to F24. macOS has only F13 to F20, and asks for Accessibility permission the first time. |
 
+### `spotify_album`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `spotify_next`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `spotify_play_pause`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `spotify_previous`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
 ### `discord_channel`
 
 A preset that expands into `open_url`. Its action, which the editor shows, is `open_server`.

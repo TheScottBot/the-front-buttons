@@ -68,3 +68,44 @@ type KeyPresser interface {
 type ApplicationIcons interface {
 	Icon(iconContext context.Context, identifier string) (image.Image, error)
 }
+
+// ErrMediaUnavailable reports that this system's adapter cannot control a
+// media player at all.
+var ErrMediaUnavailable = errors.New("media control is not available on this system")
+
+// ErrMediaNotAllowed reports that the operating system refused to let the
+// daemon control the player; on macOS, the Automation permission for it.
+var ErrMediaNotAllowed = errors.New("not allowed to control the media player")
+
+// NowPlaying is what the player is doing: whether it is running and playing,
+// and the current track's artwork, nil when there is none or it could not be
+// read.
+type NowPlaying struct {
+	Running bool
+	Playing bool
+	Artwork image.Image
+}
+
+// MediaPlayer controls the author's music player, Spotify, for the 2x2 the
+// author asked for (evaluation, deck testing): its album art, play or pause,
+// and the previous and next tracks. Show brings the player to the front.
+type MediaPlayer interface {
+	NowPlaying(nowContext context.Context) (NowPlaying, error)
+	PlayPause(pressContext context.Context) error
+	Previous(pressContext context.Context) error
+	Next(pressContext context.Context) error
+	Show(pressContext context.Context) error
+}
+
+// MediaFailureCategory is the reason category a media key shows for a
+// failure: permission, unavailable, or failed.
+func MediaFailureCategory(failure error) string {
+	switch {
+	case errors.Is(failure, ErrMediaNotAllowed):
+		return "permission"
+	case errors.Is(failure, ErrMediaUnavailable):
+		return "unavailable"
+	default:
+		return "failed"
+	}
+}

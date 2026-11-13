@@ -12,6 +12,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pagemarker"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/presskey"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/spotify"
 )
 
 // Register adds every brick kind to a registry.
@@ -24,6 +25,7 @@ func Register(registry *brick.Registry) error {
 		presskey.Register,
 		deckcontrol.Register,
 		pagemarker.Register,
+		spotify.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

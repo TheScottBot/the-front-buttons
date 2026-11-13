@@ -158,7 +158,9 @@ func TestDaemon_OffKeyBlanksTheOthers_AndAnyPressBringsThemBack(t *testing.T) {
 		assertShowing(t, running, device, true, offKey)
 
 		// News for a live key while off draws nothing.
-		running.live.Set("controls", brick.LiveState{Status: render.StatusInProgress, ErrorReason: "", TargetURL: ""})
+		running.live.Set("controls", brick.LiveState{
+			Status: render.StatusInProgress, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+		})
 		time.Sleep(settle)
 		synctest.Wait()
 		assertShowing(t, running, device, false, liveControlKey)

@@ -49,6 +49,7 @@ func constructWith(t *testing.T, presser platform.KeyPresser, key string) brick.
 
 	constructed, constructError := kind.Construct(parameters, brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: presser,
+		MediaPlayer: nil,
 	})
 	if constructError != nil {
 		t.Fatal(constructError)
@@ -109,6 +110,7 @@ func TestPressKey_DeclaresARequiredFunctionKey(t *testing.T) {
 
 	_, constructError := kind.Construct(kind.Schema().NewParameters(), brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: nil,
+		MediaPlayer: nil,
 	})
 	if !errors.Is(constructError, brick.ErrPortMissing) {
 		t.Fatalf("want ErrPortMissing without a key presser, got %v", constructError)

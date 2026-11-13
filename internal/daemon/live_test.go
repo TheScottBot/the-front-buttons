@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/jpeg"
 	"strings"
 	"testing"
@@ -113,7 +114,9 @@ func TestDaemon_RepaintsALiveKey_WhenItsSourcePublishes(t *testing.T) {
 
 		drawnBefore := device.DrawnKeys()[1]
 
-		running.live.Set("shared", brick.LiveState{Status: render.StatusInProgress, ErrorReason: "", TargetURL: ""})
+		running.live.Set("shared", brick.LiveState{
+			Status: render.StatusInProgress, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+		})
 		time.Sleep(settle)
 		synctest.Wait()
 
@@ -137,7 +140,9 @@ func TestDaemon_ShowsAnOffPageUpdate_TheMomentThePageIsShown(t *testing.T) {
 		time.Sleep(settle)
 		synctest.Wait()
 
-		running.live.Set("shared", brick.LiveState{Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL})
+		running.live.Set("shared", brick.LiveState{
+			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+		})
 		time.Sleep(settle)
 		synctest.Wait()
 
@@ -167,7 +172,9 @@ func TestDaemon_PressesALiveKeyWithItsLatestState(t *testing.T) {
 		time.Sleep(settle)
 		synctest.Wait()
 
-		running.live.Set("shared", brick.LiveState{Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL})
+		running.live.Set("shared", brick.LiveState{
+			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+		})
 		time.Sleep(settle)
 		synctest.Wait()
 
@@ -273,7 +280,9 @@ func TestDaemon_NewerLiveNewsReplacesAnOlderPressError(t *testing.T) {
 			t.Fatal("want the early press to show its no run error first")
 		}
 
-		running.live.Set("shared", brick.LiveState{Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL})
+		running.live.Set("shared", brick.LiveState{
+			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+		})
 		time.Sleep(settle)
 		synctest.Wait()
 
@@ -282,6 +291,39 @@ func TestDaemon_NewerLiveNewsReplacesAnOlderPressError(t *testing.T) {
 
 		if distance(shown, failure) >= distance(shown, noRun) {
 			t.Fatal("want the published failure shown over the older press error")
+		}
+
+		running.stop(t)
+	})
+}
+
+// TestDaemon_DrawsALiveKeysPicture: a live brick may draw from its state, as
+// the album key fills with the art of the track playing.
+func TestDaemon_DrawsALiveKeysPicture(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running := startHarness(t)
+		running.configurations <- livePages()
+
+		device := testsupport.NewDeckDeviceTestDouble(xlModel(t))
+		running.watcher.Attach("deck-a", device)
+		time.Sleep(settle)
+		synctest.Wait()
+
+		red := image.NewRGBA(image.Rect(0, 0, 8, 8))
+		redColour := image.NewUniform(color.RGBA{R: 0xFF, G: 0, B: 0, A: 0xFF})
+		draw.Draw(red, red.Bounds(), redColour, image.Point{X: 0, Y: 0}, draw.Src)
+
+		running.live.Set("shared", brick.LiveState{
+			Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: red, Playing: false,
+		})
+		time.Sleep(settle)
+		synctest.Wait()
+
+		centre, _ := color.RGBAModel.Convert(drawnImage(t, device, 1).At(48, 48)).(color.RGBA)
+		if centre.R < 0xC0 || centre.G > 0x40 || centre.B > 0x40 {
+			t.Errorf("want the key filled with the picture, got %v at its centre", centre)
 		}
 
 		running.stop(t)

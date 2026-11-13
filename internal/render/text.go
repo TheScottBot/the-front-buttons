@@ -165,13 +165,18 @@ func measure(face font.Face, text string) int {
 }
 
 // drawCentredText draws text centred horizontally with its baseline at baselineY.
+// The ink is centred, not the advance: the advance rounded up, its spare space
+// rounded down and the letters' uneven side bearings left a label up to a pixel
+// left of the icon above it (evaluation, deck testing). The start is rounded to
+// a whole pixel so hinted letters stay sharp.
 func drawCentredText(destination *image.RGBA, face font.Face, text string, colour color.RGBA, baselineY int) {
-	width := measure(face, text)
+	ink, _ := font.BoundString(face, text)
+	left := (fixed.I(destination.Bounds().Dx()) - ink.Min.X - ink.Max.X) / centringDivisor
 	drawer := font.Drawer{
 		Dst:  destination,
 		Src:  image.NewUniform(colour),
 		Face: face,
-		Dot:  fixed.P((destination.Bounds().Dx()-width)/centringDivisor, baselineY),
+		Dot:  fixed.P(left.Round(), baselineY),
 	}
 	drawer.DrawString(text)
 }

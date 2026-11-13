@@ -22,6 +22,8 @@ type Ports struct {
 	EditorAddress func() string
 	// KeyPresser sends a key press, for press_key.
 	KeyPresser platform.KeyPresser
+	// MediaPlayer controls the music player, for the Spotify keys.
+	MediaPlayer platform.MediaPlayer
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

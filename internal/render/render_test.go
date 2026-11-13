@@ -410,3 +410,33 @@ func TestNewFramedRenderer_RefusesAFrameThatDoesNotFit(t *testing.T) {
 		}
 	}
 }
+
+// TestRenderer_FillsTheKeyWithAPicture: the album key is its art, edge to
+// edge, with no label or icon; an error still shows in its place, so a key
+// that cannot read the player says so.
+func TestRenderer_FillsTheKeyWithAPicture(t *testing.T) {
+	t.Parallel()
+
+	renderer := newTestRenderer(t)
+	red := image.NewRGBA(image.Rect(0, 0, 10, 10))
+
+	for y := range 10 {
+		for x := range 10 {
+			red.Set(x, y, color.RGBA{R: 0xFF, G: 0, B: 0, A: 0xFF})
+		}
+	}
+
+	key := renderer.Render(render.Appearance{Label: docsLabel, Picture: red})
+
+	for _, point := range []image.Point{{X: 1, Y: 1}, {X: 48, Y: 48}, {X: 94, Y: 94}} {
+		got, _ := color.RGBAModel.Convert(key.At(point.X, point.Y)).(color.RGBA)
+		if got.R < 0xF0 || got.G > 0x10 || got.B > 0x10 {
+			t.Errorf("want the picture at %v, got %v", point, got)
+		}
+	}
+
+	failed := renderer.Render(render.Appearance{Picture: red, ErrorReason: "permission"})
+	if got, _ := color.RGBAModel.Convert(failed.At(48, 48)).(color.RGBA); got.R > 0xF0 && got.G < 0x10 {
+		t.Error("want an error shown instead of the picture")
+	}
+}

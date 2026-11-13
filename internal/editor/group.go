@@ -11,27 +11,41 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 )
 
-// A group is several preset keys placed down one column at once, from the
-// bricks drawer's 1x2 and 1x3 drawers: the author's D&D session, a D&D Beyond
-// sheet and a Roll20 campaign, and a Discord channel for the 1x3, set up in one
-// form whose parts can be put in any order (evaluation, deck testing). Each
-// part becomes an ordinary preset key, re-edited like any other.
+// A group is several keys placed at once, from the bricks drawer's drawers by
+// size, set up in one form whose parts can be put in any order (evaluation,
+// deck testing). Its size is written width by height: the 1x2 and 1x3 run down
+// a column, the author's D&D session, a D&D Beyond sheet and a Roll20 campaign
+// and a Discord channel for the 1x3; the 2x2 is Spotify, the album, play or
+// pause, and the previous and next tracks. Parts fill the group left to right,
+// then top to bottom. Each becomes an ordinary key, re-edited like any other.
 
 // The parts' names in the form.
 const (
 	characterPart = "character"
 	roll20Part    = "roll20"
 	discordPart   = "discord"
+	albumPart     = "album"
+	playPart      = "play"
+	previousPart  = "previous"
+	nextPart      = "next"
 )
 
-// groupPart is one key a group places: its name in the form, the preset it
-// becomes, what the form calls it, and the label and icon it starts with.
+// groupPart is one key a group places: its name in the form, the type choice
+// it becomes, a brick or a preset, what the form calls it, and the label and
+// icon it starts with.
 type groupPart struct {
 	name   string
-	preset string
+	choice string
 	title  string
 	label  string
 	icon   string
+}
+
+// groupSize is a group's shape, in tiles, and its parts in their first order.
+type groupSize struct {
+	width  int
+	height int
+	parts  []string
 }
 
 // The reasons a group is refused. Each is a whole sentence shown after
@@ -39,7 +53,7 @@ type groupPart struct {
 var (
 	errGroupOrder    = errors.New("the order must name each of the group's keys once; reload the form and try again")
 	errGroupNoPage   = errors.New("that page no longer exists; the pages may have changed since this one was opened")
-	errGroupOffGrid  = errors.New("the group runs off the bottom of the deck")
+	errGroupOffGrid  = errors.New("the group runs off the edge of the deck; drop it further up or left")
 	errGroupReserved = errors.New("the group would cover a tile kept for paging")
 	errGroupOccupied = errors.New("the group would cover a key")
 )
@@ -54,27 +68,56 @@ const (
 func groupParts() map[string]groupPart {
 	return map[string]groupPart{
 		characterPart: {
-			name: characterPart, preset: "dndbeyond_character", title: "D&D Beyond character sheet",
+			name: characterPart, choice: presetChoicePrefix + "dndbeyond_character", title: "D&D Beyond character sheet",
 			label: "Sheet", icon: "wand",
 		},
 		roll20Part: {
-			name: roll20Part, preset: "roll20_campaign", title: "Roll20 campaign",
+			name: roll20Part, choice: presetChoicePrefix + "roll20_campaign", title: "Roll20 campaign",
 			label: "Roll20", icon: "dice-5",
 		},
 		discordPart: {
-			name: discordPart, preset: "discord_channel", title: "Discord channel",
+			name: discordPart, choice: presetChoicePrefix + "discord_channel", title: "Discord channel",
 			label: "Discord", icon: "brand-discord",
+		},
+		albumPart: {
+			name: albumPart, choice: kindChoicePrefix + "spotify_album", title: "Spotify album art",
+			label: "", icon: "brand-spotify",
+		},
+		playPart: {
+			name: playPart, choice: kindChoicePrefix + "spotify_play_pause", title: "Spotify play or pause",
+			label: "", icon: "",
+		},
+		previousPart: {
+			name: previousPart, choice: kindChoicePrefix + "spotify_previous", title: "Spotify previous track",
+			label: "", icon: "player-track-prev",
+		},
+		nextPart: {
+			name: nextPart, choice: kindChoicePrefix + "spotify_next", title: "Spotify next track",
+			label: "", icon: "player-track-next",
 		},
 	}
 }
 
-// groupSizes are the groups the drawer offers, each its parts in their first
-// order.
-func groupSizes() map[string][]string {
-	return map[string][]string{
-		"1x2": {characterPart, roll20Part},
-		"1x3": {characterPart, roll20Part, discordPart},
+// The sides of the groups, in tiles, past a single column.
+const (
+	twoTiles   = 2
+	threeTiles = 3
+)
+
+// groupSizes are the groups the drawer offers, by their name, width by
+// height.
+func groupSizes() map[string]groupSize {
+	return map[string]groupSize{
+		"1x2": {width: 1, height: twoTiles, parts: []string{characterPart, roll20Part}},
+		"1x3": {width: 1, height: threeTiles, parts: []string{characterPart, roll20Part, discordPart}},
+		"2x2": {width: twoTiles, height: twoTiles, parts: []string{albumPart, playPart, previousPart, nextPart}},
 	}
+}
+
+// positionOf is where a group's part goes: left to right, then top to bottom
+// from the group's top left tile.
+func positionOf(top layout.Position, width int, index int) layout.Position {
+	return layout.Position{Row: top.Row + index/width, Column: top.Column + index%width}
 }
 
 // groupPartView is one part of the form, numbered by its place down the
@@ -119,23 +162,25 @@ func groupAtFrom(values url.Values) groupAt {
 func (pages *pageHandlers) showGroup(writer http.ResponseWriter, request *http.Request) {
 	placement := groupAtFrom(request.URL.Query())
 
-	order, known := groupSizes()[placement.size]
+	size, known := groupSizes()[placement.size]
 	if !known {
 		http.Error(writer, "unknown group size", http.StatusBadRequest)
 
 		return
 	}
 
-	pages.renderGroup(writer, request, http.StatusOK, placement, order, nil, nil)
+	pages.renderGroup(writer, request, http.StatusOK, placement, size.parts, nil, nil)
 }
 
-// saveGroup places every part of a group, or none: each tile down the column
-// must be on the deck, free and not kept for paging.
+// saveGroup places every part of a group, or none: each tile it covers must be
+// on the deck, free and not kept for paging.
 func (pages *pageHandlers) saveGroup(writer http.ResponseWriter, request *http.Request) {
 	form := request.PostForm
 	placement := groupAtFrom(form)
 
-	defaultOrder, known := groupSizes()[placement.size]
+	size, known := groupSizes()[placement.size]
+	defaultOrder := size.parts
+
 	if !known {
 		http.Error(writer, "unknown group size", http.StatusBadRequest)
 
@@ -150,7 +195,7 @@ func (pages *pageHandlers) saveGroup(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	keys, fieldErrors := pages.groupKeys(placement, order, form)
+	keys, fieldErrors := pages.groupKeys(placement, size.width, order, form)
 	if len(fieldErrors) > 0 {
 		pages.renderGroupWithFieldErrors(writer, request, placement, order, form, fieldErrors)
 
@@ -187,10 +232,11 @@ func isOrderOf(order []string, parts []string) bool {
 		slices.Equal(slices.Sorted(slices.Values(order)), slices.Sorted(slices.Values(parts)))
 }
 
-// groupKeys builds each part's key at its tile down the column, or the field
+// groupKeys builds each part's key at its tile in the group, or the field
 // errors of each part, keyed by the part's form name for the field.
 func (pages *pageHandlers) groupKeys(
 	placement groupAt,
+	width int,
 	order []string,
 	form url.Values,
 ) ([]config.Key, map[string]string) {
@@ -200,7 +246,7 @@ func (pages *pageHandlers) groupKeys(
 	for index, partName := range order {
 		part := groupParts()[partName]
 
-		resolved, typeError := pages.resolveType(presetChoicePrefix + part.preset)
+		resolved, typeError := pages.resolveType(part.choice)
 		if typeError != nil {
 			allErrors[partName] = errorPrefix + typeError.Error()
 
@@ -216,7 +262,7 @@ func (pages *pageHandlers) groupKeys(
 			continue
 		}
 
-		position := layout.Position{Row: placement.top.Row + index, Column: placement.top.Column}
+		position := positionOf(placement.top, width, index)
 
 		key, buildError := pages.buildKey(resolved, position, fields)
 		if buildError != nil {
@@ -265,7 +311,7 @@ func checkGroupTiles(page config.Page, grid layout.Grid, keys []config.Key) erro
 		}
 
 		if _, taken := keyAt(page, key.Position); taken {
-			return fmt.Errorf("%w at %s; choose a column with enough free tiles",
+			return fmt.Errorf("%w at %s; choose a place with enough free tiles",
 				errGroupOccupied, tileWords(key.Position))
 		}
 	}
@@ -357,7 +403,7 @@ func (pages *pageHandlers) partView(
 	form url.Values,
 	fieldErrors map[string]string,
 ) groupPartView {
-	resolved, _ := pages.resolveType(presetChoicePrefix + part.preset)
+	resolved, _ := pages.resolveType(part.choice)
 	view := groupPartView{Name: part.name, Title: part.title, Slot: slot, Fields: nil}
 
 	for _, field := range fieldViews(resolved.schema, nil, nil) {

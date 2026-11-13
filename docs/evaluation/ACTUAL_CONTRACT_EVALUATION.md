@@ -3307,6 +3307,67 @@ same test. In the browser pane, with simulated drags, a 1x3 numbered three free
 tiles down column 3, refused a column without room, and opened its form, where
 moving the sheet down put Roll20 first and renumbered the parts.
 
+### The first 2x2: Spotify
+
+The author asked for a 2x2 for Spotify: one key showing the album art, then
+play or pause, previous track and next track.
+
+A MediaPlayer port gives what is playing (running, playing, the track's art)
+and the commands play or pause, previous, next and show. On macOS its adapter
+runs AppleScript through osascript with no shell: reading what is playing
+first checks Spotify is running, because telling an application anything
+launches it, while the commands may launch it, as pressing play on a closed
+player should. The art is fetched only from Spotify's image host, i.scdn.co,
+once per track, bounded in size and time, and kept as a plain RGBA picture so
+live states holding it still compare. macOS refusing the Automation
+permission (AppleScript's -1743) is told apart and shown as "permission". On
+Windows, where Spotify has no scripting, every command reports media control
+unavailable; Windows is parked.
+
+Four bricks in internal/bricks/spotify: spotify_album and spotify_play_pause
+share one live source, read each second while Spotify runs and every five
+while it is closed, publishing only when what they show changes. LiveState
+gained Picture and Playing, and a LiveDrawn brick draws part of its key from
+its state: the album key fills edge to edge with the art (render.Appearance
+gained Picture; an error still shows instead), and the play key shows pause
+while playing and play otherwise. Pressing the album brings Spotify forward;
+previous and next change track.
+
+Groups became any width and height, parts filling left to right then top to
+bottom, and a part may be a brick as well as a preset. The 2x2 places the
+four keys, starting at the Spotify icon for the album and the track icons
+for previous and next. The drawer gained a 2x2 section, and a carried group
+numbers the tiles it would fill across and down.
+
+Tests first, failing before the code: the adapter's reading, art host and
+once per track fetch, commands and refusal; the bricks' presses, drawing and
+shared source; a picture filling a key and an error outranking it; the daemon
+drawing a live picture; the 2x2 form, its placement in reading order, and its
+refusals at the edge and over paging. Planted violations (art from any host,
+the play icons swapped, a 2x2 laid down one column, no live drawing in the
+daemon) failed them. A restore after planting copied the brick package over
+the adapter, both files being named spotify.go; it was caught at once by the
+build and the adapter rewritten from its source. Not yet seen on the deck.
+
+### Centring icons and labels
+
+The author's photograph of the off key showed its power icon left of centre
+and the label slightly left. A subagent measured the lit columns on the
+framed XL renderer with the real icons: icons centred at 47.5 to 48.5 and
+labels at 48.0 to 49.0, against the content centre at 49. Three causes, none
+particular to the power glyph: the icon mask rounded the glyph's ink width
+up, the spare space down and dropped the ink's fractional start, putting
+every icon up to a pixel left and up in its mask; the 37 pixel icon box on
+the 82 pixel content had an odd spare width, its half pixel truncated left;
+and labels were centred on their rounded advance rather than their ink. The
+mask now centres the ink exactly, the icon box grows a pixel when its spare
+width is odd (38 pixels on the XL), and text is centred on its ink, its start
+rounded so hinted letters stay sharp; status words, the question mark and the
+navigation text move by up to a pixel with it. After: every icon at 49.0 and
+labels within half a pixel. A test of icon and label centres on both the XL
+and plain renderers failed before and caught planted one pixel shifts of the
+icon and the label; nine goldens moved and were regenerated.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

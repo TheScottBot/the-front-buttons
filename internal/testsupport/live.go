@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
 // LiveNoRunReason is the fake live kind's press failure when no run is known,
@@ -112,6 +113,13 @@ func (watcher liveTestDouble) Watch(watchContext context.Context, publish func(s
 			return
 		case <-changed:
 		}
+	}
+}
+
+// DrawLive fills the key with a published picture, as the album key does.
+func (watcher liveTestDouble) DrawLive(state brick.LiveState, appearance *render.Appearance) {
+	if state.Picture != nil {
+		appearance.Picture = state.Picture
 	}
 }
 

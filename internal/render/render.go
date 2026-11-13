@@ -109,6 +109,9 @@ type Appearance struct {
 	Background         color.RGBA
 	Status             Status
 	ErrorReason        string
+	// Picture fills the whole key, such as a track's album art, in place of
+	// the label and icon; an error still shows instead.
+	Picture image.Image
 }
 
 // IconSet supplies bundled icons by name as masks, so the renderer can draw
@@ -333,6 +336,10 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 		renderer.drawStatusGlyph(box, appearance.Status, background)
 
 		word = StatusWord(appearance.Status)
+	case appearance.Picture != nil:
+		fillWithPicture(key, appearance.Picture)
+
+		return key
 	default:
 		return renderer.renderPlain(key, appearance, foreground)
 	}
