@@ -155,6 +155,8 @@ type configuredKey struct {
 	key         config.Key
 	instance    any
 	errorReason string
+	// pageIndex is the page the key is on, for a page marker to show.
+	pageIndex int
 }
 
 // The events the loop receives from its goroutines. Each carries the generation
@@ -420,7 +422,7 @@ func (state *loopState) logLiveReason(runContext context.Context, identity strin
 // build constructs one key's brick. A brick that cannot be built shows its error
 // on its key rather than taking the page down (specification section 2).
 func (state *loopState) build(runContext context.Context, pageIndex int, key config.Key) configuredKey {
-	built := configuredKey{key: key, instance: nil, errorReason: ""}
+	built := configuredKey{key: key, instance: nil, errorReason: "", pageIndex: pageIndex}
 
 	kind, kindFound := state.options.Registry.Kind(key.Kind)
 	if !kindFound {

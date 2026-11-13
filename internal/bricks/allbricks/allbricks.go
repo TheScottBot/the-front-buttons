@@ -9,6 +9,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/pagemarker"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/presskey"
 )
@@ -22,6 +23,7 @@ func Register(registry *brick.Registry) error {
 		openeditor.Register,
 		presskey.Register,
 		deckcontrol.Register,
+		pagemarker.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

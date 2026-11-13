@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 )
@@ -96,11 +97,16 @@ func (pages *pageHandlers) copyPageOnto(writer http.ResponseWriter, request *htt
 }
 
 // clashes names every tile where a copied key would land on a key already
-// there, or returns nil if there is none.
+// there, or returns nil if there is none. A page marker is never copied, so
+// never clashes.
 func clashes(source config.Page, target config.Page, targetIndex int) error {
 	var tiles []string
 
 	for _, key := range source.Keys {
+		if brick.IsPageMarker(key.Kind) {
+			continue
+		}
+
 		if _, taken := keyAt(target, key.Position); taken {
 			tiles = append(tiles, tileWords(key.Position))
 		}
@@ -120,12 +126,16 @@ func tileWords(position layout.Position) string {
 }
 
 // clonedKeys deep copies keys, so a copied page shares no parameters with
-// its original.
+// its original, leaving out the page marker: a page copied onto keeps its own,
+// and a new page's would name the wrong page (the author's request,
+// evaluation, deck testing).
 func clonedKeys(keys []config.Key) []config.Key {
 	cloned := make([]config.Key, 0, len(keys))
 
 	for _, key := range keys {
-		cloned = append(cloned, key.Clone())
+		if !brick.IsPageMarker(key.Kind) {
+			cloned = append(cloned, key.Clone())
+		}
 	}
 
 	return cloned

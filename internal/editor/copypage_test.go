@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/pagemarker"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 )
 
@@ -154,5 +155,68 @@ func TestEditor_PageOffersBothCopies(t *testing.T) {
 
 	if strings.Contains(newHarness(t, nil).get(t, "/page?page=0").Body.String(), `action="`+copyOntoPath+`"`) {
 		t.Error("want no copy onto another page when there is no other page")
+	}
+}
+
+// markedPages has Work and Play, each marked in its corner, Work with a key at
+// row 2, column 2.
+const markedPages = `schema_version: 1
+pages:
+  - name: Work
+    keys:
+      - row: 0
+        column: 0
+        kind: page_marker
+        parameters:
+          label: Page 1
+      - row: 1
+        column: 1
+        kind: open_url
+        parameters:
+          url: https://example.test/docs
+          label: Docs
+  - name: Play
+    keys:
+      - row: 0
+        column: 0
+        kind: page_marker
+        parameters:
+          label: Page 2
+`
+
+// TestEditor_CopyLeavesThePageMarkerBehind: the author marks each page in its
+// corner, and asked that copying a page leave the marker out, so it never
+// clashes with the marker of the page copied onto, which keeps its own.
+func TestEditor_CopyLeavesThePageMarkerBehind(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+	harness.replaceFile(t, markedPages)
+
+	onto := harness.post(t, copyOntoPath, url.Values{pageField: {"0"}, toField: {"1"}})
+	if onto.Code != http.StatusSeeOther {
+		t.Fatalf("want the copy onto a marked page saved, got %d: %s", onto.Code, onto.Body.String())
+	}
+
+	play := harness.onDisk(t).Pages[1]
+	if len(play.Keys) != 2 {
+		t.Fatalf("want Play's own marker and the copied key, got %+v", play.Keys)
+	}
+
+	marker, _ := keyAtPosition(play, layout.Position{Row: 0, Column: 0})
+	parameters, _ := marker.Parameters.(*pagemarker.Parameters)
+
+	if parameters == nil || parameters.Label != "Page 2" {
+		t.Errorf("want Play keeping its own marker, got %+v", marker)
+	}
+
+	toNew := harness.post(t, copyToNewPath, url.Values{pageField: {"0"}, nameField: {copiedPageName}})
+	if toNew.Code != http.StatusSeeOther {
+		t.Fatalf("want the copy to a new page saved, got %d", toNew.Code)
+	}
+
+	copied := harness.onDisk(t).Pages[2]
+	if len(copied.Keys) != 1 || copied.Keys[0].Kind != "open_url" {
+		t.Fatalf("want the new page without the marker, got %+v", copied.Keys)
 	}
 }

@@ -113,6 +113,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - A page's keys can be copied to a new page, named as given, or onto another
   page beside its keys. A copy that would land on a key copies nothing and
   names the clashing tiles.
+- A `page_marker` key marks a page and does nothing when pressed; without a
+  label it shows its page's number. Copying a page leaves it out, so the page
+  copied onto keeps its own.
 
 ### Fixed
 

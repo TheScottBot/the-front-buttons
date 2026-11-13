@@ -34,7 +34,7 @@
 {{end}}</select>
 <button type="submit">Copy onto that page</button>
 </form>
-<p class="help">Copying onto a page keeps its keys. If a copied key would land on one, nothing is copied and the clashing tiles are named.</p>{{end}}
+<p class="help">Copying onto a page keeps its keys. If a copied key would land on one, nothing is copied and the clashing tiles are named. The page marker is never copied: each page keeps its own.</p>{{end}}
 </fieldset>
 <form method="post" action="/page/delete" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">

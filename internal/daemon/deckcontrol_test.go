@@ -8,6 +8,7 @@ import (
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/pagemarker"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
@@ -206,6 +207,42 @@ func TestDaemon_ReconnectingDeckKeepsTheBrightnessChosen(t *testing.T) {
 
 		if got := lastBrightness(t, returning); got != dimPercent {
 			t.Fatalf("want the returning deck dimmed to %d, got %d", dimPercent, got)
+		}
+
+		running.stop(t)
+	})
+}
+
+// TestDaemon_UnlabelledPageMarkerShowsItsPage: a marker without a label of its
+// own shows the page it is on, so a new page's marker needs no typing.
+func TestDaemon_UnlabelledPageMarkerShowsItsPage(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running := startHarness(t)
+		running.configurations <- config.Configuration{
+			SchemaVersion: config.CurrentSchemaVersion,
+			Pages: []config.Page{
+				{Name: "Plain", Keys: []config.Key{button("first", 0, false)}},
+				{Name: "Marked", Keys: []config.Key{{
+					Position:   layout.Position{Row: 0, Column: 0},
+					Kind:       pagemarker.KindName,
+					Parameters: &pagemarker.Parameters{Appearance: noAppearance()},
+					Preset:     nil,
+				}}},
+			},
+		}
+
+		device := testsupport.NewDeckDeviceTestDouble(xlModel(t))
+		running.watcher.Attach("deck-a", device)
+		time.Sleep(settle)
+		synctest.Wait()
+
+		tap(device, forwardKey)
+
+		want := running.renderer.Render(render.Appearance{Label: "Page 2"})
+		if difference := distance(drawnImage(t, device, 0), want); difference > blankDifference {
+			t.Errorf("want the marker to show Page 2, differing by %.1f", difference)
 		}
 
 		running.stop(t)

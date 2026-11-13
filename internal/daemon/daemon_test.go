@@ -16,6 +16,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/pagemarker"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
@@ -104,6 +105,7 @@ func harnessRegistry(
 		testsupport.RegisterLiveKind(registry, liveController),
 		openapplication.Register(registry),
 		deckcontrol.Register(registry),
+		pagemarker.Register(registry),
 	)
 	if registerError != nil {
 		t.Fatal(registerError)

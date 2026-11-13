@@ -122,7 +122,7 @@ func (state *loopState) appearanceFor(runContext context.Context, configured con
 
 	label := configuredAppearance.Label
 	if label == "" {
-		label = controlLabel(configured.instance)
+		label = fallbackLabel(configured)
 	}
 
 	appearance := render.Appearance{

@@ -3222,6 +3222,19 @@ both forms. A planted missing clash check failed them. A test that the copy's
 parameters were not shared with the original was dropped: it read the keys
 back from the file, which decodes fresh values, so it could never fail.
 
+Trying it, the author's copy onto page two was refused for a clash at row
+1, column 1: each page is marked there by a key, an open_url to a placeholder
+address labelled with the page. The author asked for the marker to be a brick
+of its own that copying leaves out. `page_marker` takes only an appearance,
+does nothing when pressed, and without a label shows "Page" and its page's
+number, the daemon knowing each key's page. Copying a page never copies a
+marker, onto an existing page (which keeps its own, so markers never clash)
+or to a new one (where a copied label would name the wrong page). Its kind
+name lives beside `brick.PageMarker` so the editor can leave it out without
+depending on the brick. Tests first, failing before the code; planted
+violations (a marker copied, no page number on an unlabelled marker) failed
+them. The author's existing markers are still open_url keys until changed.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

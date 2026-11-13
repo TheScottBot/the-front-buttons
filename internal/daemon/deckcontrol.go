@@ -96,10 +96,15 @@ func (state *loopState) hiddenByOff(position layout.Position) bool {
 	return state.pages[state.controls.offPage][state.controls.offBrick].key.Position != position
 }
 
-// controlLabel is what a deck control key shows when it has no label of its
-// own: a brightness key its percentage, an off key the word.
-func controlLabel(instance any) string {
-	control, isControl := instance.(brick.DeckControl)
+// fallbackLabel is what a key shows when it has no label of its own: a page
+// marker its page's number, a brightness key its percentage, an off key the
+// word, and anything else nothing.
+func fallbackLabel(configured configuredKey) string {
+	if _, isMarker := configured.instance.(brick.PageMarker); isMarker {
+		return fmt.Sprintf("Page %d", configured.pageIndex+1)
+	}
+
+	control, isControl := configured.instance.(brick.DeckControl)
 	if !isControl {
 		return ""
 	}
