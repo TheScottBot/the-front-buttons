@@ -15,6 +15,14 @@ import (
 // needs no package level state.
 const UpdateGoldensVariable = "UPDATE_GOLDENS"
 
+// ShadeTolerance is how far, in shades of 255, a pixel's channel may differ
+// from the golden's and still count as the same. The goldens are made on the
+// author's arm64 Mac and checked on CI's amd64 Windows runner, whose rounding
+// in the icon rasteriser shades a curve's edge a little differently; the
+// brand-github golden failed there on four pixels (evaluation, CI). A change
+// to what is drawn moves an edge pixel by far more than this.
+const ShadeTolerance = 8
+
 // Golden files are private to the developer writing them.
 const (
 	goldenDirectoryPermissions = 0o750
@@ -50,8 +58,9 @@ func CompareWithGolden(t *testing.T, goldenName string, rendered image.Image) {
 		t.Fatalf("%s: want bounds %v, got %v", goldenName, golden.Bounds(), rendered.Bounds())
 	}
 
-	if differing := countDifferingPixels(golden, rendered); differing > 0 {
-		t.Fatalf("%s: %d pixels differ from the golden image", goldenName, differing)
+	if differing, largest := DifferingPixels(golden, rendered); differing > 0 {
+		t.Fatalf("%s: %d pixels differ from the golden image by more than %d shades, the largest by %d",
+			goldenName, differing, ShadeTolerance, largest)
 	}
 }
 
@@ -76,16 +85,34 @@ func writeGolden(t *testing.T, goldenPath string, rendered image.Image) {
 	}
 }
 
-func countDifferingPixels(golden image.Image, rendered image.Image) int {
-	differing := 0
+// DifferingPixels counts the pixels in which any channel differs from the
+// golden's by more than ShadeTolerance, and reports the largest difference in
+// any channel, so a failure says how far off it is.
+func DifferingPixels(golden image.Image, rendered image.Image) (int, int) {
+	differing, largest := 0, 0
 
 	for y := golden.Bounds().Min.Y; y < golden.Bounds().Max.Y; y++ {
 		for x := golden.Bounds().Min.X; x < golden.Bounds().Max.X; x++ {
-			if color.RGBAModel.Convert(golden.At(x, y)) != color.RGBAModel.Convert(rendered.At(x, y)) {
+			want, _ := color.RGBAModel.Convert(golden.At(x, y)).(color.RGBA)
+			got, _ := color.RGBAModel.Convert(rendered.At(x, y)).(color.RGBA)
+
+			difference := max(channelDifference(want.R, got.R), channelDifference(want.G, got.G),
+				channelDifference(want.B, got.B), channelDifference(want.A, got.A))
+			largest = max(largest, difference)
+
+			if difference > ShadeTolerance {
 				differing++
 			}
 		}
 	}
 
-	return differing
+	return differing, largest
+}
+
+func channelDifference(want uint8, got uint8) int {
+	if want > got {
+		return int(want - got)
+	}
+
+	return int(got - want)
 }

@@ -151,6 +151,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- CI on Windows: the golden image comparison allows a few shades of rounding,
+  as the regenerated icon goldens, made on an arm64 Mac, differed by four
+  pixels on the amd64 Windows runner. A failure now says by how much.
+
 - Icons and labels are centred on the key: icons sat up to a pixel and a half
   left of centre on the XL, and labels up to a pixel, which showed on the off
   key's power icon.

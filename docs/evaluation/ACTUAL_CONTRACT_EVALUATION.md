@@ -3492,6 +3492,16 @@ commit that regenerated the goldens, so it is the regenerated golden, made on
 the Mac's arm64, against the Windows runner's amd64 rendering of the icon's
 curves. It could not be reproduced here, as Rosetta is not installed.
 
+The golden comparison now counts a pixel as different only when a channel
+differs by more than eight shades of 255, and a failure gives the largest
+difference found, so if the Windows runner needs more the next run says by
+how much. A moved edge changes a shade by tens or hundreds and is still
+caught. Tests first: a test of the comparison failed before the change; it
+first passed a planted zero tolerance, as it shifted shades by the tolerance
+itself, so it was rewritten with fixed shifts, after which planted tolerances
+of zero and forty both failed it. Whether eight is enough on Windows is for
+the next CI run to show.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
