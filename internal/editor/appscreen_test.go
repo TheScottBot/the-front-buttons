@@ -8,6 +8,7 @@ import (
 
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
+	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
 // The application the app screen tests use, and its key's fields.
@@ -281,12 +282,12 @@ func TestEditor_PreviewsTheReturnTileAsTheDeckDrawsIt(t *testing.T) {
 `)
 
 	want := previewRenderer(t).Render(render.Appearance{IconImage: greenAppIcon, BackgroundFromIcon: true})
-	if !sameImage(previewImage(t, harness, "/preview.png?page=1&row=0&column=0"), want) {
+	if !testsupport.SameImage(previewImage(t, harness, "/preview.png?page=1&row=0&column=0"), want) {
 		t.Error("want the return tile previewed as the application's icon alone")
 	}
 
 	// A free tile on a regular page has no icon.
-	if sameImage(previewImage(t, harness, "/preview.png?page=0&row=1&column=0"), want) {
+	if testsupport.SameImage(previewImage(t, harness, "/preview.png?page=0&row=1&column=0"), want) {
 		t.Error("want no icon on a regular page's free tile")
 	}
 }

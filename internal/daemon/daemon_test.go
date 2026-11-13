@@ -76,6 +76,7 @@ type harness struct {
 	watcher        *testsupport.DeckWatcherTestDouble
 	recorder       *testsupport.PressRecorder
 	launches       *testsupport.LaunchRecorder
+	badges         *testsupport.BadgesTestDouble
 	live           *testsupport.LiveController
 	renderer       *render.Renderer
 	counters       *diagnostics.Counters
@@ -140,6 +141,7 @@ func startHarness(t *testing.T) *harness {
 		watcher:        testsupport.NewDeckWatcherTestDouble(),
 		recorder:       recorder,
 		launches:       testsupport.NewLaunchRecorder(),
+		badges:         testsupport.NewBadgesTestDouble(),
 		live:           liveController,
 		renderer:       renderer,
 		counters:       diagnostics.NewCounters(),
@@ -166,6 +168,7 @@ func startHarness(t *testing.T) *harness {
 		Brightness:      70,
 		IconFiles:       iconFilesTestDouble{},
 		AppIcons:        applicationIconsTestDouble{},
+		Badges:          running.badges,
 		Activator: testsupport.ActivatorTestDouble{
 			Recorder: recorder, Running: []string{knownApplication, slowApplication}, Slow: []string{slowApplication},
 		},

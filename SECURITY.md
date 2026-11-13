@@ -63,15 +63,17 @@ go through `SendInput`, both called directly.
 
 ## Operating system permissions and access
 
-- **Accessibility (macOS)**, granted by the person, for four things only:
+- **Accessibility (macOS)**, granted by the person, for five things only:
   posting the key presses keys are configured to send (`press_key`,
   `press_shortcut` and an application's own keys, such as GoLand's); reading
   and raising the windows of JetBrains IDEs when a window key is pressed, and
   no other application's (`windows_darwin.go`); bringing an app screen's
   application to the front before one of its keys sends key presses, and
   reading which application is in front to know it has come
-  (`activation_darwin.go`); and asking whether it is trusted. It never reads
-  keystrokes or window contents.
+  (`activation_darwin.go`); reading the badge on each Dock icon, such as a
+  count of unread messages, every two seconds while a key shows one, from the
+  Dock alone and never from the application (`badges_darwin.go`); and asking
+  whether it is trusted. It never reads keystrokes or window contents.
 - **Automation of Spotify (macOS)**, asked for on first use: play, pause, change
   track, and read whether it is playing and its art.
 - **USB**: opens Elgato devices only, vendor ID 0x0FD9
@@ -110,7 +112,7 @@ refuses the token and fails if the token reaches the log.
 ## The log
 
 It records the configuration file's path, key kinds and positions, application
-identifiers, icon file names, credential names, reason categories, and the
+identifiers and the badges keys show, icon file names, credential names, reason categories, and the
 editor's request method and path without query. It never records a URL, an ID,
 a secret, a request body or what a key typed.
 

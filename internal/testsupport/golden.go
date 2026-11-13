@@ -116,3 +116,20 @@ func channelDifference(want uint8, got uint8) int {
 
 	return int(got - want)
 }
+
+// SameImage reports whether two images match pixel for pixel.
+func SameImage(first image.Image, second image.Image) bool {
+	if first.Bounds() != second.Bounds() {
+		return false
+	}
+
+	for y := first.Bounds().Min.Y; y < first.Bounds().Max.Y; y++ {
+		for x := first.Bounds().Min.X; x < first.Bounds().Max.X; x++ {
+			if color.RGBAModel.Convert(first.At(x, y)) != color.RGBAModel.Convert(second.At(x, y)) {
+				return false
+			}
+		}
+	}
+
+	return true
+}

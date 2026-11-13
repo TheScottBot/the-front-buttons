@@ -13,8 +13,9 @@ import (
 
 // The labels the tests draw, written once.
 const (
-	docsLabel  = "Docs"
-	buildLabel = "Build"
+	docsLabel     = "Docs"
+	buildLabel    = "Build"
+	networkReason = "network"
 )
 
 func allStatuses() []render.Status {
@@ -53,7 +54,7 @@ func TestRender_MatchesGoldenImages(t *testing.T) {
 		"long_label":              {Label: "A label far too long to fit on one key"},
 		"user_icon":               {Label: "Mine", IconImage: userIcon},
 		"light_background":        {Label: "Light", Background: color.RGBA{R: 0xf0, G: 0xf0, B: 0xf0, A: 0xff}},
-		"error_state":             {Label: buildLabel, ErrorReason: "network"},
+		"error_state":             {Label: buildLabel, ErrorReason: networkReason},
 	}
 
 	for _, status := range allStatuses() {
@@ -94,7 +95,7 @@ func TestRender_EveryStatusIsDistinguishableWithoutColour(t *testing.T) {
 	// two percent of the glyph area, far beyond antialiasing noise.
 	const minimumDifferingPixels = 100
 
-	appearances := map[string]render.Appearance{"error": {Label: buildLabel, ErrorReason: "network"}}
+	appearances := map[string]render.Appearance{"error": {Label: buildLabel, ErrorReason: networkReason}}
 	for _, status := range allStatuses() {
 		appearances[string(status)] = render.Appearance{Label: buildLabel, Status: status}
 	}

@@ -141,6 +141,15 @@ sends key presses on an app screen, a shortcut or one of the application's own,
 brings the application to the front first unless it is there already; if it is
 not open, nothing is sent and the key shows "not open".
 
+### Notification badges
+
+Tick Show notifications on an `open_application` key, `show_notifications:
+true` in the file, and the key shows the badge its application has on its Dock
+icon, top right in the Dock's red: a count, or a dot for a badge without one.
+It follows the Dock within a couple of seconds. Reading the Dock needs the
+Accessibility permission key presses already need. Not available on Windows
+yet.
+
 ### Icons
 
 `icon` names one of the 5,000 or so bundled Tabler icons; the editor's **Icons**
@@ -864,6 +873,7 @@ A brick kind.
 | `application` | text | required | 1 to 512 characters |  | The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows. |
 | `use_app_icon` | boolean | optional |  |  | Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. Not available on Windows yet, where the key shows the missing icon marker. |
 | `app_screen` | boolean | optional |  |  | Also show the application's screen on the deck: a page of its own keys, with the application's icon top left to go back. Saving the key creates the screen if there is none. |
+| `show_notifications` | boolean | optional |  |  | Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows yet. |
 
 ### `open_editor`
 

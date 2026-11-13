@@ -72,6 +72,9 @@ type Options struct {
 	// on the screen sends it key presses; nil sends them to whatever is in
 	// front.
 	Activator platform.ApplicationActivator
+	// Badges reads the badges applications show on their Dock icons, for keys
+	// that ask to show one; nil reads none.
+	Badges platform.ApplicationBadges
 }
 
 // IconFileLoader reads a key's own icon file by its name.
@@ -100,6 +103,9 @@ func (daemon *Daemon) Run(runContext context.Context, configurations <-chan conf
 	ticker := time.NewTicker(daemon.options.PollInterval)
 	defer ticker.Stop()
 
+	badgeTicker := time.NewTicker(badgeInterval)
+	defer badgeTicker.Stop()
+
 	state.poll(runContext)
 
 	for {
@@ -112,6 +118,8 @@ func (daemon *Daemon) Run(runContext context.Context, configurations <-chan conf
 			state.applyConfiguration(runContext, configuration)
 		case <-ticker.C:
 			state.poll(runContext)
+		case <-badgeTicker.C:
+			state.readBadges(runContext)
 		case received := <-state.events:
 			state.handle(runContext, received)
 		case <-state.liveChanges.signal:
@@ -227,6 +235,7 @@ type loopState struct {
 	loggedState string
 
 	controls deckControls
+	badges   badgeState
 }
 
 func newLoopState(options Options) *loopState {
@@ -255,6 +264,7 @@ func newLoopState(options Options) *loopState {
 		controls: deckControls{
 			dimmed: false, dimPercent: 0, off: false, offPercent: 0, offPage: 0, offBrick: 0,
 		},
+		badges: newBadgeState(),
 	}
 }
 
@@ -292,6 +302,8 @@ func (state *loopState) handle(runContext context.Context, received any) {
 		if typed.configurationGeneration == state.configurationGeneration {
 			state.handlePressResult(runContext, typed)
 		}
+	case badgesEvent:
+		state.handleBadges(runContext, typed)
 	}
 }
 
@@ -324,6 +336,8 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 
 		state.pages = append(state.pages, keys)
 	}
+
+	state.wantBadges(configuration)
 
 	// A reload keeps the app screen showing while the application still has
 	// one.

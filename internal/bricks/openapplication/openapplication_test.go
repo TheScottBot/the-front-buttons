@@ -143,7 +143,7 @@ func TestParameters_OfferTheAppScreenWhenTicked(t *testing.T) {
 	for ticked, wantWanted := range map[bool]bool{true: true, false: false} {
 		parameters := &openapplication.Parameters{
 			Appearance:  unlabelled,
-			Application: "com.jetbrains.goland", UseAppIcon: false, AppScreen: ticked,
+			Application: "com.jetbrains.goland", UseAppIcon: false, AppScreen: ticked, ShowNotifications: false,
 		}
 
 		source, isSource := any(parameters).(brick.ApplicationScreenSource)

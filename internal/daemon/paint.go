@@ -173,6 +173,7 @@ func (state *loopState) appearanceFor(runContext context.Context, configured con
 	}
 
 	state.drawLive(configured, &appearance)
+	appearance.Badge = state.badgeFor(configured)
 
 	return appearance
 }

@@ -11,3 +11,13 @@ type ApplicationScreenSource interface {
 	// ApplicationLauncher takes it, and whether its screen is wanted.
 	ApplicationScreen() (identifier string, wanted bool)
 }
+
+// ApplicationBadgeSource is implemented by a kind's parameters when its key
+// can show its application's badge: the label the application shows on its
+// Dock icon, such as a count of unread messages, drawn top right on the key.
+// The daemon reads it to know which badges to read and where to draw them.
+type ApplicationBadgeSource interface {
+	// ApplicationBadge returns the application's identifier, as the
+	// ApplicationLauncher takes it, and whether its badge is wanted.
+	ApplicationBadge() (identifier string, wanted bool)
+}

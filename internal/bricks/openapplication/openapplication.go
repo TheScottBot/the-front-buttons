@@ -29,12 +29,22 @@ type Parameters struct {
 	// its own, outside the regular pages, with the application's icon top left
 	// to return (evaluation, app screens).
 	AppScreen bool `brick:"app_screen" description:"Also show the application's screen on the deck: a page of its own keys, with the application's icon top left to go back. Saving the key creates the screen if there is none."`
+
+	// ShowNotifications draws the badge the application shows on its Dock
+	// icon, such as a count of unread messages, top right on the key.
+	ShowNotifications bool `brick:"show_notifications" description:"Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows yet."`
 }
 
 // ApplicationScreen offers the application's screen to the daemon when the
 // key asks for it.
 func (parameters Parameters) ApplicationScreen() (string, bool) {
 	return parameters.Application, parameters.AppScreen
+}
+
+// ApplicationBadge offers the application's Dock badge to the daemon when the
+// key asks for it.
+func (parameters Parameters) ApplicationBadge() (string, bool) {
+	return parameters.Application, parameters.ShowNotifications
 }
 
 // ApplicationIcon offers the application's own icon to the daemon and the

@@ -11,6 +11,7 @@ import (
 
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
+	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
 // The application the fake system has an icon for.
@@ -52,22 +53,6 @@ func previewImage(t *testing.T, harness *editorHarness, path string) image.Image
 	}
 
 	return preview
-}
-
-func sameImage(first image.Image, second image.Image) bool {
-	if first.Bounds() != second.Bounds() {
-		return false
-	}
-
-	for y := first.Bounds().Min.Y; y < first.Bounds().Max.Y; y++ {
-		for x := first.Bounds().Min.X; x < first.Bounds().Max.X; x++ {
-			if color.RGBAModel.Convert(first.At(x, y)) != color.RGBAModel.Convert(second.At(x, y)) {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 func previewRenderer(t *testing.T) *render.Renderer {
@@ -117,18 +102,18 @@ func TestEditor_PreviewsTheApplicationsOwnIcon_AsTheDeckDrawsIt(t *testing.T) {
 	renderer := previewRenderer(t)
 
 	withIcon := renderer.Render(render.Appearance{Label: "Green", IconImage: greenAppIcon, BackgroundFromIcon: true})
-	if !sameImage(previewImage(t, harness, "/preview.png?page=0&row=0&column=0"), withIcon) {
+	if !testsupport.SameImage(previewImage(t, harness, "/preview.png?page=0&row=0&column=0"), withIcon) {
 		t.Error("want the saved key previewed with its application's icon on the icon's green")
 	}
 
 	missing := renderer.Render(render.Appearance{Label: "Gone", IconMissing: true, BackgroundFromIcon: true})
-	if !sameImage(previewImage(t, harness, "/preview.png?page=0&row=0&column=1"), missing) {
+	if !testsupport.SameImage(previewImage(t, harness, "/preview.png?page=0&row=0&column=1"), missing) {
 		t.Error("want the missing marker previewed for an icon that cannot be read")
 	}
 
 	unsaved := "/preview.png?type=kind:open_application&field.label=Green&field.use_app_icon=on" +
 		"&field.application=" + previewedApplication
-	if !sameImage(previewImage(t, harness, unsaved), withIcon) {
+	if !testsupport.SameImage(previewImage(t, harness, unsaved), withIcon) {
 		t.Error("want an unsaved form previewed with its application's icon too")
 	}
 }

@@ -112,6 +112,9 @@ type Appearance struct {
 	// Picture fills the whole key, such as a track's album art, in place of
 	// the label and icon; an error still shows instead.
 	Picture image.Image
+	// Badge is the label an application shows on its Dock icon, such as a
+	// count of unread messages, drawn top right on a plain key.
+	Badge string
 }
 
 // IconSet supplies bundled icons by name as masks, so the renderer can draw
@@ -341,7 +344,10 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 
 		return key
 	default:
-		return renderer.renderPlain(key, appearance, foreground)
+		renderer.renderPlain(key, appearance, foreground)
+		renderer.drawBadge(key, appearance.Badge)
+
+		return key
 	}
 
 	renderer.drawLabel(key, appearance.Label, foreground, renderer.scaled(labelBaselineHundredths))

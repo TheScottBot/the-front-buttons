@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
@@ -80,4 +81,56 @@ type ApplicationLauncherTestDouble struct {
 // LaunchApplication records the identifier.
 func (launcher ApplicationLauncherTestDouble) LaunchApplication(_ context.Context, identifier string) error {
 	return launcher.Recorder.launch(identifier)
+}
+
+// BadgesTestDouble is a fake ApplicationBadges: the badges it is given, or the
+// failure, counting each read.
+type BadgesTestDouble struct {
+	mutex   sync.Mutex
+	badges  map[string]string
+	failure error
+	reads   int
+}
+
+// NewBadgesTestDouble returns a double showing no badges.
+func NewBadgesTestDouble() *BadgesTestDouble {
+	return &BadgesTestDouble{mutex: sync.Mutex{}, badges: map[string]string{}, failure: nil, reads: 0}
+}
+
+// Show sets the badges every later read returns.
+func (double *BadgesTestDouble) Show(badges map[string]string) {
+	double.mutex.Lock()
+	defer double.mutex.Unlock()
+
+	double.badges = maps.Clone(badges)
+}
+
+// Fail makes every later read fail.
+func (double *BadgesTestDouble) Fail(failure error) {
+	double.mutex.Lock()
+	defer double.mutex.Unlock()
+
+	double.failure = failure
+}
+
+// Reads is how many times the badges have been read.
+func (double *BadgesTestDouble) Reads() int {
+	double.mutex.Lock()
+	defer double.mutex.Unlock()
+
+	return double.reads
+}
+
+// Badges returns the badges set, or the failure.
+func (double *BadgesTestDouble) Badges(context.Context) (map[string]string, error) {
+	double.mutex.Lock()
+	defer double.mutex.Unlock()
+
+	double.reads++
+
+	if double.failure != nil {
+		return nil, double.failure
+	}
+
+	return maps.Clone(double.badges), nil
 }

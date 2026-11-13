@@ -23,6 +23,22 @@ var ErrApplicationNotFound = errors.New("application not found")
 // applications' icons at all.
 var ErrIconUnavailable = errors.New("application icons are not available on this system")
 
+// ApplicationBadges reads the badges applications show on their Dock icons,
+// such as a count of unread messages, keyed by application identifier in
+// lower case. An application showing none is left out.
+type ApplicationBadges interface {
+	Badges(readContext context.Context) (map[string]string, error)
+}
+
+// The ways reading badges fails.
+var (
+	// ErrBadgesNotPermitted reports that macOS has not given the daemon
+	// Accessibility, which reading the Dock needs.
+	ErrBadgesNotPermitted = errors.New("not permitted to read badges")
+	// ErrBadgesUnavailable reports a system whose adapter cannot read badges.
+	ErrBadgesUnavailable = errors.New("badges are not available on this system")
+)
+
 // ErrApplicationNotRunning reports an application that is not open, so cannot
 // be brought to the front.
 var ErrApplicationNotRunning = errors.New("application not running")

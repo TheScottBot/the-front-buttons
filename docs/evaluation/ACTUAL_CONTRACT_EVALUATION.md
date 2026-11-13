@@ -3670,6 +3670,35 @@ its front window when it is not, and Comment line became almost instant. A
 press taking a quarter of a second or more is now logged with its time. Rerun,
 run tests and optimise imports are still to be tried in GoLand.
 
+### Notification badges
+
+An application key can show the badge its application has on its Dock icon.
+The plan was to read each application's badge with `lsappinfo`, but with
+Discord's pip showing on its Dock icon `lsappinfo` reported no label at all.
+The Dock itself holds every badge: each application's Dock item has an
+AXStatusLabel attribute, read through the Accessibility the daemon already
+has, and its URL names the application's bundle. So the daemon reads the Dock
+alone, one read listing every badge, and never the applications, and runs no
+new program.
+
+Ticking Show notifications on an `open_application` key has the daemon read the
+Dock every two seconds, apart from the loop so a slow read never holds up a
+press, and only while some key shows a badge. A badge that changes is logged
+and its keys redrawn; a failed read is logged once until it changes, and
+clears the badges rather than leaving old ones showing. The key draws a badge
+as the Dock does, a red pill top right holding the label in white, cut to fit,
+or a red dot for a label with no letter or digit; an error or status on the
+key outranks it.
+
+Tests first, failing before the code: the Dock's records parsed by identifier
+in lower case, with blank, control and over long labels handled; the pill and
+the dot top right and nothing red elsewhere, with goldens for both; errors and
+statuses drawn without the badge; the daemon drawing and clearing a badge
+matched whatever the identifier's case, never reading the Dock while no key
+asks, and logging a failure once. Planted violations failed each of them.
+
+Verified on the physical deck: Discord's pip showed on its key.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
