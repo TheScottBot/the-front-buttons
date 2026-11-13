@@ -7,7 +7,7 @@
 <p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Option (Alt on Windows) as you drop to copy it instead. The move form on each key's page does the same from the keyboard.</p>
 <table class="grid">
 <caption>Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
-{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
+{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{end}}{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
 <aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>

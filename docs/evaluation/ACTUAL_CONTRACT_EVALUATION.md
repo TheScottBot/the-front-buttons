@@ -3386,6 +3386,19 @@ labels within half a pixel. A test of icon and label centres on both the XL
 and plain renderers failed before and caught planted one pixel shifts of the
 icon and the label; nine goldens moved and were regenerated.
 
+### Paging from the grid
+
+The author asked for the editor grid's back and forward tiles to page as the
+deck's do. With more than one page each is now a link to the page a step
+away, wrapping round at either end, named for where it goes ("Back to page 3,
+Three"); with one page there is nowhere to go and it stays a plain tile. They
+stay reserved, so nothing is dropped on them or dragged from them, and the key
+dialog, which only takes key links, leaves them alone. Tests first, failing
+before the code: both directions on the first and last pages, the names, and
+no link with one page. A planted missing wrap-around failed them. In the
+browser pane, back on page one went to page three, whose forward leads to
+page one.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

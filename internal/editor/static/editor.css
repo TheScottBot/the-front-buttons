@@ -291,6 +291,17 @@ main:focus-visible {
   background: var(--field);
 }
 
+/* A paging tile that pages, as the deck's do. */
+
+a.reserved {
+  text-decoration: none;
+}
+
+a.reserved:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
 /* Forms: paper fields with heavy ink borders, lowercase labels, dashed rules
    between forms. */
 

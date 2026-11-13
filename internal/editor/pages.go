@@ -272,15 +272,18 @@ func (pages *pageHandlers) renderPage(
 		view.PageIndex = pageIndex
 		view.PageNumber = pageIndex + 1
 		view.PageName = configuration.Pages[pageIndex].Name
-		view.Rows = pages.gridRows(configuration.Pages[pageIndex], pageIndex)
+		view.Rows = pages.gridRows(configuration.Pages, pageIndex)
 	}
 
 	pages.render(writer, status, "page.html", view)
 }
 
-func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellView {
+func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]cellView {
 	grid := pages.options.Grid
 	rows := make([][]cellView, 0, grid.Rows())
+	page := allPages[pageIndex]
+	back := pagingCell(allPages, pageIndex, -1, "Back")
+	forward := pagingCell(allPages, pageIndex, 1, "Forward")
 
 	for row := range grid.Rows() {
 		cells := make([]cellView, 0, grid.Columns())
@@ -292,9 +295,9 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 
 			switch {
 			case position == grid.BackPosition():
-				cells = append(cells, reservedCell(place+"reserved for paging back", "Back", tile))
+				cells = append(cells, back(place, tile))
 			case position == grid.ForwardPosition():
-				cells = append(cells, reservedCell(place+"reserved for paging forward", "Forward", tile))
+				cells = append(cells, forward(place, tile))
 			default:
 				text, kindName := describeKey(pages.options.Presets, page, position)
 
@@ -328,9 +331,25 @@ func (pages *pageHandlers) gridRows(page config.Page, pageIndex int) [][]cellVie
 
 // reservedCell is a paging position: named, shown, never a link or a drop
 // target.
-func reservedCell(name string, text string, tile string) cellView {
-	return cellView{
-		Reserved: true, Name: name, Text: text, Kind: "", Href: "", Tile: tile, State: tileIsReserve,
+// pagingCell builds a paging tile. With more than one page it links to the
+// page a step away, wrapping round at either end as the deck does, so the grid
+// pages like the deck (the author's request, evaluation, deck testing); with
+// one page there is nowhere to go, and it only says what the tile is for. It
+// stays reserved either way, so nothing is dropped on it or dragged from it.
+func pagingCell(allPages []config.Page, pageIndex int, step int, text string) func(place string, tile string) cellView {
+	return func(place string, tile string) cellView {
+		cell := cellView{
+			Reserved: true, Name: place + "reserved for paging " + strings.ToLower(text), Text: text, Kind: "",
+			Href: "", Tile: tile, State: tileIsReserve,
+		}
+
+		if len(allPages) > 1 {
+			target := (pageIndex + step + len(allPages)) % len(allPages)
+			cell.Href = fmt.Sprintf("/page?page=%d", target)
+			cell.Name = fmt.Sprintf("%s%s to page %d, %s", place, text, target+1, allPages[target].Name)
+		}
+
+		return cell
 	}
 }
 
