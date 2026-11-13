@@ -3431,6 +3431,22 @@ Planted violations (Toolbox included, the previous key stepping forward)
 failed them. The macOS part is built but only the author can try it on the
 deck; Accessibility must be granted again after the reinstall.
 
+On the deck every window press was refused for permission, and stayed so.
+A refused F13 asks macOS for Accessibility and has the daemon restart once
+it is granted, since a running daemon cannot see a grant; a refused window
+key only refused, so a grant never reached the daemon. The key presser's
+prompt and watcher are now its RequestAccessibility, and a refused window key
+calls it too, so both share one prompt and one restart. The test that a
+refusal asks failed before the change, and a planted refusal that does not
+ask failed it.
+
+The grant still did not take at first: the earlier build's Accessibility
+entry was still in the list beside the new one, and macOS went on refusing.
+With both removed, the daemon's own check put back one entry for the running
+build; switched on, the daemon restarted itself and the window keys worked on
+the deck. Each ad hoc signed build is a new identity to macOS, so the grant
+is needed again after every reinstall.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

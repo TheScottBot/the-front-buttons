@@ -38,12 +38,15 @@ type WindowLister func(listContext context.Context, prefix string) (WindowSnapsh
 type WindowCycler struct {
 	trusted func() bool
 	list    WindowLister
+	ask     func()
 }
 
 // NewWindowCyclerWith returns a WindowCycler that asks trusted whether it may
-// read windows, and reads them with list.
-func NewWindowCyclerWith(trusted func() bool, list WindowLister) WindowCycler {
-	return WindowCycler{trusted: trusted, list: list}
+// read windows, reads them with list, and calls ask when refused, which asks
+// macOS for Accessibility and has the daemon restart once it is granted, as
+// a refused F13 does.
+func NewWindowCyclerWith(trusted func() bool, list WindowLister, ask func()) WindowCycler {
+	return WindowCycler{trusted: trusted, list: list, ask: ask}
 }
 
 // CycleWindows raises the window a step from the one in front, wrapping
@@ -51,8 +54,10 @@ func NewWindowCyclerWith(trusted func() bool, list WindowLister) WindowCycler {
 // first and a step back to the last.
 func (cycler WindowCycler) CycleWindows(cycleContext context.Context, group platform.WindowGroup, step int) error {
 	if !cycler.trusted() {
-		return fmt.Errorf("%w: grant The Front Buttons Accessibility in System Settings, Privacy and Security",
-			platform.ErrWindowsNotPermitted)
+		cycler.ask()
+
+		return fmt.Errorf("%w: grant The Front Buttons Accessibility in System Settings, Privacy and Security, "+
+			"and it restarts itself to use it", platform.ErrWindowsNotPermitted)
 	}
 
 	snapshot, listError := cycler.list(cycleContext, group.Prefix)

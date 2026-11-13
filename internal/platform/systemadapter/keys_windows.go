@@ -82,3 +82,6 @@ func (WindowsKeyPresser) PressKey(_ context.Context, key string) error {
 
 	return nil
 }
+
+// RequestAccessibility does nothing: Windows needs no permission to send keys.
+func (WindowsKeyPresser) RequestAccessibility() {}

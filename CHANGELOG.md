@@ -140,8 +140,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - `jetbrains_next_window` and `jetbrains_previous_window` bring forward the
   next or previous window across every running JetBrains IDE, GoLand, PyCharm
   and Rider among them, in a stable order, wrapping round; a 2x1 in the drawer
-  places both. They use the Accessibility permission F13 already needs; on
-  Windows they say moving between windows is unavailable.
+  places both. They use the Accessibility permission F13 already needs, and a
+  refused press asks for it and restarts the daemon once it is granted, as
+  F13's does; on Windows they say moving between windows is unavailable.
 
 ### Fixed
 

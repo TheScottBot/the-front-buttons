@@ -74,8 +74,16 @@ func openWindows(focused string) *snapshotFake {
 func cycleFrom(t *testing.T, fake *snapshotFake, trusted bool, step int) error {
 	t.Helper()
 
+	return cycleAsking(t, fake, trusted, step, func() {})
+}
+
+// cycleAsking cycles with a hook for the request for Accessibility a refusal
+// makes.
+func cycleAsking(t *testing.T, fake *snapshotFake, trusted bool, step int, ask func()) error {
+	t.Helper()
+
 	cycler := systemadapter.NewWindowCyclerWith(func() bool { return trusted },
-		func(context.Context, string) (systemadapter.WindowSnapshot, error) { return fake, nil })
+		func(context.Context, string) (systemadapter.WindowSnapshot, error) { return fake, nil }, ask)
 
 	// The test inspects the cycler's own error.
 	return cycler.CycleWindows(t.Context(), jetbrains(), step) //nolint:wrapcheck // see above
@@ -128,9 +136,16 @@ func TestWindowCycler_RefusesWithoutPermissionOrWindows(t *testing.T) {
 
 	fake := openWindows(punchTitle)
 
-	refusedError := cycleFrom(t, fake, false, 1)
-	if !errors.Is(refusedError, platform.ErrWindowsNotPermitted) || len(fake.raised) != 0 {
-		t.Errorf("want a refusal without Accessibility and nothing raised, got %v, %v", refusedError, fake.raised)
+	// A refusal asks for Accessibility, as F13's does, so macOS shows its
+	// prompt and the daemon restarts itself once it is granted: a running
+	// daemon cannot see a grant, and the window keys stayed refused after the
+	// author granted it (evaluation, deck testing).
+	asked := 0
+
+	refusedError := cycleAsking(t, fake, false, 1, func() { asked++ })
+	if !errors.Is(refusedError, platform.ErrWindowsNotPermitted) || len(fake.raised) != 0 || asked != 1 {
+		t.Errorf("want a refusal that asks for Accessibility and raises nothing, got %v, %v, asked %d",
+			refusedError, fake.raised, asked)
 	}
 
 	empty := &snapshotFake{windows: nil, raised: nil, released: false}

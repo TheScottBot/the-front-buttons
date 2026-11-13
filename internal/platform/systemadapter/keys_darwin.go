@@ -102,6 +102,14 @@ func freshProcessTrusted(checkContext context.Context) bool {
 	return exec.CommandContext(checkContext, binary, "-"+AccessibilityCheckFlag).Run() == nil
 }
 
+// RequestAccessibility has macOS show its Accessibility prompt, once per run,
+// and waits for the permission, so the daemon restarts itself to use it. A
+// refused key press calls it, and so does a refused window key.
+func (presser MacOSKeyPresser) RequestAccessibility() {
+	presser.prompt.Do(func() { C.frontButtonsTrusted(1) })
+	presser.watcher.Start()
+}
+
 // PressKey sends one momentary press of a function key.
 func (presser MacOSKeyPresser) PressKey(_ context.Context, key string) error {
 	code, mapError := MacOSKeyCode(key)
@@ -110,8 +118,7 @@ func (presser MacOSKeyPresser) PressKey(_ context.Context, key string) error {
 	}
 
 	if !AccessibilityTrusted() {
-		presser.prompt.Do(func() { C.frontButtonsTrusted(1) })
-		presser.watcher.Start()
+		presser.RequestAccessibility()
 
 		return fmt.Errorf("%w: grant The Front Buttons Accessibility in System Settings, Privacy and Security, "+
 			"and it restarts itself to use it", platform.ErrKeyNotPermitted)

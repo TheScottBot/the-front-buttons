@@ -462,6 +462,13 @@ func newGitHubHTTPClient() *http.Client {
 
 // daemonOptions wires the adapters into the daemon. It is separate from start so
 // the composition can be tested with fakes in place of the deck and GitHub.
+// askingKeyPresser is a KeyPresser that can ask for the Accessibility
+// permission it needs, so the window keys share its prompt and its restart.
+type askingKeyPresser interface {
+	platform.KeyPresser
+	RequestAccessibility()
+}
+
 func daemonOptions(
 	built core,
 	logger *slog.Logger,
@@ -470,7 +477,7 @@ func daemonOptions(
 	pipelineProvider pipeline.Provider,
 	watcher deck.DeckWatcher,
 	editorAddress string,
-	keyPresser platform.KeyPresser,
+	keyPresser askingKeyPresser,
 ) daemon.Options {
 	return daemon.Options{
 		Watcher:  watcher,
@@ -483,7 +490,7 @@ func daemonOptions(
 			EditorAddress:       func() string { return editorAddress },
 			KeyPresser:          keyPresser,
 			MediaPlayer:         systemadapter.NewMediaPlayer(),
-			WindowCycler:        systemadapter.NewWindowCycler(),
+			WindowCycler:        systemadapter.NewWindowCycler(keyPresser.RequestAccessibility),
 		},
 		Logger:          logger,
 		PollInterval:    deckPollInterval,

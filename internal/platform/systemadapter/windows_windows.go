@@ -11,8 +11,9 @@ import (
 // unavailable, and the keys say so.
 type UnavailableWindowCycler struct{}
 
-// NewWindowCycler returns this machine's WindowCycler.
-func NewWindowCycler() UnavailableWindowCycler { return UnavailableWindowCycler{} }
+// NewWindowCycler returns this machine's WindowCycler; there is no permission
+// to ask for.
+func NewWindowCycler(_ func()) UnavailableWindowCycler { return UnavailableWindowCycler{} }
 
 // CycleWindows reports moving between windows unavailable.
 func (UnavailableWindowCycler) CycleWindows(context.Context, platform.WindowGroup, int) error {
