@@ -1,6 +1,9 @@
 package platform
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // The ways a key press can fail that the person can act on, each shown on the
 // key by its reason category.
@@ -30,4 +33,21 @@ func KeyFailureCategory(pressError error) string {
 	default:
 		return keyFailedCategory
 	}
+}
+
+// Shortcut is a key pressed with modifiers held, as ⌘C or Ctrl+C. Alt is
+// Option on a Mac; Command is the Windows key on Windows.
+type Shortcut struct {
+	Key     string
+	Control bool
+	Alt     bool
+	Shift   bool
+	Command bool
+}
+
+// ShortcutPresser sends shortcuts to whatever has the keyboard focus, and
+// writes them as this system does, for a key that shows its shortcut.
+type ShortcutPresser interface {
+	PressShortcut(pressContext context.Context, shortcut Shortcut) error
+	DescribeShortcut(shortcut Shortcut) string
 }

@@ -310,6 +310,22 @@ A brick kind.
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `key` | text | required |  | function_key | The key to press: F13 to F24. macOS has only F13 to F20, and asks for Accessibility permission the first time. |
 
+### `press_shortcut`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `key` | text | required |  | shortcut_key | The key to press: a letter, a digit, F1 to F20, or a named key. |
+| `control` | boolean | optional |  |  | Hold Control. |
+| `alt` | boolean | optional |  |  | Hold Option on macOS, Alt on Windows. |
+| `shift` | boolean | optional |  |  | Hold Shift. |
+| `command` | boolean | optional |  |  | Hold Command on macOS, the Windows key on Windows. |
+
 ### `spotify_album`
 
 A brick kind.

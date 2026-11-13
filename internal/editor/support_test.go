@@ -110,6 +110,24 @@ func harnessRegistry(t *testing.T, registerExtra func(registry *brick.Registry) 
 func newHarness(t *testing.T, registerExtra func(registry *brick.Registry) error) *editorHarness {
 	t.Helper()
 
+	return newHarnessFor(t, registerExtra, editor.ShortcutPlatformMac)
+}
+
+// newHarnessOnWindows is an editor as the Dell runs it, naming modifier keys
+// as Windows does.
+func newHarnessOnWindows(t *testing.T) *editorHarness {
+	t.Helper()
+
+	return newHarnessFor(t, nil, editor.ShortcutPlatformWindows)
+}
+
+func newHarnessFor(
+	t *testing.T,
+	registerExtra func(registry *brick.Registry) error,
+	shortcutPlatform string,
+) *editorHarness {
+	t.Helper()
+
 	registry := harnessRegistry(t, registerExtra)
 
 	presetTable, presetError := presets.BuiltIn(registry)
@@ -157,6 +175,7 @@ func newHarness(t *testing.T, registerExtra func(registry *brick.Registry) error
 		AppIcons:    applicationIcons{},
 		Apps:        installedApplications{},
 		Credentials: harness.credentials,
+		Platform:    shortcutPlatform,
 		Counters:    harness.counters,
 		Logger:      slog.New(slog.DiscardHandler),
 	})

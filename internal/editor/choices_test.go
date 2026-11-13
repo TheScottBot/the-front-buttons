@@ -22,7 +22,7 @@ func TestEditor_OffersAFormatsValuesAsAChoice(t *testing.T) {
 
 	saved := harness.post(t, "/key", url.Values{
 		pageField: {"0"}, rowField: {"1"}, columnField: {"1"}, typeField: {pressKeyType},
-		"field.key": {"F15"}, labelField: {"Talk"},
+		keyField: {"F15"}, labelField: {"Talk"},
 	})
 	if saved.Code != http.StatusSeeOther {
 		t.Fatalf("want the key saved, got %d", saved.Code)
@@ -51,7 +51,7 @@ func TestEditor_StillRefusesAValueOutsideTheChoice(t *testing.T) {
 	t.Parallel()
 
 	recorder := newHarness(t, nil).post(t, "/key", url.Values{
-		pageField: {"0"}, rowField: {"1"}, columnField: {"1"}, typeField: {pressKeyType}, "field.key": {"F25"},
+		pageField: {"0"}, rowField: {"1"}, columnField: {"1"}, typeField: {pressKeyType}, keyField: {"F25"},
 	})
 	if recorder.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("want F25 refused, got %d", recorder.Code)

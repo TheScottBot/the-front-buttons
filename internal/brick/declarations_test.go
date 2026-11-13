@@ -141,3 +141,15 @@ type defaultNotANumber struct {
 type defaultedCount struct {
 	Count int `brick:"count" bounds:"1,10" default:"5" description:"Five unless changed."`
 }
+
+type labelledModifier struct {
+	Command bool `brick:"command" mac:"Command" windows:"Win" description:"Hold Command, or the Windows key."`
+}
+
+type platformLabelOnText struct {
+	Name string `brick:"name" mac:"Name" windows:"Name" description:"Labels are for check boxes."`
+}
+
+type macLabelAlone struct {
+	Command bool `brick:"command" mac:"Command" description:"A Mac label with no Windows one."`
+}

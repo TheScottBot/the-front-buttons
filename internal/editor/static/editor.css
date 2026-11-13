@@ -885,6 +885,71 @@ label[for$="-picker"] {
       var(--rule) calc(50% + 1px), transparent calc(50% + 1px));
 }
 
+/* Modifier keys: a row of chips, each a check box whose label lights when it
+   is ticked, named as the Mac or Windows names it; the switch above flips the
+   names, shown by the script. The box itself is hidden only from sight, so the
+   keyboard and a screen reader still reach it. */
+
+.modifier-platform {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.modifier-platform[hidden] {
+  display: none;
+}
+
+.platform-choice[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--highlight);
+}
+
+.modifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.modifier input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.modifier label {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  font-weight: 700;
+  border: 3px solid var(--rule);
+  background: var(--field);
+  cursor: pointer;
+}
+
+.modifier input:checked + label {
+  color: var(--on-block);
+  background: var(--block);
+  box-shadow: 4px 4px 0 var(--accent);
+}
+
+.modifier input:focus-visible + label {
+  outline: 4px solid var(--rule);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 8px var(--accent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /*
  * Dark, when the system asks for it or the switch chooses it: the author's
  * Thyme clock. Its near black panel, its pink time text and outline, and lilac

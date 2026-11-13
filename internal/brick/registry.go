@@ -26,6 +26,8 @@ type Ports struct {
 	MediaPlayer platform.MediaPlayer
 	// WindowCycler moves between windows, for the JetBrains window keys.
 	WindowCycler platform.WindowCycler
+	// ShortcutPresser sends shortcuts, for press_shortcut.
+	ShortcutPresser platform.ShortcutPresser
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

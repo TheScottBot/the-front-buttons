@@ -3447,6 +3447,51 @@ build; switched on, the daemon restarted itself and the window keys worked on
 the deck. Each ad hoc signed build is a new identity to macOS, so the grant
 is needed again after every reinstall.
 
+### Shortcuts with modifiers
+
+The author asked for keys that send cut, copy and paste. The system's own
+copy commands are unreliable from outside an application (macOS's menus are
+localised, and Windows's WM_COPY reaches only standard edit controls), and
+each machine runs its own daemon with its own configuration, so the author
+chose a general shortcut key and will set up each machine's in the same
+places.
+
+press_shortcut sends a key with Control, Option or Alt, Shift and Command or
+the Windows key held in any combination. The key is chosen from a list both
+platforms can press: letters, digits, F1 to F20 (macOS has no F21) and named
+keys. The key codes were read from the macOS SDK's Events.h and from
+golang.org/x/sys v0.49.0 on this machine, not from memory. On macOS the key
+is posted with its modifier flags at the HID level, needing the Accessibility
+F13 has, and a refusal asks for it as F13's does; on Windows the modifiers go
+down in order, the key down and up, then the modifiers up in reverse, with
+the navigation keys marked extended. A key without a label shows its shortcut
+as the platform writes it, ⌃⌥⇧⌘C or Ctrl+Alt+Shift+Win+C.
+
+The brick schema gained mac and windows tags, a check box's name on each
+platform, given both or neither. In the editor the modifiers are a row of
+chips, each a real check box hidden only from sight, named as this machine's
+platform names them (main.go tells the editor, as only the adapters may ask
+which platform this is), with a Mac and Windows switch the script shows that
+flips the names; what is saved is the same.
+
+Tests first, failing before the code: the platform labels and their rules;
+the shortcut key list; every key's code on both platforms, with sample codes;
+the Windows stroke order and extended keys; the shortcut text on each
+platform; the brick's press, label and refusal; the editor's chips, the
+switch, Windows names first on Windows, and a saved shortcut. Planted
+violations (modifiers released in the wrong order, the editor ignoring the
+platform) failed them. In the browser pane the switch renamed the chips and a
+chip toggled. The Windows sending is built and linted but not run.
+
+### CI on Windows after the alignment fix
+
+The first CI run after the alignment fix failed on Windows only: the
+brand-github icon's golden differed by four pixels. A subagent read the run
+and judged it flaky, as an earlier run had passed; but that run predated the
+commit that regenerated the goldens, so it is the regenerated golden, made on
+the Mac's arm64, against the Windows runner's amd64 rendering of the icon's
+curves. It could not be reproduced here, as Rosetta is not installed.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

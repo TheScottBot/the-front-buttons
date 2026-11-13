@@ -60,6 +60,8 @@ linters:
         - format
         - suggest
         - replaces
+        - mac
+        - windows
         - description
         - yaml
 

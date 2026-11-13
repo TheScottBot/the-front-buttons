@@ -424,6 +424,7 @@ func startEditor(
 		AppIcons:    built.appIcons,
 		Apps:        systemadapter.NewApplicationCatalogue(),
 		Credentials: credentials, Counters: counters, Logger: logger,
+		Platform: systemadapter.ShortcutPlatform(),
 	})
 	server.ReadHeaderTimeout = editorHeaderTimeout
 	server.ReadTimeout = editorRequestTimeout
@@ -466,6 +467,7 @@ func newGitHubHTTPClient() *http.Client {
 // permission it needs, so the window keys share its prompt and its restart.
 type askingKeyPresser interface {
 	platform.KeyPresser
+	platform.ShortcutPresser
 	RequestAccessibility()
 }
 
@@ -491,6 +493,7 @@ func daemonOptions(
 			KeyPresser:          keyPresser,
 			MediaPlayer:         systemadapter.NewMediaPlayer(),
 			WindowCycler:        systemadapter.NewWindowCycler(keyPresser.RequestAccessibility),
+			ShortcutPresser:     keyPresser,
 		},
 		Logger:          logger,
 		PollInterval:    deckPollInterval,

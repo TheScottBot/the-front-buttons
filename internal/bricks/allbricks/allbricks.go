@@ -12,6 +12,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pagemarker"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/pipelinestatus"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/presskey"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/pressshortcut"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/spotify"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/windowcycle"
 )
@@ -28,6 +29,7 @@ func Register(registry *brick.Registry) error {
 		pagemarker.Register,
 		spotify.Register,
 		windowcycle.Register,
+		pressshortcut.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

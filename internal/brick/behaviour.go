@@ -71,3 +71,9 @@ func (failure categorisedError) ReasonCategory() string { return failure.categor
 func Categorised(category string, cause error) error {
 	return categorisedError{category: category, cause: cause}
 }
+
+// DefaultLabelled is a brick that knows what its key shows when it has no
+// label of its own, as a shortcut key shows its shortcut.
+type DefaultLabelled interface {
+	DefaultLabel() string
+}

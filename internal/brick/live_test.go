@@ -149,3 +149,24 @@ func TestFormatChoices_ListsAFormatsEveryValue(t *testing.T) {
 		t.Error("want no list for an open ended format")
 	}
 }
+
+// TestFormatChoices_ListsEveryShortcutKey: a shortcut's key is chosen from a
+// list both platforms can press, so a typing slip cannot break it.
+func TestFormatChoices_ListsEveryShortcutKey(t *testing.T) {
+	t.Parallel()
+
+	choices := brick.FormatChoices(brick.FormatShortcutKey)
+
+	for _, want := range []string{"A", "Z", "0", "9", "F1", "F18", "Return", "Space", "Left", "Grave"} {
+		if !slices.Contains(choices, want) {
+			t.Errorf("want %s among the shortcut keys", want)
+		}
+	}
+
+	// macOS has no F21, so no shortcut offers it.
+	for _, refused := range []string{"F21", "Hyper", "c", ""} {
+		if brick.CheckFormat(brick.FormatShortcutKey, refused) {
+			t.Errorf("want %q refused as a shortcut key", refused)
+		}
+	}
+}

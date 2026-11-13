@@ -88,7 +88,11 @@ type Options struct {
 	Apps        platform.ApplicationCatalogue
 	Credentials platform.CredentialStore
 	Counters    *diagnostics.Counters
-	Logger      *slog.Logger
+	// Platform names the machine the editor runs on, ShortcutPlatformMac or
+	// ShortcutPlatformWindows, so modifier keys are named as it names them
+	// first; empty is taken as the Mac.
+	Platform string
+	Logger   *slog.Logger
 }
 
 // Listen opens the editor's loopback listener on the preferred port, or, if

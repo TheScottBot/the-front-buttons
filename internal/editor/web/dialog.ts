@@ -9,6 +9,7 @@
 // focus goes back to the tile that opened it.
 
 import { showGroupMoves } from "./group";
+import { showPlatformSwitch } from "./platform";
 import { applyReplacements } from "./replaces";
 import { showSliders } from "./slider";
 
@@ -119,6 +120,7 @@ async function load(parts: Elements, url: string, init?: RequestInit): Promise<v
   applyReplacements(document);
   showSliders(document);
   showGroupMoves(document);
+  showPlatformSwitch(document);
 
   if (!parts.dialog.open) {
     parts.dialog.showModal();

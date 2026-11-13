@@ -97,11 +97,16 @@ func (state *loopState) hiddenByOff(position layout.Position) bool {
 }
 
 // fallbackLabel is what a key shows when it has no label of its own: a page
-// marker its page's number, a brightness key its percentage, an off key the
-// word, and anything else nothing.
+// marker its page's number, a brick that names its own its name (a shortcut
+// key its shortcut), a brightness key its percentage, an off key the word,
+// and anything else nothing.
 func fallbackLabel(configured configuredKey) string {
 	if _, isMarker := configured.instance.(brick.PageMarker); isMarker {
 		return fmt.Sprintf("Page %d", configured.pageIndex+1)
+	}
+
+	if labelled, isLabelled := configured.instance.(brick.DefaultLabelled); isLabelled {
+		return labelled.DefaultLabel()
 	}
 
 	control, isControl := configured.instance.(brick.DeckControl)

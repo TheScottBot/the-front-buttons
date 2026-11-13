@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -57,6 +58,9 @@ const (
 	// press_key key sends; no keyboard has them, so a press never collides with
 	// typing.
 	FormatFunctionKey Format = "function_key"
+	// FormatShortcutKey is the key of a shortcut: a letter, a digit, F1 to
+	// F20, or a named key both macOS and Windows have.
+	FormatShortcutKey Format = "shortcut_key"
 )
 
 // Bounds limits a value: the length in characters for text, the value for an
@@ -84,6 +88,11 @@ type Field struct {
 	// Replaces names the fields a check box stands in for while it is ticked,
 	// as use_app_icon does for icon and icon_file.
 	Replaces []string
+	// MacLabel and WindowsLabel name a check box as each platform does, as a
+	// modifier key is Command on a Mac and Win on Windows; empty for a field
+	// with one name.
+	MacLabel     string
+	WindowsLabel string
 	// Default is where a number starts in a new key's form, written as the
 	// form shows it; empty for none. It never fills a value left out of the
 	// configuration file: a brick says what it does then.
@@ -169,7 +178,36 @@ func formatCheckers() map[Format]func(textValue string) bool {
 		FormatBranch:      isBranchName,
 		FormatPNGFile:     pngFilePattern.MatchString,
 		FormatFunctionKey: functionKeyRule.MatchString,
+		FormatShortcutKey: func(textValue string) bool { return slices.Contains(ShortcutKeys(), textValue) },
 	}
+}
+
+// The function keys a shortcut may use: every one both platforms have, as
+// macOS has none past F20.
+const lastShortcutFunctionKey = 20
+
+// ShortcutKeys is every key a shortcut may name, in the order the editor lists
+// them: letters, digits, F1 to F20, then the named keys.
+func ShortcutKeys() []string {
+	var keys []string
+
+	for letter := 'A'; letter <= 'Z'; letter++ {
+		keys = append(keys, string(letter))
+	}
+
+	for digit := '0'; digit <= '9'; digit++ {
+		keys = append(keys, string(digit))
+	}
+
+	for number := 1; number <= lastShortcutFunctionKey; number++ {
+		keys = append(keys, fmt.Sprintf("F%d", number))
+	}
+
+	return append(keys,
+		"Return", "Tab", "Space", "Escape", "Delete", "ForwardDelete",
+		"Left", "Right", "Up", "Down", "Home", "End", "PageUp", "PageDown",
+		"Minus", "Equals", "LeftBracket", "RightBracket", "Backslash", "Semicolon", "Quote",
+		"Comma", "Period", "Slash", "Grave")
 }
 
 // The extended function keys a function_key value names.
@@ -183,6 +221,10 @@ const (
 // breaks the key (the author's request, evaluation, deck testing). It returns
 // nil for an open ended format.
 func FormatChoices(format Format) []string {
+	if format == FormatShortcutKey {
+		return ShortcutKeys()
+	}
+
 	if format != FormatFunctionKey {
 		return nil
 	}

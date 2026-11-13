@@ -19,7 +19,15 @@
 <input type="hidden" name="row" value="{{.Row}}">
 <input type="hidden" name="column" value="{{.Column}}">
 <input type="hidden" name="type" value="{{.TypeChoice}}">
-{{range .Fields}}<div class="field">
+{{range .Fields}}{{if .Modifier}}{{if .FirstModifier}}<div class="modifier-platform" hidden><span>Show the keys as on</span>
+<button type="button" class="platform-choice" data-platform="mac" aria-pressed="{{if .OnWindows}}false{{else}}true{{end}}">Mac</button>
+<button type="button" class="platform-choice" data-platform="windows" aria-pressed="{{if .OnWindows}}true{{else}}false{{end}}">Windows</button></div>
+<div class="modifiers" role="group" aria-label="Modifier keys to hold">
+{{end}}<span class="modifier"><input id="{{.ID}}" name="{{.Name}}" type="checkbox"{{if .Checked}} checked{{end}} aria-describedby="{{.DescribedBy}}">
+<label for="{{.ID}}" data-mac="{{.MacLabel}}" data-windows="{{.WindowsLabel}}">{{.Label}}</label>
+<span class="visually-hidden" id="{{.DescriptionID}}">{{.Description}}</span></span>
+{{if .LastModifier}}</div>
+{{end}}{{else}}<div class="field">
 <label for="{{.ID}}">{{.Label}}{{if .Required}} (required){{end}}</label>
 {{if eq .Control "select"}}{{$chosen := .Value}}<select id="{{.ID}}" name="{{.Name}}"{{if .Required}} required{{end}}{{if .Error}} aria-invalid="true"{{end}}{{if .Autofocus}} autofocus{{end}} aria-describedby="{{.DescribedBy}}">
 {{range .Options}}<option value="{{.}}"{{if eq . $chosen}} selected{{end}}>{{.}}</option>
@@ -36,7 +44,7 @@
 {{end}}{{end}}{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}
 <p class="help" id="{{.DescriptionID}}">{{if eq .Name "field.icon"}}<a href="/icons" target="_blank" rel="noopener">Browse the icons</a> in a new tab. {{end}}{{.Description}}{{if .Secret}} This names a stored credential; set its secret on the <a href="/credentials">credentials page</a>.{{end}}</p>
 </div>
-{{end}}<button type="submit">Save key</button>
+{{end}}{{end}}<button type="submit">Save key</button>
 </form>
 {{if .HasKey}}<form method="post" action="/key/delete">
 <input type="hidden" name="token" value="{{.Token}}">

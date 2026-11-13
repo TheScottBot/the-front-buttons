@@ -143,6 +143,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   places both. They use the Accessibility permission F13 already needs, and a
   refused press asks for it and restarts the daemon once it is granted, as
   F13's does; on Windows they say moving between windows is unavailable.
+- A `press_shortcut` key sends a key with any combination of modifiers held,
+  such as ⌘C or Ctrl+C. In the editor the key is chosen from a list and each
+  modifier is a chip, named as the Mac or Windows names it, with a switch
+  between the two; each machine names them its own way first. A key without a
+  label shows its shortcut.
 
 ### Fixed
 

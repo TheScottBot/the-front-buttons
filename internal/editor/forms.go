@@ -76,6 +76,51 @@ type fieldView struct {
 	// Replaces lists, space separated, the control IDs a check box sets aside
 	// while it is ticked.
 	Replaces string
+	// A modifier is a check box named on each platform, shown as a chip in a
+	// row with the others, the platform switch before the first: MacLabel and
+	// WindowsLabel are its names, OnWindows whether this machine names it as
+	// Windows does, and FirstModifier and LastModifier open and close the row.
+	Modifier      bool
+	MacLabel      string
+	WindowsLabel  string
+	OnWindows     bool
+	FirstModifier bool
+	LastModifier  bool
+}
+
+// The platforms the editor names modifier keys for.
+const (
+	ShortcutPlatformMac     = "mac"
+	ShortcutPlatformWindows = "windows"
+)
+
+// nameModifiers names each modifier check box as this machine's platform does,
+// and marks the first and last of the row they make.
+func nameModifiers(views []fieldView, platform string) {
+	first, last := -1, -1
+
+	for index := range views {
+		if !views[index].Modifier {
+			continue
+		}
+
+		views[index].OnWindows = platform == ShortcutPlatformWindows
+		views[index].Label = views[index].MacLabel
+
+		if views[index].OnWindows {
+			views[index].Label = views[index].WindowsLabel
+		}
+
+		if first < 0 {
+			first = index
+		}
+
+		last = index
+	}
+
+	if first >= 0 {
+		views[first].FirstModifier, views[last].LastModifier = true, true
+	}
 }
 
 // fieldChoice is one value a picker offers: what the field takes, and the
@@ -188,6 +233,12 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			Choices:       nil,
 			Options:       nil,
 			Replaces:      replacedIDs(field.Replaces),
+			Modifier:      field.MacLabel != "",
+			MacLabel:      field.MacLabel,
+			WindowsLabel:  field.WindowsLabel,
+			OnWindows:     false,
+			FirstModifier: false,
+			LastModifier:  false,
 		}
 
 		// A field whose format has a short, fixed set of values is chosen from

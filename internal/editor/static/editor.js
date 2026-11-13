@@ -33,6 +33,31 @@
     showGroupMoves(root);
   }
 
+  // internal/editor/web/platform.ts
+  function choose(root, platform) {
+    for (const label of root.querySelectorAll("label[data-mac][data-windows]")) {
+      label.textContent = (platform === "mac" ? label.dataset.mac : label.dataset.windows) ?? label.textContent;
+    }
+    for (const button of root.querySelectorAll("button.platform-choice")) {
+      button.setAttribute("aria-pressed", String(button.dataset.platform === platform));
+    }
+  }
+  function showPlatformSwitch(root) {
+    for (const platformSwitch of root.querySelectorAll(".modifier-platform")) {
+      platformSwitch.hidden = false;
+    }
+  }
+  function enablePlatformSwitch(root) {
+    root.addEventListener("click", (event) => {
+      const button = event.target instanceof Element ? event.target.closest("button.platform-choice") : null;
+      const platform = button?.dataset.platform;
+      if (platform === "mac" || platform === "windows") {
+        choose(root, platform);
+      }
+    });
+    showPlatformSwitch(root);
+  }
+
   // internal/editor/web/replaces.ts
   var replacedClass = "replaced";
   function setAside(checkBox, root) {
@@ -164,6 +189,7 @@
     applyReplacements(document);
     showSliders(document);
     showGroupMoves(document);
+    showPlatformSwitch(document);
     if (!parts.dialog.open) {
       parts.dialog.showModal();
     }
@@ -563,6 +589,7 @@
   enableReplacements(document);
   enableSliders(document);
   enableGroupOrder(document);
+  enablePlatformSwitch(document);
   enableThemeToggle(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {

@@ -7,14 +7,19 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
 // The SendInput constants from WinUser.h: a keyboard input, and the flag that
 // makes it a key up.
 const (
-	inputKeyboard   = 1
-	keyEventKeyUp   = 0x0002
-	inputStructSize = 40
+	inputKeyboard = 1
+	keyEventKeyUp = 0x0002
+	// keyEventExtendedKey is KEYEVENTF_EXTENDEDKEY: a navigation key, kept
+	// apart from the number pad's.
+	keyEventExtendedKey = 0x0001
+	inputStructSize     = 40
 )
 
 // keyboardInput is Win32's INPUT holding a KEYBDINPUT, laid out for 64 bit
@@ -81,6 +86,47 @@ func (WindowsKeyPresser) PressKey(_ context.Context, key string) error {
 	}
 
 	return nil
+}
+
+// PressShortcut sends one momentary press of a key with its modifiers held:
+// each modifier down, the key down and up, then the modifiers up.
+func (WindowsKeyPresser) PressShortcut(_ context.Context, shortcut platform.Shortcut) error {
+	strokes, strokeError := WindowsShortcutStrokes(shortcut)
+	if strokeError != nil {
+		return strokeError
+	}
+
+	inputs := make([]keyboardInput, 0, len(strokes))
+
+	for _, stroke := range strokes {
+		var flags uint32
+		if stroke.Up {
+			flags |= keyEventKeyUp
+		}
+
+		if stroke.Extended {
+			flags |= keyEventExtendedKey
+		}
+
+		inputs = append(inputs, keyboardInput{
+			inputType: inputKeyboard, virtualKey: stroke.VirtualKey, scanCode: 0, flags: flags, time: 0, extraInfo: 0,
+		})
+	}
+
+	// SendInput takes a pointer to the slice's array; unsafe is the only way
+	// to pass one to a system call, and the slice outlives the call.
+	sent, _, callError := procSendInput.Call(uintptr(len(inputs)),
+		uintptr(unsafe.Pointer(&inputs[0])), inputStructSize) //nolint:gosec // see above
+	if sent != uintptr(len(inputs)) {
+		return fmt.Errorf("%w: %w", errKeyNotSent, callError)
+	}
+
+	return nil
+}
+
+// DescribeShortcut writes a shortcut as Windows does.
+func (WindowsKeyPresser) DescribeShortcut(shortcut platform.Shortcut) string {
+	return WindowsShortcutText(shortcut)
 }
 
 // RequestAccessibility does nothing: Windows needs no permission to send keys.

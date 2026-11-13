@@ -154,6 +154,8 @@ func TestDeriveSchema_EnforcesEveryTagRule(t *testing.T) {
 		{"default on text", reflect.TypeFor[defaultOnText](), defaultMessage},
 		{"default out of bounds", reflect.TypeFor[defaultOutOfBounds](), defaultMessage},
 		{"default not a number", reflect.TypeFor[defaultNotANumber](), defaultMessage},
+		{"platform labels on text", reflect.TypeFor[platformLabelOnText](), "platform"},
+		{"a Mac label alone", reflect.TypeFor[macLabelAlone](), "platform"},
 	}
 
 	for _, declarationCase := range declarationCases {
@@ -343,5 +345,22 @@ func TestDeriveSchema_ReadsANumbersDefault(t *testing.T) {
 	field, found := schema.Field("count")
 	if !found || field.Default != "5" {
 		t.Fatalf("want the default 5, got %+v", field)
+	}
+}
+
+// TestDeriveSchema_ReadsACheckBoxsPlatformLabels: a modifier key has a name
+// on each platform, Command on a Mac and Win on Windows, so the editor can show
+// either (the author's request, evaluation, deck testing).
+func TestDeriveSchema_ReadsACheckBoxsPlatformLabels(t *testing.T) {
+	t.Parallel()
+
+	schema, deriveError := brick.DeriveSchemaOfType(reflect.TypeFor[labelledModifier]())
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	field, found := schema.Field("command")
+	if !found || field.MacLabel != "Command" || field.WindowsLabel != "Win" {
+		t.Fatalf("want the Mac and Windows labels, got %+v", field)
 	}
 }

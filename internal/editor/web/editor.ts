@@ -6,6 +6,7 @@ import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
 import { enableDrawer } from "./drawer";
 import { enableGroupOrder } from "./group";
+import { enablePlatformSwitch } from "./platform";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
 import { enableSliders } from "./slider";
@@ -15,6 +16,7 @@ enablePickers(document);
 enableReplacements(document);
 enableSliders(document);
 enableGroupOrder(document);
+enablePlatformSwitch(document);
 enableThemeToggle(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");

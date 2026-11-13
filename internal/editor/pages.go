@@ -505,6 +505,7 @@ func (pages *pageHandlers) renderKey(
 	context keyContext,
 ) {
 	pages.attachChoices(request.Context(), context.fields)
+	nameModifiers(context.fields, pages.options.Platform)
 
 	title := "Key"
 	if focusFirstError(context.fields) || len(context.errors) > 0 {

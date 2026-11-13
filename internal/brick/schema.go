@@ -16,6 +16,8 @@ const (
 	brickTagKey       = "brick"
 	boundsTagKey      = "bounds"
 	defaultTagKey     = "default"
+	macTagKey         = "mac"
+	windowsTagKey     = "windows"
 	formatTagKey      = "format"
 	suggestTagKey     = "suggest"
 	replacesTagKey    = "replaces"
@@ -164,6 +166,11 @@ func deriveField(structType reflect.Type, structField reflect.StructField, field
 		return Field{}, locate(defaultError)
 	}
 
+	labelsError := applyPlatformLabels(&field, structField.Tag)
+	if labelsError != nil {
+		return Field{}, locate(labelsError)
+	}
+
 	return field, nil
 }
 
@@ -189,6 +196,8 @@ func parseBrickTag(brickTag string, fieldIndex []int, description string) (Field
 		Suggestions:      "",
 		Replaces:         nil,
 		Default:          "",
+		MacLabel:         "",
+		WindowsLabel:     "",
 		structFieldIndex: fieldIndex,
 	}
 	if !lowerSnakeCaseName.MatchString(field.Name) {
@@ -278,6 +287,26 @@ func applyReplaces(field *Field, structTag reflect.StructTag) error {
 	}
 
 	field.Replaces = strings.Split(replacesTag, ",")
+
+	return nil
+}
+
+// applyPlatformLabels reads a check box's mac and windows tags: its name on
+// each platform, given both or neither.
+func applyPlatformLabels(field *Field, structTag reflect.StructTag) error {
+	macLabel, hasMac := structTag.Lookup(macTagKey)
+	windowsLabel, hasWindows := structTag.Lookup(windowsTagKey)
+
+	switch {
+	case !hasMac && !hasWindows:
+		return nil
+	case field.Type != FieldTypeBoolean:
+		return declarationFault("platform labels apply only to a check box, not %s", field.Type)
+	case !hasMac || !hasWindows || macLabel == "" || windowsLabel == "":
+		return declarationFault("platform labels need both a mac and a windows name")
+	}
+
+	field.MacLabel, field.WindowsLabel = macLabel, windowsLabel
 
 	return nil
 }

@@ -21,8 +21,9 @@ static int frontButtonsTrusted(int prompt) {
 	return trusted;
 }
 
-// frontButtonsPressKey posts one key down and one key up, as a keyboard would.
-static int frontButtonsPressKey(CGKeyCode code) {
+// frontButtonsPressKey posts one key down and one key up, as a keyboard would,
+// with the modifiers asked for held: each is 1 to hold it.
+static int frontButtonsPressKey(CGKeyCode code, int control, int option, int shift, int command) {
 	CGEventRef down = CGEventCreateKeyboardEvent(NULL, code, true);
 	CGEventRef up = CGEventCreateKeyboardEvent(NULL, code, false);
 
@@ -37,6 +38,22 @@ static int frontButtonsPressKey(CGKeyCode code) {
 		return 0;
 	}
 
+	CGEventFlags flags = 0;
+	if (control) {
+		flags |= kCGEventFlagMaskControl;
+	}
+	if (option) {
+		flags |= kCGEventFlagMaskAlternate;
+	}
+	if (shift) {
+		flags |= kCGEventFlagMaskShift;
+	}
+	if (command) {
+		flags |= kCGEventFlagMaskCommand;
+	}
+
+	CGEventSetFlags(down, flags);
+	CGEventSetFlags(up, flags);
 	CGEventPost(kCGHIDEventTap, down);
 	CGEventPost(kCGHIDEventTap, up);
 	CFRelease(down);
@@ -124,7 +141,44 @@ func (presser MacOSKeyPresser) PressKey(_ context.Context, key string) error {
 			"and it restarts itself to use it", platform.ErrKeyNotPermitted)
 	}
 
-	if C.frontButtonsPressKey(C.CGKeyCode(code)) == 0 {
+	return presser.post(code, platform.Shortcut{Key: key, Control: false, Alt: false, Shift: false, Command: false})
+}
+
+// PressShortcut sends one momentary press of a key with its modifiers held.
+func (presser MacOSKeyPresser) PressShortcut(_ context.Context, shortcut platform.Shortcut) error {
+	code, mapError := MacOSShortcutKeyCode(shortcut.Key)
+	if mapError != nil {
+		return mapError
+	}
+
+	if !AccessibilityTrusted() {
+		presser.RequestAccessibility()
+
+		return fmt.Errorf("%w: grant The Front Buttons Accessibility in System Settings, Privacy and Security, "+
+			"and it restarts itself to use it", platform.ErrKeyNotPermitted)
+	}
+
+	return presser.post(code, shortcut)
+}
+
+// DescribeShortcut writes a shortcut as macOS's menus do.
+func (MacOSKeyPresser) DescribeShortcut(shortcut platform.Shortcut) string {
+	return MacOSShortcutText(shortcut)
+}
+
+// post sends the key with the shortcut's modifiers held.
+func (MacOSKeyPresser) post(code uint16, shortcut platform.Shortcut) error {
+	held := func(on bool) C.int {
+		if on {
+			return 1
+		}
+
+		return 0
+	}
+
+	posted := C.frontButtonsPressKey(C.CGKeyCode(code), held(shortcut.Control), held(shortcut.Alt),
+		held(shortcut.Shift), held(shortcut.Command))
+	if posted == 0 {
 		return errKeyEventNotMade
 	}
 

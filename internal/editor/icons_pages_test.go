@@ -79,6 +79,7 @@ func getManyIcons(t *testing.T, path string) string {
 		Apps:        nil,
 		Credentials: nil,
 		Counters:    nil,
+		Platform:    "",
 		Logger:      slog.New(slog.DiscardHandler),
 	})
 
