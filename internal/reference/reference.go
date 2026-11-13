@@ -1,4 +1,4 @@
-// Package reference generates the README's brick reference from the brick
+// Package reference generates the brick reference in docs/BRICKS.md from the brick
 // registry and the preset table, so the documentation is derived from the same
 // declarations as validation, decoding and the editor's forms (specification
 // section 2), and a check fails if the two ever differ.
@@ -15,14 +15,14 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/presets"
 )
 
-// sectionHeading starts the README section this package owns.
+// sectionHeading starts the section of docs/BRICKS.md this package owns.
 const sectionHeading = "## Brick reference\n"
 
 // nextSectionStart is how the following section begins.
 const nextSectionStart = "\n## "
 
-// ErrNoSection reports a README without the brick reference heading.
-var ErrNoSection = errors.New("the README has no brick reference section")
+// ErrNoSection reports a document without the brick reference heading.
+var ErrNoSection = errors.New("the document has no brick reference section")
 
 // Markdown describes every kind and preset: each field's name, type, whether it
 // is required, its bounds, its format and its description.
@@ -30,7 +30,7 @@ func Markdown(registry *brick.Registry, presetTable presets.Table) string {
 	var generated strings.Builder
 
 	generated.WriteString("\nGenerated from each kind's and preset's declaration. Do not edit by hand: run\n")
-	generated.WriteString("`UPDATE_README=1 go test ./internal/reference/` after changing a declaration.\n")
+	generated.WriteString("`UPDATE_BRICKS=1 go test ./internal/reference/` after changing a declaration.\n")
 
 	for _, kindName := range registry.KindNames() {
 		kind, _ := registry.Kind(kindName)
@@ -103,37 +103,37 @@ func compactDuration(duration time.Duration) string {
 	return written
 }
 
-// Section returns the README's current brick reference.
-func Section(readme string) (string, error) {
-	start, end, findError := sectionBounds(readme)
+// Section returns a document's current brick reference.
+func Section(document string) (string, error) {
+	start, end, findError := sectionBounds(document)
 	if findError != nil {
 		return "", findError
 	}
 
-	return readme[start:end], nil
+	return document[start:end], nil
 }
 
-// ReplaceSection returns the README with its brick reference replaced.
-func ReplaceSection(readme string, generated string) (string, error) {
-	start, end, findError := sectionBounds(readme)
+// ReplaceSection returns a document with its brick reference replaced.
+func ReplaceSection(document string, generated string) (string, error) {
+	start, end, findError := sectionBounds(document)
 	if findError != nil {
 		return "", findError
 	}
 
-	return readme[:start] + generated + readme[end:], nil
+	return document[:start] + generated + document[end:], nil
 }
 
-func sectionBounds(readme string) (int, int, error) {
-	headingAt := strings.Index(readme, sectionHeading)
+func sectionBounds(document string) (int, int, error) {
+	headingAt := strings.Index(document, sectionHeading)
 	if headingAt < 0 {
 		return 0, 0, ErrNoSection
 	}
 
 	start := headingAt + len(sectionHeading)
 
-	nextAt := strings.Index(readme[start:], nextSectionStart)
+	nextAt := strings.Index(document[start:], nextSectionStart)
 	if nextAt < 0 {
-		return start, len(readme), nil
+		return start, len(document), nil
 	}
 
 	return start, start + nextAt + 1, nil

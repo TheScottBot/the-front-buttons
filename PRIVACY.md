@@ -10,9 +10,9 @@ There is no telemetry, analytics or crash reporting.
 
 ## What is stored, and where
 
-- The configuration file, in the per machine folder `README.md` names. It can hold
-  colleagues' identifiers: a Teams chat link names its participants by their user
-  principal names, usually email addresses.
+- The configuration file, in the per machine folder `docs/SETUP.md` names. It
+  can hold colleagues' identifiers: a Teams chat link names its participants by
+  their user principal names, usually email addresses.
 - Credentials, in the operating system's credential store only.
 - The log, in the state folder, rotated at a megabyte with three older files kept.
   It records kinds, pages, positions, reason categories and counts. It never

@@ -82,7 +82,7 @@ go through `SendInput`, both called directly.
 
 Installs signed with the person's own code signing certificate keep the
 Accessibility grant across reinstalls; ad hoc signed ones need it granted again
-(README, Key presses on macOS).
+(`docs/SETUP.md`, Key presses on macOS).
 
 ## Files
 

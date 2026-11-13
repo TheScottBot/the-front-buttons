@@ -3,6 +3,27 @@
 Every suite, its command, and where it runs. Commands run from the repository
 root with Go 1.27.4; nothing here needs a Stream Deck attached.
 
+## Running the checks
+
+```bash
+go test ./...
+```
+
+```bash
+go tool -modfile=tools/go.mod golangci-lint run ./...
+```
+
+```bash
+scripts/check-duplicate-code.sh
+```
+
+The first command includes the repository checks (prose and typography,
+operating system use, the README's first line, and the brick reference in
+`docs/BRICKS.md`).
+The second runs the linters, including the import layering rules. The third looks
+for duplicated code across every package. Checking tools are pinned in their own module under `tools/`, so they
+never enter the daemon's dependencies.
+
 ## Suites
 
 | Suite | Command | Runs where |
@@ -14,7 +35,7 @@ root with Go 1.27.4; nothing here needs a Stream Deck attached.
 | Build with vet | `go build ./...` then `go vet ./...` | locally; CI on both runners |
 | Fuzzing the configuration decoder: never panics, and anything accepted survives encode then decode unchanged | `go test -run '^$' -fuzz FuzzDecode -fuzztime 30s ./internal/config/` | locally; CI on both runners, 30 seconds per run |
 | Fuzzing the deck's input report and feature text decoders: never panic, accept only exact lengths | `go test -run '^$' -fuzz '^FuzzDecodeKeyStates$' -fuzztime 30s ./internal/deck/`, and the same for `^FuzzDecodeSerialNumber$` | locally; CI on both runners, 30 seconds each |
-| README brick reference matches the registry and preset table; regenerate with `UPDATE_README=1 go test ./internal/reference/` | included in `go test ./...`, as `internal/reference` | locally; CI on both runners |
+| The brick reference in `docs/BRICKS.md` matches the registry and preset table; regenerate with `UPDATE_BRICKS=1 go test ./internal/reference/` | included in `go test ./...`, as `internal/reference` | locally; CI on both runners |
 | Start at login: the macOS install script refuses a missing binary and the printed agent passes `plutil -lint`; the Windows install script exits 2 on a missing binary and the printed task parses as XML | the two steps in `.github/workflows/ci.yml`; locally on macOS, `go run ./cmd/the-front-buttons -print-launch-agent \| plutil -lint -` | CI on both runners; the Windows script only in CI |
 | The editor's script (`static/editor.js`) matches its TypeScript in `web/`: rebuilt with the pinned esbuild and compared, line endings ignored | `scripts/check-editor-script.sh`; regenerate with `go generate ./internal/editor/` | locally; CI on both runners, under Bash |
 | Duplicate code across packages: standalone mibk/dupl, threshold 100 tokens | `scripts/check-duplicate-code.sh` | locally; CI on both runners, under Bash |

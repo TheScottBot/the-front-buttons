@@ -12,9 +12,9 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
-// updateReadmeVariable rewrites the README's brick reference from the registry
-// when set to 1.
-const updateReadmeVariable = "UPDATE_README"
+// updateBricksVariable rewrites the brick reference in docs/BRICKS.md from
+// the registry when set to 1.
+const updateBricksVariable = "UPDATE_BRICKS"
 
 func builtInReference(t *testing.T) string {
 	t.Helper()
@@ -61,30 +61,31 @@ func TestMarkdown_DescribesEveryKindFieldAndPreset_FromTheirSchemas(t *testing.T
 	}
 }
 
-// readmePath is the repository's README, from this package's directory, where
-// go test runs.
-const readmePath = "../../README.md"
+// bricksPath is the brick reference's document, from this package's
+// directory, where go test runs. It moved out of the README to keep the README
+// short.
+const bricksPath = "../../docs/BRICKS.md"
 
-// TestREADME_BrickReferenceMatchesTheRegistry fails whenever a kind, field or
-// preset changes without the README following (specification TE10).
-func TestREADME_BrickReferenceMatchesTheRegistry(t *testing.T) {
+// TestBrickReference_MatchesTheRegistry fails whenever a kind, field or preset
+// changes without docs/BRICKS.md following (specification TE10).
+func TestBrickReference_MatchesTheRegistry(t *testing.T) {
 	t.Parallel()
 
-	readme, readError := os.ReadFile(readmePath)
+	document, readError := os.ReadFile(bricksPath)
 	if readError != nil {
 		t.Fatal(readError)
 	}
 
 	generated := builtInReference(t)
 
-	if os.Getenv(updateReadmeVariable) == "1" {
-		updated, replaceError := reference.ReplaceSection(string(readme), generated)
+	if os.Getenv(updateBricksVariable) == "1" {
+		updated, replaceError := reference.ReplaceSection(string(document), generated)
 		if replaceError != nil {
 			t.Fatal(replaceError)
 		}
 
-		// A constant path: the taint rule follows the README's contents, not the path.
-		writeError := os.WriteFile(readmePath, []byte(updated), 0o600) //nolint:gosec // see above
+		// A constant path: the taint rule follows the document's contents, not the path.
+		writeError := os.WriteFile(bricksPath, []byte(updated), 0o600) //nolint:gosec // see above
 		if writeError != nil {
 			t.Fatal(writeError)
 		}
@@ -92,12 +93,12 @@ func TestREADME_BrickReferenceMatchesTheRegistry(t *testing.T) {
 		return
 	}
 
-	current, sectionError := reference.Section(string(readme))
+	current, sectionError := reference.Section(string(document))
 	if sectionError != nil {
 		t.Fatal(sectionError)
 	}
 
 	if current != generated {
-		t.Fatalf("the README's brick reference is out of date; run %s=1 go test ./internal/reference/", updateReadmeVariable)
+		t.Fatalf("docs/BRICKS.md is out of date; run %s=1 go test ./internal/reference/", updateBricksVariable)
 	}
 }
