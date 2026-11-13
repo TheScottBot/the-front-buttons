@@ -3201,6 +3201,27 @@ is still the brick's to handle, so the off key's own default rose from 10 to
 bounds check on a default, no prefill) failed them; in the browser both new
 key forms opened at their levels.
 
+### Copying a page
+
+The author asked to copy a page, both to a new page and onto an existing one.
+Each page now has both under "Copy this page's keys": to a new page, at the
+end and named as given, or onto any other page, listed by number and name
+and never itself. Every key is cloned, as a single key copy is, and the
+change goes through the store like any other save.
+
+Copying onto a page keeps its keys. As with a single key, nothing is ever
+silently overwritten: if any copied key would land on a key, the whole copy is
+refused, the page is left unchanged, and the refusal names each clashing tile
+counting from one. A page that no longer exists, or a page copied onto itself,
+is refused in words too.
+
+Tests first, failing before the code: a copy to a new page, a nameless one
+refused, a copy onto another page beside its keys, a clash refused with its
+tiles named and the file untouched, bad targets refused, and the page offering
+both forms. A planted missing clash check failed them. A test that the copy's
+parameters were not shared with the original was dropped: it read the keys
+back from the file, which decodes fresh values, so it could never fail.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

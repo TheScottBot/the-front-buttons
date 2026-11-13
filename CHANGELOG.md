@@ -110,6 +110,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - A bounded number in the editor, such as a brightness level, can be set with a
   slider as well as typed; the two stay in step. A new key's form starts at the
   number's default: 50 percent for brightness, 20 for off.
+- A page's keys can be copied to a new page, named as given, or onto another
+  page beside its keys. A copy that would land on a key copies nothing and
+  names the clashing tiles.
 
 ### Fixed
 

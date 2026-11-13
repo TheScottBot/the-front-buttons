@@ -137,6 +137,8 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("POST /page/add", pages.addPage)
 	mux.HandleFunc("POST /page/rename", pages.renamePage)
 	mux.HandleFunc("POST /page/delete", pages.deletePage)
+	mux.HandleFunc("POST /page/copy/new", pages.copyPageToNew)
+	mux.HandleFunc("POST /page/copy/onto", pages.copyPageOnto)
 	mux.HandleFunc("GET /key", pages.showKey)
 	mux.HandleFunc("POST /key", pages.saveKey)
 	mux.HandleFunc("POST /key/delete", pages.deleteKey)

@@ -226,6 +226,8 @@ type pageView struct {
 	HasPage    bool
 	Pages      []pageLink
 	Rows       [][]cellView
+	// CopyTargets are the pages this one can be copied onto: every other.
+	CopyTargets []copyTarget
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
@@ -253,6 +255,8 @@ func (pages *pageHandlers) renderPage(
 		HasPage:    false,
 		Pages:      nil,
 		Rows:       nil,
+
+		CopyTargets: copyTargets(configuration, pageIndex),
 	}
 
 	for index, page := range configuration.Pages {

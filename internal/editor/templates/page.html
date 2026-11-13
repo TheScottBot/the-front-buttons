@@ -16,6 +16,26 @@
 <input id="rename-name" name="name" type="text" value="{{.PageName}}" required minlength="1" maxlength="24">
 <button type="submit">Rename</button>
 </form>
+<fieldset class="copy-page">
+<legend>Copy this page's keys</legend>
+<form method="post" action="/page/copy/new" class="inline">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<label for="copy-new-name">To a new page named</label>
+<input id="copy-new-name" name="name" type="text" required minlength="1" maxlength="24">
+<button type="submit">Copy to a new page</button>
+</form>
+{{if .CopyTargets}}<form method="post" action="/page/copy/onto" class="inline">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<label for="copy-onto">Onto</label>
+<select id="copy-onto" name="to">
+{{range .CopyTargets}}<option value="{{.Value}}">{{.Label}}</option>
+{{end}}</select>
+<button type="submit">Copy onto that page</button>
+</form>
+<p class="help">Copying onto a page keeps its keys. If a copied key would land on one, nothing is copied and the clashing tiles are named.</p>{{end}}
+</fieldset>
 <form method="post" action="/page/delete" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
