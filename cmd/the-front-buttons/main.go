@@ -102,6 +102,8 @@ func run() int {
 	printName := flag.Bool("print-name", false, "print the product's display name, the logon task's name, then exit")
 	accessibilityCheck := flag.Bool(systemadapter.AccessibilityCheckFlag, false,
 		"exit zero if macOS trusts this binary for Accessibility, one if not")
+	openEditorFlag := flag.Bool("open-editor", false,
+		"open the running daemon's editor in the browser with a one time login link, then exit")
 	editorPort := flag.Int("editor-port", editor.DefaultPort,
 		"the editor's port on 127.0.0.1; if another program holds it, any free port is used instead; 0 for any")
 
@@ -110,6 +112,10 @@ func run() int {
 	if status, answered := answerOneShot(*accessibilityCheck, *printName, *printLaunchAgent, *printScheduledTask,
 		*taskUser); answered {
 		return status
+	}
+
+	if *openEditorFlag {
+		return openEditor()
 	}
 
 	if *editorPort < 0 || *editorPort > maximumPort {
@@ -128,7 +134,7 @@ func run() int {
 
 	logger.InfoContext(runContext, "state", slog.String("directory", stateDirectory))
 
-	startError := start(runContext, logger, *configPathOverride, *editorPort)
+	startError := start(runContext, logger, *configPathOverride, *editorPort, stateDirectory)
 	if errors.Is(startError, errRestartForPermission) {
 		logger.InfoContext(runContext, "restarting to use the Accessibility permission just granted")
 
@@ -319,7 +325,13 @@ func buildCore() (core, error) {
 	}, nil
 }
 
-func start(runContext context.Context, logger *slog.Logger, configPathOverride string, editorPort int) error {
+func start(
+	runContext context.Context,
+	logger *slog.Logger,
+	configPathOverride string,
+	editorPort int,
+	stateDirectory string,
+) error {
 	built, buildError := buildCore()
 	if buildError != nil {
 		return buildError
@@ -332,12 +344,7 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 
 	built.iconFiles = usericons.NewFolder(filepath.Join(filepath.Dir(configPath), iconsFolderName))
 
-	logger.InfoContext(runContext, "starting",
-		slog.String("product", platform.ProductDisplayName),
-		slog.String("version", buildVersion()),
-		slog.String("config", configPath),
-		slog.Any("kinds", built.registry.KindNames()),
-		slog.Any("presets", built.presetTable.Names()))
+	logStarting(runContext, logger, built, configPath)
 
 	decoder := config.NewDecoder(built.registry, built.presetTable, built.grid)
 	store := config.NewStore(configPath, decoder, config.LocalFileSystem{})
@@ -350,8 +357,8 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 	counters := diagnostics.NewCounters()
 	credentials := systemadapter.NewKeyringCredentialStore()
 
-	editorAddress, stopEditor, editorError := startEditor(runContext, logger, built, store, credentials, counters,
-		editorPort)
+	editorLogin, stopEditor, editorError := startEditor(runContext, logger, built, store, credentials, counters,
+		editorPort, stateDirectory)
 	if editorError != nil {
 		return editorError
 	}
@@ -372,7 +379,7 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 
 	runner := daemon.New(daemonOptions(built, logger, counters, credentials,
 		githubactions.NewClient(newGitHubHTTPClient(), credentials, counters),
-		hidtransport.NewWatcher(), editorAddress, keyPresser))
+		hidtransport.NewWatcher(), editorLogin, keyPresser))
 
 	runError := runner.Run(daemonContext, configurations)
 
@@ -383,9 +390,57 @@ func start(runContext context.Context, logger *slog.Logger, configPathOverride s
 	return runError //nolint:wrapcheck // the daemon's errors already say what failed
 }
 
+// logStarting logs what this run is: the product, its version, its
+// configuration file and the kinds and presets it knows.
+func logStarting(runContext context.Context, logger *slog.Logger, built core, configPath string) {
+	logger.InfoContext(runContext, "starting",
+		slog.String("product", platform.ProductDisplayName),
+		slog.String("version", buildVersion()),
+		slog.String("config", configPath),
+		slog.Any("kinds", built.registry.KindNames()),
+		slog.Any("presets", built.presetTable.Names()))
+}
+
 // errRestartForPermission asks run to exit so the daemon restarts with a
 // permission granted while it ran.
 var errRestartForPermission = errors.New("restarting for a permission granted while running")
+
+// newEditorServer is the editor's HTTP server, bounded in time so a slow or
+// idle connection cannot hold it.
+func newEditorServer(handler http.Handler) *http.Server {
+	server := new(http.Server)
+	server.Handler = handler
+	server.ReadHeaderTimeout = editorHeaderTimeout
+	server.ReadTimeout = editorRequestTimeout
+	server.WriteTimeout = editorRequestTimeout
+	server.IdleTimeout = editorIdleTimeout
+
+	return server
+}
+
+// editorSessions is the editor's token, reused from the state folder, and the
+// sessions it gives. The address and token are saved for the -open-editor
+// command; without them the deck's key still opens the editor, so a failure to
+// save is logged, not fatal.
+func editorSessions(
+	runContext context.Context,
+	logger *slog.Logger,
+	stateDirectory string,
+	address string,
+) (string, *editor.Sessions, error) {
+	token, tokenError := editorSessionToken(stateDirectory)
+	if tokenError != nil {
+		return "", nil, tokenError
+	}
+
+	saveError := writeEditorSession(stateDirectory, address, token)
+	if saveError != nil {
+		logger.WarnContext(runContext, "editor session not saved; -open-editor will not work",
+			slog.String("error", saveError.Error()))
+	}
+
+	return token, editor.NewSessions(token), nil
+}
 
 // startEditor opens the editor on a loopback port with a token minted for this
 // launch, prints its address (TD9), and returns the address and a function that
@@ -398,10 +453,11 @@ func startEditor(
 	credentials platform.CredentialStore,
 	counters *diagnostics.Counters,
 	editorPort int,
-) (string, func(), error) {
+	stateDirectory string,
+) (func() string, func(), error) {
 	listener, fellBack, listenError := editor.Listen(runContext, editorPort)
 	if listenError != nil {
-		return "", nil, fmt.Errorf("starting the editor: %w", listenError)
+		return nil, nil, fmt.Errorf("starting the editor: %w", listenError)
 	}
 
 	if fellBack {
@@ -409,27 +465,23 @@ func startEditor(
 			slog.Int("wanted", editorPort), slog.String("address", listener.Addr().String()))
 	}
 
-	token, tokenError := editor.NewToken()
-	if tokenError != nil {
-		return "", nil, errors.Join(tokenError, listener.Close())
-	}
-
 	address := listener.Addr().String()
 	editorURL := "http://" + address + "/"
 
-	server := new(http.Server)
-	server.Handler = editor.NewHandler(editor.Options{
+	token, sessions, sessionError := editorSessions(runContext, logger, stateDirectory, address)
+	if sessionError != nil {
+		return nil, nil, errors.Join(sessionError, listener.Close())
+	}
+
+	server := newEditorServer(editor.NewHandler(editor.Options{
 		Address: address, Token: token, Store: store, Registry: built.registry, Presets: built.presetTable,
 		Grid: built.grid, Renderer: built.renderer, Icons: built.icons, IconFiles: built.iconFiles,
 		AppIcons:    built.appIcons,
 		Apps:        systemadapter.NewApplicationCatalogue(),
 		Credentials: credentials, Counters: counters, Logger: logger,
 		Platform: systemadapter.ShortcutPlatform(),
-	})
-	server.ReadHeaderTimeout = editorHeaderTimeout
-	server.ReadTimeout = editorRequestTimeout
-	server.WriteTimeout = editorRequestTimeout
-	server.IdleTimeout = editorIdleTimeout
+		Sessions: sessions,
+	}))
 
 	go func() {
 		serveError := server.Serve(listener)
@@ -449,7 +501,20 @@ func startEditor(
 		_ = server.Shutdown(shutdownContext)
 	}
 
-	return editorURL, stop, nil
+	return loginLinks(sessions, address, editorURL), stop, nil
+}
+
+// loginLinks gives the deck's editor key a fresh one time login link at each
+// press, or the editor's plain address if one cannot be minted.
+func loginLinks(sessions *editor.Sessions, address string, editorURL string) func() string {
+	return func() string {
+		link, linkError := sessions.LoginURL(address)
+		if linkError != nil {
+			return editorURL
+		}
+
+		return link
+	}
 }
 
 // newGitHubHTTPClient is the HTTP client for GitHub: the standard transport with
@@ -478,7 +543,7 @@ func daemonOptions(
 	credentials platform.CredentialStore,
 	pipelineProvider pipeline.Provider,
 	watcher deck.DeckWatcher,
-	editorAddress string,
+	editorLogin func() string,
 	keyPresser askingKeyPresser,
 ) daemon.Options {
 	return daemon.Options{
@@ -489,7 +554,7 @@ func daemonOptions(
 			URLOpener:           systemadapter.NewURLOpener(),
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
 			PipelineProvider:    pipelineProvider,
-			EditorAddress:       func() string { return editorAddress },
+			EditorAddress:       editorLogin,
 			KeyPresser:          keyPresser,
 			MediaPlayer:         systemadapter.NewMediaPlayer(),
 			WindowCycler:        systemadapter.NewWindowCycler(keyPresser.RequestAccessibility),

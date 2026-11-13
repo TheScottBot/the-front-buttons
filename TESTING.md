@@ -1,7 +1,7 @@
 # Testing
 
 Every suite, its command, and where it runs. Commands run from the repository
-root with Go 1.27.3; nothing here needs a Stream Deck attached.
+root with Go 1.27.4; nothing here needs a Stream Deck attached.
 
 ## Suites
 

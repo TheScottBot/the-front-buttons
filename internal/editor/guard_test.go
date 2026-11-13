@@ -34,8 +34,10 @@ func TestEditor_RefusesARequestFromAnotherOrigin(t *testing.T) {
 		request.Header.Set("Origin", "https://attacker.test")
 	})
 
+	// Even with a session, a request from another origin is refused.
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+testAddress+"/page", http.NoBody)
 	request.Header.Set("Origin", "https://attacker.test")
+	withSession(request)
 
 	fetched := httptest.NewRecorder()
 	harness.handler.ServeHTTP(fetched, request)
@@ -98,7 +100,7 @@ func TestEditor_RefusesAnOversizedRequest(t *testing.T) {
 func TestEditor_SetsProtectiveHeaders(t *testing.T) {
 	t.Parallel()
 
-	recorder := newHarness(t, nil).get(t, "/page?page=0")
+	recorder := newHarness(t, nil).get(t, firstPagePath)
 
 	headers := map[string]string{
 		"Content-Security-Policy": "default-src 'self'",
@@ -122,7 +124,7 @@ func TestEditor_SetsProtectiveHeaders(t *testing.T) {
 func TestEditor_ReferrerPolicyLetsTheBrowserSendItsOwnOrigin(t *testing.T) {
 	t.Parallel()
 
-	recorder := newHarness(t, nil).get(t, "/page?page=0")
+	recorder := newHarness(t, nil).get(t, firstPagePath)
 
 	if got := recorder.Header().Get("Referrer-Policy"); got != "same-origin" {
 		t.Fatalf("want Referrer-Policy same-origin, got %q", got)

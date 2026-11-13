@@ -51,11 +51,11 @@ func TestEditor_PagingTilesPageLikeTheDeck(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(pagingLink(harness.get(t, "/page?page=0").Body.String(), "0.3.7"), "Two") {
+	if !strings.Contains(pagingLink(harness.get(t, firstPagePath).Body.String(), "0.3.7"), "Two") {
 		t.Error("want the forward tile to name the page it goes to")
 	}
 
-	if single := newHarness(t, nil).get(t, "/page?page=0").Body.String(); pagingLink(single, "0.3.0") != "" {
+	if single := newHarness(t, nil).get(t, firstPagePath).Body.String(); pagingLink(single, "0.3.0") != "" {
 		t.Error("want no paging link with only one page to go to")
 	}
 }

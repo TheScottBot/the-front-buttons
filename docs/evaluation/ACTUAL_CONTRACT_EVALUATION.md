@@ -3553,6 +3553,58 @@ verified on the physical deck. This exercises the dock switching path, not
 TE10: the session was not logged out, so the daemon was not started afresh
 at login.
 
+### Security sweep
+
+Before running the daemon on a work machine, its behaviour was inventoried from
+the code: every network request and listener, program run, operating system
+permission, file read and written, and log field. govulncheck found one issue,
+GO-2026-6859 in Go 1.27.3's net/http, reachable through the editor's request
+size limit, and nothing in any dependency.
+
+Three fixes followed, with the threat each answers stated plainly. Programs
+running as the same person are trusted by design: they can read the
+configuration and the session file, and the Keychain entries, which
+/usr/bin/security creates and so can read back.
+
+- Go 1.27.4, in go.mod and tools/go.mod; CI reads its version from go.mod.
+- The GitHub token is bound to the host it was stored for, kept beside it in
+  the credential store as "<name>.host" and set on the credentials page,
+  api.github.com unless an Enterprise host is given; a token stored before
+  defaults to api.github.com. The client refuses a query to any other host as
+  credential_host before making a request, so a configuration from elsewhere
+  cannot send the token to its own server. Credential names became at most 59
+  characters, so the binding's name fits the store's bound.
+- Every editor page needs a session, a cookie holding the editor's token,
+  HttpOnly and SameSite Strict, given only by a one time login link valid once
+  within two minutes; the editor's own script and styles need none. The deck's
+  editor key opens a fresh link at each press. The -open-editor command reads
+  the address and token from the state folder's editor-session file, mode 0600,
+  asks the running daemon for a link with the token as a bearer header, takes
+  only a link back to that editor, and opens it, so the token never appears in
+  a command line another account could see. The token is reused across
+  restarts, so an open editor keeps its session. Other accounts on the machine
+  can reach the loopback port but not the token, so they can no longer use the
+  editor.
+
+SECURITY.md was rewritten to state what the daemon does and does not do, each
+statement naming the code it rests on, and PRIVACY.md now names the album art
+request. A repository test lists every fixed program path the daemon's Go code
+names and fails if SECURITY.md does not mention it.
+
+Tests first, failing before the code: the default and bound host and the host
+checks; the client refusing an unbound or other host before any request; the
+credentials page binding a host and refusing one with a scheme or path; pages
+refused without a session or with a wrong one, and served with it; a login link
+setting the cookie once and refused when used or older than two minutes; the
+link request needing the bearer token; the session file kept private and
+reused; -open-editor taking only a link to the editor; and the program list.
+Planted violations failed them: no host check in the client, no session check,
+a login code usable twice, and a program missing from SECURITY.md. Verified on
+the installed daemon: a page without a session answers 403 with how to open the
+editor, the stylesheet loads, a link request without the token is refused, and
+the session file is mode 0600. govulncheck rerun on Go 1.27.4 found no
+vulnerabilities.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

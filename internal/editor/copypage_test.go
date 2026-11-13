@@ -137,7 +137,7 @@ func TestEditor_PageOffersBothCopies(t *testing.T) {
 	harness := newHarness(t, nil)
 	harness.replaceFile(t, twoPageConfiguration("1", "1"))
 
-	body := harness.get(t, "/page?page=0").Body.String()
+	body := harness.get(t, firstPagePath).Body.String()
 
 	for _, want := range []string{
 		`action="` + copyToNewPath + `"`,
@@ -153,7 +153,7 @@ func TestEditor_PageOffersBothCopies(t *testing.T) {
 		t.Error("want the page never offered as a copy of itself")
 	}
 
-	if strings.Contains(newHarness(t, nil).get(t, "/page?page=0").Body.String(), `action="`+copyOntoPath+`"`) {
+	if strings.Contains(newHarness(t, nil).get(t, firstPagePath).Body.String(), `action="`+copyOntoPath+`"`) {
 		t.Error("want no copy onto another page when there is no other page")
 	}
 }
@@ -167,7 +167,7 @@ func TestEditor_CopiesSitInAClosedDrawer(t *testing.T) {
 	harness := newHarness(t, nil)
 	harness.replaceFile(t, twoPageConfiguration("1", "1"))
 
-	body := harness.get(t, "/page?page=0").Body.String()
+	body := harness.get(t, firstPagePath).Body.String()
 
 	const opening = `<details class="copy-page">`
 

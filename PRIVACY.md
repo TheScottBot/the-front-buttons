@@ -2,9 +2,11 @@
 
 ## What is collected
 
-Nothing leaves the machine except the GitHub requests a person configures: each
-names a repository, workflow and branch and carries that person's token. There is
-no telemetry, analytics or crash reporting.
+Nothing leaves the machine except two kinds of request a person configures. A
+pipeline key's GitHub request names a repository, workflow and branch and
+carries that person's token, sent only to the host the token was stored for. A
+Spotify album key fetches the current track's art from Spotify's image server.
+There is no telemetry, analytics or crash reporting.
 
 ## What is stored, and where
 

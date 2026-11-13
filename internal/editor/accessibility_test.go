@@ -9,12 +9,12 @@ import (
 // editorPages are every page a person can reach in the editor.
 func editorPages() []string {
 	return []string{
-		"/page?page=0",
+		firstPagePath,
 		"/key?page=0&row=0&column=0",
 		"/key?page=0&row=1&column=1&type=kind:pipeline_status",
 		"/key?page=0&row=1&column=1&type=preset:teams_channel",
 		brightnessKeyPath,
-		"/credentials",
+		credentialsPath,
 		"/diagnostics",
 	}
 }
@@ -69,7 +69,7 @@ func TestEditor_EveryPageHasASkipLinkAMainLandmarkAndALiveRegion(t *testing.T) {
 func TestEditor_GridIsOperableFromTheKeyboard(t *testing.T) {
 	t.Parallel()
 
-	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
 
 	grid := regexp.MustCompile(`(?s)<table class="grid".*?</table>`).FindString(body)
 	links := regexp.MustCompile(`<a\b[^>]*>`).FindAllString(grid, -1)

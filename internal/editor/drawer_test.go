@@ -15,7 +15,7 @@ func TestEditor_PageHoldsAHiddenBrickDrawer(t *testing.T) {
 	t.Parallel()
 
 	harness := newHarness(t, nil)
-	body := harness.get(t, "/page?page=0").Body.String()
+	body := harness.get(t, firstPagePath).Body.String()
 
 	drawer := regexp.MustCompile(`(?s)<aside id="brick-drawer"[^>]*>.*?</aside>`).FindString(body)
 	if drawer == "" {
@@ -36,7 +36,7 @@ func TestEditor_PageHoldsAHiddenBrickDrawer(t *testing.T) {
 
 	harness.replaceFile(t, "schema_version: 1\npages: []\n")
 
-	if strings.Contains(harness.get(t, "/page?page=0").Body.String(), "brick-drawer") {
+	if strings.Contains(harness.get(t, firstPagePath).Body.String(), "brick-drawer") {
 		t.Error("want no drawer with no page to drop onto")
 	}
 

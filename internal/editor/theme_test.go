@@ -180,9 +180,10 @@ func TestEditor_ChosenThemeIsDrawnByTheServer(t *testing.T) {
 		"purple": noThemeChosen,
 		"Dark":   noThemeChosen,
 	} {
-		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+testAddress+"/page?page=0",
+		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+testAddress+firstPagePath,
 			http.NoBody)
 		request.Header.Set("Cookie", themeCookie+"="+value)
+		withSession(request)
 
 		recorder := httptest.NewRecorder()
 		harness.handler.ServeHTTP(recorder, request)

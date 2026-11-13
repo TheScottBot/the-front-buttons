@@ -63,6 +63,7 @@ type editorHarness struct {
 	configPath  string
 	credentials *testsupport.CredentialStoreTestDouble
 	counters    *diagnostics.Counters
+	sessions    *editor.Sessions
 }
 
 // noIcons is an icon set with no icons; the editor's tests are not about icons.
@@ -160,9 +161,26 @@ func newHarnessFor(
 		configPath:  configPath,
 		credentials: testsupport.NewCredentialStoreTestDouble(),
 		counters:    diagnostics.NewCounters(),
+		sessions:    editor.NewSessions(testToken),
 	}
 
-	harness.handler = editor.NewHandler(editor.Options{
+	harness.handler = editor.NewHandler(harnessOptions(harness, store, registry, presetTable, grid, renderer,
+		shortcutPlatform))
+
+	return harness
+}
+
+// harnessOptions is the editor's options over the harness's store and fakes.
+func harnessOptions(
+	harness *editorHarness,
+	store *config.Store,
+	registry *brick.Registry,
+	presetTable presets.Table,
+	grid layout.Grid,
+	renderer *render.Renderer,
+	shortcutPlatform string,
+) editor.Options {
+	return editor.Options{
 		Address:     testAddress,
 		Token:       testToken,
 		Store:       store,
@@ -176,11 +194,10 @@ func newHarnessFor(
 		Apps:        installedApplications{},
 		Credentials: harness.credentials,
 		Platform:    shortcutPlatform,
+		Sessions:    harness.sessions,
 		Counters:    harness.counters,
 		Logger:      slog.New(slog.DiscardHandler),
-	})
-
-	return harness
+	}
 }
 
 // get makes a same origin GET, as the editor's own pages do.
@@ -188,10 +205,23 @@ func (harness *editorHarness) get(t *testing.T, path string) *httptest.ResponseR
 	t.Helper()
 
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+testAddress+path, http.NoBody)
+	withSession(request)
+
 	recorder := httptest.NewRecorder()
 	harness.handler.ServeHTTP(recorder, request)
 
 	return recorder
+}
+
+// withSession adds the session cookie a login link gives, as every page the
+// editor serves needs.
+func withSession(request *http.Request) {
+	withCookie(request, editor.SessionCookieName, testToken)
+}
+
+// withCookie adds one cookie to a request, as a browser sends it.
+func withCookie(request *http.Request, name string, value string) {
+	request.Header.Add("Cookie", name+"="+value)
 }
 
 // post submits a form as the editor's own pages do: same origin, with the token.
@@ -214,6 +244,7 @@ func (harness *editorHarness) postRaw(
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "http://"+testAddress+path,
 		strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	withSession(request)
 	adjust(request)
 
 	recorder := httptest.NewRecorder()

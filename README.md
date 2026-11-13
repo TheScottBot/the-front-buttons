@@ -19,7 +19,7 @@ that need the physical deck are listed in `TESTING.md`.
 
 ## Running
 
-From this directory, with Go 1.27.3 and a C compiler (cgo is used for USB HID):
+From this directory, with Go 1.27.4 and a C compiler (cgo is used for USB HID):
 
 ```bash
 go run ./cmd/the-front-buttons
@@ -174,9 +174,25 @@ token with read access to Actions on the repositories the keys watch.
 The editor is at <http://127.0.0.1:48080/>, listening on this machine only. If
 another program already holds port 48080, the daemon uses any free port instead,
 logs a warning, and prints the address it chose; `-editor-port` picks another
-number, and `-editor-port 0` always lets the system choose. An `open_editor` key
-opens the current address from the deck. Every key, page and form in it works
-from the keyboard.
+number, and `-editor-port 0` always lets the system choose. Every key, page and
+form in it works from the keyboard.
+
+Every page needs a session, given by a one time login link, so other accounts on
+the machine cannot use it. Open the editor with an `open_editor` key on the deck,
+or with:
+
+```bash
+the-front-buttons -open-editor
+```
+
+which asks the running daemon for a link and opens it in your browser. The
+session lasts until the browser closes, and survives the daemon restarting. On
+macOS the install script puts the binary in
+`~/Library/Application Support/the-front-buttons/bin`, so from a terminal:
+
+```bash
+"$HOME/Library/Application Support/the-front-buttons/bin/the-front-buttons" -open-editor
+```
 
 ## Checking
 
@@ -310,9 +326,9 @@ A brick kind.
 | `repository` | text | required | 3 to 140 characters |  | The GitHub repository, written owner/name. |
 | `workflow` | text | required | 1 to 255 characters | token | The workflow's file name, such as ci.yml, or its numeric ID. |
 | `branch` | text | required | 1 to 255 characters | branch | The branch whose runs the key shows. |
-| `credential` | text, secret | required | 1 to 64 characters | identifier | The name of the stored GitHub token, a fine grained token with read access to Actions. |
+| `credential` | text, secret | required | 1 to 59 characters | identifier | The name of the stored GitHub token, a fine grained token with read access to Actions. |
 | `interval` | duration | optional | 30s to 1h |  | How often to poll when no run is active; a minute if left out. Every 15 seconds while a run is queued or in progress. GitHub may ask for longer, and is obeyed. |
-| `api_base_url` | text | optional | 9 to 2048 characters | https_url | The GitHub API address for GitHub Enterprise; api.github.com if left out. |
+| `api_base_url` | text | optional | 9 to 2048 characters | https_url | The GitHub API address for GitHub Enterprise; api.github.com if left out. The credential must be stored for this host on the credentials page. |
 
 ### `press_key`
 

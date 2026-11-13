@@ -163,7 +163,7 @@ func TestEditor_DrawerHoldsADrawerForEachSize(t *testing.T) {
 	t.Parallel()
 
 	harness := newHarness(t, nil)
-	body := harness.get(t, "/page?page=0").Body.String()
+	body := harness.get(t, firstPagePath).Body.String()
 
 	for _, want := range []string{
 		`<summary>1x1</summary>`,
@@ -264,7 +264,7 @@ func TestEditor_SpotifyRowFillsFourAcross(t *testing.T) {
 
 	harness := newHarness(t, nil)
 
-	if body := harness.get(t, "/page?page=0").Body.String(); !strings.Contains(body,
+	if body := harness.get(t, firstPagePath).Body.String(); !strings.Contains(body,
 		`<li draggable="true" data-group="4x1" data-width="4" data-height="1">`) {
 		t.Error("want the 4x1 in the drawer")
 	}
@@ -300,7 +300,7 @@ func TestEditor_JetBrainsPairSitsSideBySide(t *testing.T) {
 
 	harness := newHarness(t, nil)
 
-	if body := harness.get(t, "/page?page=0").Body.String(); !strings.Contains(body,
+	if body := harness.get(t, firstPagePath).Body.String(); !strings.Contains(body,
 		`<li draggable="true" data-group="2x1" data-width="2" data-height="1">`) {
 		t.Error("want the 2x1 in the drawer")
 	}

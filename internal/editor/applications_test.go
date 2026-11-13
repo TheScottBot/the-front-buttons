@@ -57,7 +57,7 @@ func TestEditor_EveryPageLoadsTheEditorScript(t *testing.T) {
 
 	harness := newHarness(t, nil)
 
-	for _, path := range []string{"/page?page=0", "/key?page=0&row=1&column=1", "/icons", "/credentials"} {
+	for _, path := range []string{firstPagePath, "/key?page=0&row=1&column=1", "/icons", credentialsPath} {
 		if body := harness.get(t, path).Body.String(); strings.Count(body, `src="/static/editor.js"`) != 1 {
 			t.Errorf("%s: want the editor script loaded once", path)
 		}

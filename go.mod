@@ -1,6 +1,6 @@
 module github.com/TheScottBot/the-front-buttons
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/sstallion/go-hid v0.15.0

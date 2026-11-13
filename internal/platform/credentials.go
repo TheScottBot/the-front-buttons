@@ -3,6 +3,8 @@ package platform
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 )
 
 // ErrCredentialMissing reports a credential name with nothing stored under it.
@@ -55,4 +57,106 @@ func containsControlCharacter(text string) bool {
 	}
 
 	return false
+}
+
+// A token is sent only to the host it was stored for: api.github.com unless a
+// person binds it to another, such as a GitHub Enterprise host, when storing
+// it. The binding lives beside the token in the credential store, under the
+// token's name with credentialHostSuffix, never in configuration, so a
+// configuration from elsewhere cannot send the token to another server.
+const (
+	DefaultCredentialHost = "api.github.com" //nolint:gosec // a host's name, not a credential
+	credentialHostSuffix  = ".host"
+	// MaximumBindableNameLength is the longest name whose binding still fits
+	// the store's own name bound.
+	MaximumBindableNameLength = MaximumCredentialNameLength - len(credentialHostSuffix)
+	maximumHostLength         = 253
+)
+
+// ErrCredentialHost reports a request to a host the credential was not stored
+// for.
+var ErrCredentialHost = errors.New("credential not stored for this host")
+
+// CredentialHost is the host a credential may be sent to: its binding, or
+// DefaultCredentialHost for a credential stored without one.
+func CredentialHost(store CredentialStore, credentialName string) (string, error) {
+	host, readError := store.ReadCredential(credentialName + credentialHostSuffix)
+
+	switch {
+	case errors.Is(readError, ErrCredentialMissing):
+		return DefaultCredentialHost, nil
+	case readError != nil:
+		return "", fmt.Errorf("reading the host for %s: %w", credentialName, readError)
+	default:
+		return host, nil
+	}
+}
+
+// BindCredentialHost records the host a credential may be sent to.
+func BindCredentialHost(store CredentialStore, credentialName string, host string) error {
+	hostError := CheckCredentialHost(host)
+	if hostError != nil {
+		return hostError
+	}
+
+	if len(credentialName) > MaximumBindableNameLength {
+		return fmt.Errorf("%w: a name must be at most %d bytes", ErrCredentialRefused, MaximumBindableNameLength)
+	}
+
+	// The store's own errors name the entry, never the secret.
+	return store.WriteCredential(credentialName+credentialHostSuffix, host) //nolint:wrapcheck // see above
+}
+
+// CheckCredentialHost accepts a plain host name, lower case, with an optional
+// port: no scheme, path, user or space.
+func CheckCredentialHost(host string) error {
+	name, port, hasPort := strings.Cut(host, ":")
+
+	switch {
+	case !isHostName(name) || len(host) > maximumHostLength:
+		return fmt.Errorf("%w: a host is a plain name such as github.example.com", ErrCredentialRefused)
+	case hasPort && !isPort(port):
+		return fmt.Errorf("%w: a port is digits after a colon", ErrCredentialRefused)
+	default:
+		return nil
+	}
+}
+
+// minimumHostLabels is a host's least labels, a name and a domain.
+const minimumHostLabels = 2
+
+// isHostName reports dotted labels of lower case letters, digits and inner
+// hyphens.
+func isHostName(name string) bool {
+	labels := strings.Split(name, ".")
+
+	return len(labels) >= minimumHostLabels && !slices.ContainsFunc(labels, func(label string) bool {
+		return !isHostLabel(label)
+	})
+}
+
+func isHostLabel(label string) bool {
+	if label == "" || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
+		return false
+	}
+
+	return !strings.ContainsFunc(label, func(character rune) bool {
+		return (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '-'
+	})
+}
+
+const maximumPortDigits = 5
+
+func isPort(port string) bool {
+	if port == "" || len(port) > maximumPortDigits {
+		return false
+	}
+
+	for _, character := range port {
+		if character < '0' || character > '9' {
+			return false
+		}
+	}
+
+	return true
 }

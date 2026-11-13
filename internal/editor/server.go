@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
@@ -92,6 +93,8 @@ type Options struct {
 	// ShortcutPlatformWindows, so modifier keys are named as it names them
 	// first; empty is taken as the Mac.
 	Platform string
+	// Sessions gives the login links; nil makes one for Token.
+	Sessions *Sessions
 	Logger   *slog.Logger
 }
 
@@ -133,9 +136,15 @@ func NewToken() (string, error) {
 // NewHandler returns the editor's HTTP handler, guarded as the package
 // documentation describes.
 func NewHandler(options Options) http.Handler {
+	if options.Sessions == nil {
+		options.Sessions = NewSessions(options.Token)
+	}
+
 	pages := newPageHandlers(options)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET "+loginPath, options.Sessions.login)
+	mux.HandleFunc("POST "+loginCodePath, options.Sessions.loginCode(options.Address))
 	mux.HandleFunc("GET /{$}", pages.redirectHome)
 	mux.HandleFunc("GET /page", pages.showPage)
 	mux.HandleFunc("POST /page/add", pages.addPage)
@@ -176,33 +185,81 @@ func (requestGuard guard) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
+	if requestGuard.answeredForSession(writer, request) {
+		return
+	}
+
+	if requestGuard.refusedAsForeign(writer, request) {
+		return
+	}
+
+	requestGuard.next.ServeHTTP(writer, request)
+}
+
+// refusedAsForeign refuses a request from another origin, and a change that is
+// too large or lacks the token, reporting whether it refused.
+func (requestGuard guard) refusedAsForeign(writer http.ResponseWriter, request *http.Request) bool {
 	origin := request.Header.Get("Origin")
 	changes := request.Method != http.MethodGet && request.Method != http.MethodHead
 
 	if (origin != "" || changes) && !requestGuard.isOwnOrigin(origin) {
 		requestGuard.refuse(writer, request, refusedOrigin, http.StatusForbidden)
 
-		return
+		return true
 	}
 
-	if changes {
-		request.Body = http.MaxBytesReader(writer, request.Body, maximumRequestBytes)
+	if !changes {
+		return false
+	}
 
-		parseError := request.ParseForm()
-		if _, tooLarge := errors.AsType[*http.MaxBytesError](parseError); tooLarge {
-			requestGuard.refuse(writer, request, refusedSize, http.StatusRequestEntityTooLarge)
+	request.Body = http.MaxBytesReader(writer, request.Body, maximumRequestBytes)
 
-			return
-		}
+	parseError := request.ParseForm()
+	if _, tooLarge := errors.AsType[*http.MaxBytesError](parseError); tooLarge {
+		requestGuard.refuse(writer, request, refusedSize, http.StatusRequestEntityTooLarge)
 
-		if parseError != nil || !requestGuard.isOwnToken(request.PostForm.Get(tokenFieldName)) {
+		return true
+	}
+
+	if parseError != nil || !requestGuard.isOwnToken(request.PostForm.Get(tokenFieldName)) {
+		requestGuard.refuse(writer, request, refusedToken, http.StatusForbidden)
+
+		return true
+	}
+
+	return false
+}
+
+// answeredForSession answers a request the session rules settle: the
+// -open-editor command's request for a login link, which carries the token as a
+// header rather than coming from a page, and any page asked for without a
+// session. A login link and the editor's own script and styles need no session;
+// they hold nothing. It reports whether it answered.
+func (requestGuard guard) answeredForSession(writer http.ResponseWriter, request *http.Request) bool {
+	sessions := requestGuard.options.Sessions
+
+	switch {
+	case request.URL.Path == loginCodePath:
+		if request.Method != http.MethodPost || !sessions.hasBearer(request) {
 			requestGuard.refuse(writer, request, refusedToken, http.StatusForbidden)
-
-			return
+		} else {
+			requestGuard.next.ServeHTTP(writer, request)
 		}
-	}
 
-	requestGuard.next.ServeHTTP(writer, request)
+		return true
+	case request.URL.Path == loginPath || strings.HasPrefix(request.URL.Path, staticPrefix):
+		return false
+	case !sessions.hasSession(request):
+		requestGuard.options.Counters.Increment("editor.rejected." + refusedSession)
+		requestGuard.options.Logger.WarnContext(request.Context(), "editor request refused",
+			slog.String("reason", refusedSession), slog.String("method", request.Method),
+			slog.String("path", request.URL.Path))
+		http.Error(writer, noSessionMessage, http.StatusForbidden)
+
+		return true
+	default:
+		return false
+	}
 }
 
 // isOwnHost accepts the editor's address, or the same port under the name

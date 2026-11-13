@@ -789,6 +789,11 @@ func (pages *pageHandlers) renderCredentials(
 		_, readError := pages.options.Credentials.ReadCredential(credentialName)
 		if readError == nil {
 			state = "Stored"
+
+			host, hostError := platform.CredentialHost(pages.options.Credentials, credentialName)
+			if hostError == nil {
+				state = "Stored, sent only to " + host
+			}
 		}
 
 		view.Credentials = append(view.Credentials, credentialRow{Name: credentialName, Status: state})
@@ -829,7 +834,27 @@ func (pages *pageHandlers) credentialNames(configuration config.Configuration) [
 func (pages *pageHandlers) storeCredential(writer http.ResponseWriter, request *http.Request) {
 	credentialName := strings.TrimSpace(request.PostForm.Get("name"))
 
+	// The host the token may be sent to is checked before anything is stored,
+	// and bound beside it after: api.github.com unless an Enterprise host is
+	// given.
+	host := strings.TrimSpace(request.PostForm.Get("host"))
+	if host == "" {
+		host = platform.DefaultCredentialHost
+	}
+
+	if platform.CheckCredentialHost(host) != nil || len(credentialName) > platform.MaximumBindableNameLength {
+		pages.renderCredentials(writer, request, http.StatusUnprocessableEntity,
+			errorPrefix+"the host must be a plain name such as github.example.com, with no https:// or path, "+
+				"and the name at most 59 characters")
+
+		return
+	}
+
 	writeError := pages.options.Credentials.WriteCredential(credentialName, request.PostForm.Get("secret"))
+	if writeError == nil {
+		writeError = platform.BindCredentialHost(pages.options.Credentials, credentialName, host)
+	}
+
 	if writeError != nil {
 		message := errorPrefix + "the credential could not be stored"
 		if errors.Is(writeError, platform.ErrCredentialRefused) {

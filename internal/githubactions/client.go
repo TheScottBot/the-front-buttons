@@ -45,6 +45,7 @@ const (
 	categoryRefusedQuery      = "invalid_query"
 	categoryCredentialMissing = "credential_missing" //nolint:gosec // a reason category's name, not a credential
 	categoryCredentialError   = "credential_error"   //nolint:gosec // a reason category's name, not a credential
+	categoryCredentialHost    = "credential_host"    //nolint:gosec // a reason category's name, not a credential
 	categoryNetwork           = "network"
 	categoryUnauthorised      = "unauthorised"
 	categoryForbidden         = "forbidden"
@@ -126,6 +127,18 @@ func (client *Client) LatestRun(pollContext context.Context, query pipeline.Quer
 		return client.fail(categoryCredentialMissing, 0, credentialError)
 	case credentialError != nil:
 		return client.fail(categoryCredentialError, 0, credentialError)
+	}
+
+	// The token goes only to the host it was stored for, whatever the
+	// configuration names: a configuration from elsewhere cannot redirect it.
+	allowedHost, hostError := platform.CredentialHost(client.credentials, query.CredentialName)
+	if hostError != nil {
+		return client.fail(categoryCredentialError, 0, hostError)
+	}
+
+	if requestHost := hostOf(query.APIBaseURL); requestHost != allowedHost {
+		return client.fail(categoryCredentialHost, 0, fmt.Errorf("%w: %s is stored for %s, not %s",
+			platform.ErrCredentialHost, query.CredentialName, allowedHost, requestHost))
 	}
 
 	response, requestError := client.send(pollContext, requestURL, token)
@@ -388,6 +401,16 @@ func (client *Client) fromCache(requestURL string, response *http.Response) (pip
 	client.counters.Increment(pollCounterPrefix + pollResultNotModified)
 
 	return pipeline.Result{Run: cached.run, PollAfter: pollInterval(response.Header), FromCache: true}, nil
+}
+
+// hostOf is an already checked API address's host, lower case, with any port.
+func hostOf(address string) string {
+	parsed, parseError := url.Parse(address)
+	if parseError != nil {
+		return ""
+	}
+
+	return strings.ToLower(parsed.Host)
 }
 
 // httpsOnly keeps a run's address only if it is https. The address comes from

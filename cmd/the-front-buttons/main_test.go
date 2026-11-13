@@ -15,6 +15,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/githubactions"
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
@@ -64,6 +65,12 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 		t.Fatal(writeError)
 	}
 
+	// The fake GitHub stands in for an Enterprise host the token is bound to.
+	bindError := platform.BindCredentialHost(credentials, "github-work", strings.TrimPrefix(fakeGitHub.URL, "https://"))
+	if bindError != nil {
+		t.Fatal(bindError)
+	}
+
 	logs := &lockedLog{mutex: sync.Mutex{}, buffer: bytes.Buffer{}}
 	logger := slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{
 		AddSource: false, Level: slog.LevelDebug, ReplaceAttr: nil,
@@ -79,7 +86,7 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 	go func() {
 		done <- daemon.New(daemonOptions(built, logger, counters, credentials,
 			githubactions.NewClient(fakeGitHub.Client(), credentials, counters),
-			testsupport.NewDeckWatcherTestDouble(), "http://127.0.0.1:1/",
+			testsupport.NewDeckWatcherTestDouble(), func() string { return "http://127.0.0.1:1/" },
 			systemadapter.NewKeyPresser(runContext, func() {}))).Run(runContext, configurations)
 	}()
 

@@ -15,7 +15,7 @@ import (
 func TestEditor_GridMarksEveryTileForDragAndDrop(t *testing.T) {
 	t.Parallel()
 
-	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
 
 	for _, want := range []string{
 		`data-tile="0.0.0" data-state="key"`,
@@ -62,7 +62,7 @@ func TestEditor_ServesTheEditorScript(t *testing.T) {
 func TestEditor_PageHoldsTheKeyDialog(t *testing.T) {
 	t.Parallel()
 
-	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
 
 	dialog := regexp.MustCompile(`(?s)<dialog[^>]*id="key-dialog"[^>]*>.*?</dialog>`).FindString(body)
 	if dialog == "" {

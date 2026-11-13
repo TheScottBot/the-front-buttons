@@ -151,6 +151,15 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- Security: Go 1.27.4, fixing GO-2026-6859, a crash in `net/http` the editor's
+  request size limit could reach. A GitHub token is sent only to the host it
+  was stored for, `api.github.com` unless an Enterprise host is given on the
+  credentials page, whatever a configuration says. Every editor page needs a
+  session, given by a one time login link from the deck's editor key or
+  `-open-editor`, so other accounts on the machine cannot use the editor.
+  SECURITY.md now states what the daemon does and does not do, citing the code,
+  and a test fails if the code runs a program it does not list.
+
 - The macOS install script copies the binary to
   `~/Library/Application Support/the-front-buttons/bin` and runs the login agent
   from there, so the agent no longer depends on where the binary was built,

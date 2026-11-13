@@ -37,7 +37,7 @@ func removeStartingKey(t *testing.T, harness *editorHarness) {
 func TestEditor_PageHoldsAHiddenBin(t *testing.T) {
 	t.Parallel()
 
-	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
 
 	bin := regexp.MustCompile(`(?s)<div id="key-bin"[^>]*>.*?</div>`).FindString(body)
 	if !strings.Contains(bin, " hidden") || !strings.Contains(bin, `src="/icon.png?name=trash"`) ||

@@ -14,13 +14,14 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
 func TestEditor_ShowsTheGrid_WithTheNavigationKeysReserved(t *testing.T) {
 	t.Parallel()
 
-	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
 
 	for _, want := range []string{
 		`aria-label="Row 4, column 1: reserved for paging back"`,
@@ -240,6 +241,12 @@ func TestEditor_AddsRenamesAndDeletesPages(t *testing.T) {
 	}
 }
 
+// The credential the credential tests store, and the secret's form field.
+const (
+	workCredential = "github-work"
+	secretField    = "secret"
+)
+
 func TestEditor_StoresACredential_AndNeverShowsItBack(t *testing.T) {
 	t.Parallel()
 
@@ -247,10 +254,10 @@ func TestEditor_StoresACredential_AndNeverShowsItBack(t *testing.T) {
 
 	const secret = "github_pat_SHOWN_TO_NO_ONE_0123" //nolint:gosec // made up, to catch a secret shown back
 
-	recorder := harness.post(t, "/credentials", url.Values{nameField: {"github-work"}, "secret": {secret}})
-	page := harness.get(t, "/credentials")
+	recorder := harness.post(t, credentialsPath, url.Values{nameField: {workCredential}, secretField: {secret}})
+	page := harness.get(t, credentialsPath)
 
-	stored, readError := harness.credentials.ReadCredential("github-work")
+	stored, readError := harness.credentials.ReadCredential(workCredential)
 	if readError != nil || stored != secret {
 		t.Fatalf("want the secret stored, got an error %v", readError)
 	}
@@ -258,6 +265,42 @@ func TestEditor_StoresACredential_AndNeverShowsItBack(t *testing.T) {
 	if strings.Contains(recorder.Body.String(), secret) || strings.Contains(page.Body.String(), secret) ||
 		strings.Contains(recorder.Header().Get("Location"), secret) {
 		t.Fatal("the secret must never be shown back")
+	}
+}
+
+// TestEditor_BindsACredentialToItsHost: storing a token records the host it
+// may be sent to, api.github.com unless an Enterprise host is given, and the
+// page says which; a host that is not a plain host name is refused.
+func TestEditor_BindsACredentialToItsHost(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	harness.post(t, credentialsPath, url.Values{nameField: {workCredential}, secretField: {"one"}})
+
+	host, _ := platform.CredentialHost(harness.credentials, workCredential)
+	if host != "api.github.com" {
+		t.Errorf("want api.github.com when no host is given, got %q", host)
+	}
+
+	harness.post(t, credentialsPath, url.Values{
+		nameField: {workCredential}, secretField: {"two"}, "host": {"github.example.test"},
+	})
+
+	host, _ = platform.CredentialHost(harness.credentials, workCredential)
+	if host != "github.example.test" {
+		t.Errorf("want the Enterprise host bound, got %q", host)
+	}
+
+	refused := harness.post(t, credentialsPath, url.Values{
+		nameField: {workCredential}, secretField: {"three"}, "host": {"https://elsewhere.test/api"},
+	})
+	if refused.Code != http.StatusUnprocessableEntity {
+		t.Errorf("want a host with a scheme or path refused, got %d", refused.Code)
+	}
+
+	if stored, _ := harness.credentials.ReadCredential(workCredential); stored != "two" {
+		t.Error("want a refused host to leave the stored secret alone")
 	}
 }
 
@@ -294,7 +337,7 @@ func TestEditor_ExplainsAHandEditTheStoreRefused(t *testing.T) {
 		t.Fatal(writeError)
 	}
 
-	body := harness.get(t, "/page?page=0").Body.String()
+	body := harness.get(t, firstPagePath).Body.String()
 	if !strings.Contains(body, `role="alert"`) || !strings.Contains(body, "malformed") {
 		t.Fatalf("want the refusal shown with its reason, got:\n%s", body)
 	}
@@ -336,7 +379,7 @@ func TestEditor_TakesARejectedFormToItsFirstError(t *testing.T) {
 func TestEditor_CaptionCountsPagesFromOne(t *testing.T) {
 	t.Parallel()
 
-	body := newHarness(t, nil).get(t, "/page?page=0").Body.String()
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
 
 	if !regexp.MustCompile(`<caption>Page 1 of \d+: `).MatchString(body) {
 		t.Fatalf("want the caption to count from one, got %s",
@@ -365,7 +408,7 @@ func TestEditor_GridNamesAPresetKeyByItsAction_AndAKindKeyByItsKind(t *testing.T
 		}
 	}
 
-	body := harness.get(t, "/page?page=0").Body.String()
+	body := harness.get(t, firstPagePath).Body.String()
 
 	for _, want := range []string{
 		`aria-label="Row 1, column 4: Raid (open_server)"`,

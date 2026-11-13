@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/githubactions"
 	"github.com/TheScottBot/the-front-buttons/internal/pipeline"
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
@@ -71,6 +73,11 @@ func (fake *fakeGitHub) lastRequest() *http.Request {
 	return fake.requests[len(fake.requests)-1]
 }
 
+// host is the fake's address as a URL host, with its port.
+func (fake *fakeGitHub) host() string {
+	return strings.TrimPrefix(fake.server.URL, "https://")
+}
+
 func (fake *fakeGitHub) query() pipeline.Query {
 	return pipeline.Query{
 		APIBaseURL:     fake.server.URL,
@@ -89,6 +96,13 @@ func newClient(t *testing.T, fake *fakeGitHub) (*githubactions.Client, *diagnost
 	writeError := credentials.WriteCredential(fakeCredentialName, fakeToken)
 	if writeError != nil {
 		t.Fatal(writeError)
+	}
+
+	// The fake GitHub stands in for an Enterprise host, so the token is bound
+	// to it as a person binds a token on the credentials page.
+	bindError := platform.BindCredentialHost(credentials, fakeCredentialName, fake.host())
+	if bindError != nil {
+		t.Fatal(bindError)
 	}
 
 	counters := diagnostics.NewCounters()
@@ -444,5 +458,42 @@ func TestLatestRun_AsksForJobsOnlyWhileTheRunIsActive(t *testing.T) {
 
 	if count := fake.requestCount(); count != 1 {
 		t.Fatalf("want one request for a finished run, got %d", count)
+	}
+}
+
+// TestLatestRun_SendsTheTokenOnlyToItsHost: the token goes only to the host it
+// was stored for, api.github.com unless bound to another; a query naming any
+// other host is refused before a request is made, whatever the configuration
+// says.
+func TestLatestRun_SendsTheTokenOnlyToItsHost(t *testing.T) {
+	t.Parallel()
+
+	fake := newFakeGitHub(t, answerWith(runsJSON([3]string{completed, succeeded, "1"}), nil))
+
+	for name, binding := range map[string]string{"unbound": "", "bound elsewhere": "github.other.test"} {
+		credentials := testsupport.NewCredentialStoreTestDouble()
+
+		writeError := credentials.WriteCredential(fakeCredentialName, fakeToken)
+		if writeError != nil {
+			t.Fatal(writeError)
+		}
+
+		if binding != "" {
+			bindError := platform.BindCredentialHost(credentials, fakeCredentialName, binding)
+			if bindError != nil {
+				t.Fatal(bindError)
+			}
+		}
+
+		client := githubactions.NewClient(fake.server.Client(), credentials, diagnostics.NewCounters())
+
+		_, pollError := client.LatestRun(t.Context(), fake.query())
+		if reason := brick.ReasonCategoryOf(pollError); reason != "credential_host" {
+			t.Errorf("%s: want the query refused as credential_host, got %q (%v)", name, reason, pollError)
+		}
+	}
+
+	if fake.requestCount() != 0 {
+		t.Fatalf("want no request, so no token sent, got %d", fake.requestCount())
 	}
 }
