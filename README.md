@@ -129,14 +129,16 @@ pages:
     keys:
       - row: 1
         column: 1
-        kind: goland_build
+        kind: jetbrains_build
         parameters:
           label: Build
 ```
 
 A page names an `application` to be its screen, one per application, and row 0,
 column 0 is kept for the icon. Some applications have bricks of their own,
-GoLand's `goland_` keys so far, which only their screen may hold. A key that
+the `jetbrains_` keys every JetBrains IDE shares, GoLand, IntelliJ IDEA,
+PyCharm, Rider and the rest, which only those applications' screens may hold;
+each IDE has its own screen. A key that
 sends key presses on an app screen, a shortcut or one of the application's own,
 brings the application to the front first unless it is there already; if it is
 not open, nothing is sent and the key shows "not open".
@@ -288,7 +290,7 @@ A brick kind.
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `level` | integer | optional | 1 to 100 |  | How bright the deck is, in percent, while every other key is off; 20 if left out. Pressing this key, or any other, turns the keys back on. |
 
-### `goland_back`
+### `jetbrains_back`
 
 A brick kind.
 
@@ -299,7 +301,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_build`
+### `jetbrains_build`
 
 A brick kind.
 
@@ -310,7 +312,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_comment_line`
+### `jetbrains_comment_line`
 
 A brick kind.
 
@@ -321,7 +323,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_commit`
+### `jetbrains_commit`
 
 A brick kind.
 
@@ -332,7 +334,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_debug`
+### `jetbrains_debug`
 
 A brick kind.
 
@@ -343,7 +345,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_debug_window`
+### `jetbrains_debug_window`
 
 A brick kind.
 
@@ -354,7 +356,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_delete_line`
+### `jetbrains_delete_line`
 
 A brick kind.
 
@@ -365,7 +367,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_duplicate_line`
+### `jetbrains_duplicate_line`
 
 A brick kind.
 
@@ -376,7 +378,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_evaluate`
+### `jetbrains_evaluate`
 
 A brick kind.
 
@@ -387,7 +389,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_extract_method`
+### `jetbrains_extract_method`
 
 A brick kind.
 
@@ -398,7 +400,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_extract_variable`
+### `jetbrains_extract_variable`
 
 A brick kind.
 
@@ -409,7 +411,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_file_structure`
+### `jetbrains_file_structure`
 
 A brick kind.
 
@@ -420,7 +422,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_find_action`
+### `jetbrains_find_action`
 
 A brick kind.
 
@@ -431,7 +433,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_find_usages`
+### `jetbrains_find_usages`
 
 A brick kind.
 
@@ -442,7 +444,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_forward`
+### `jetbrains_forward`
 
 A brick kind.
 
@@ -453,7 +455,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_git_window`
+### `jetbrains_git_window`
 
 A brick kind.
 
@@ -464,7 +466,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_go_to_declaration`
+### `jetbrains_go_to_declaration`
 
 A brick kind.
 
@@ -475,7 +477,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_go_to_file`
+### `jetbrains_go_to_file`
 
 A brick kind.
 
@@ -486,7 +488,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_go_to_implementation`
+### `jetbrains_go_to_implementation`
 
 A brick kind.
 
@@ -497,7 +499,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_go_to_symbol`
+### `jetbrains_go_to_symbol`
 
 A brick kind.
 
@@ -508,7 +510,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_hide_tool_windows`
+### `jetbrains_hide_tool_windows`
 
 A brick kind.
 
@@ -519,7 +521,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_inline`
+### `jetbrains_inline`
 
 A brick kind.
 
@@ -530,7 +532,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_move_line_down`
+### `jetbrains_move_line_down`
 
 A brick kind.
 
@@ -541,7 +543,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_move_line_up`
+### `jetbrains_move_line_up`
 
 A brick kind.
 
@@ -552,282 +554,7 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
-### `goland_next_error`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_optimise_imports`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_previous_error`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_problems_window`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_project_window`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_push`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_recent_files`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_refactor_this`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_reformat`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_rename`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_rerun`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_resume`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_rollback`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_run`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_run_choose`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_run_tests`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_run_to_cursor`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_run_window`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_show_intentions`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_step_into`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_step_out`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_step_over`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_stop`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_terminal`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_toggle_breakpoint`
-
-A brick kind.
-
-| Field | Type | Required | Bounds | Format | Description |
-|---|---|---|---|---|---|
-| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
-| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
-| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
-| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
-
-### `goland_update_project`
+### `jetbrains_next_error`
 
 A brick kind.
 
@@ -849,7 +576,282 @@ A brick kind.
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 
+### `jetbrains_optimise_imports`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_previous_error`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
 ### `jetbrains_previous_window`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_problems_window`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_project_window`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_push`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_recent_files`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_refactor_this`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_reformat`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_rename`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_rerun`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_resume`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_rollback`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_run`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_run_choose`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_run_tests`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_run_to_cursor`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_run_window`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_show_intentions`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_step_into`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_step_out`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_step_over`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_stop`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_terminal`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_toggle_breakpoint`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+
+### `jetbrains_update_project`
 
 A brick kind.
 

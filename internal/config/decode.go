@@ -313,7 +313,7 @@ func (decoder Decoder) placeable(
 	switch belongsElsewhere, setName := decoder.belongsElsewhere(key, page); {
 	case belongsElsewhere:
 		list.addf(keyNode, keyPath, ReasonWrongApplication,
-			"%s is one of %s's own bricks, offered only on %s's app screen", key.Kind, setName, setName)
+			"%s is offered only on the app screens of %s", key.Kind, setName)
 	case page.IsAppScreen() && key.Position == decoder.grid.ReturnPosition():
 		list.addf(keyNode, keyPath, ReasonReservedPosition,
 			"row 1 column 1 is kept for the application's icon on an app screen")

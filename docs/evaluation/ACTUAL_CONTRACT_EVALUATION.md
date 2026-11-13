@@ -3699,6 +3699,34 @@ asks, and logging a failure once. Planted violations failed each of them.
 
 Verified on the physical deck: Discord's pip showed on its key.
 
+### Every JetBrains IDE
+
+GoLand's app screen keys now serve every IDE on the IntelliJ platform, which
+share its actions and default keymaps: IntelliJ IDEA, PyCharm, GoLand,
+WebStorm, PhpStorm, Rider, CLion, RubyMine, DataGrip, DataSpell, RustRover,
+Aqua and Writerside, and Android Studio, Google's IDE on the same platform. A
+set of keys per IDE would have made over six hundred kinds, so an app set now
+serves several applications, each with its own name and identifiers, and the
+keys are one set, renamed from `goland_` to `jetbrains_`. Each IDE still has
+its own screen, named for itself, and its own name in the drawer and the key
+form. Early access builds match by "-EAP" after the bundle identifier, and on
+Windows the 32 bit executable as well as the 64 bit one.
+
+GoLand's, IntelliJ IDEA's, PyCharm's and Rider's bundle identifiers were read
+from their installed applications; the rest are as JetBrains publishes them,
+matched ignoring case. Rider asks for a keymap when first run, and on its
+Visual Studio keymap the shortcuts differ.
+
+The configuration on the Mac had two `goland_` keys, renamed to `jetbrains_`
+with a copy of the file kept beside it, before the new daemon was installed;
+it accepted the file. Tests first, failing before the code: an app set naming
+each of its applications, and every IDE matched and named on both platforms
+with Toolbox and Gateway left out; planted violations, the set's name for
+every IDE and no early access builds, failed them.
+
+Verified on the physical deck: PyCharm's and Rider's app screens opened from
+their keys and their keys worked in each IDE.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

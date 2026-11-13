@@ -75,18 +75,18 @@ func TestRegisterActions_MakesAScopedKindForEachAction(t *testing.T) {
 
 	registry := brick.NewRegistry()
 
-	registerError := jetbrains.RegisterActions(registry, "goland", "goland_")
+	registerError := jetbrains.RegisterActions(registry, "ides", "ides_")
 	if registerError != nil {
 		t.Fatal(registerError)
 	}
 
-	if len(registry.KindNamesIn("goland")) != len(jetbrains.Actions()) || len(registry.KindNamesIn("")) != 0 {
+	if len(registry.KindNamesIn("ides")) != len(jetbrains.Actions()) || len(registry.KindNamesIn("")) != 0 {
 		t.Fatalf("want one scoped kind per action, got %v", registry.KindNames())
 	}
 
-	kind, found := registry.Kind("goland_build")
-	if !found || kind.Scope() != "goland" {
-		t.Fatalf("want goland_build scoped to goland, got %+v", kind)
+	kind, found := registry.Kind("ides_build")
+	if !found || kind.Scope() != "ides" {
+		t.Fatalf("want ides_build scoped to ides, got %+v", kind)
 	}
 
 	build := actionNamed(t, "build")

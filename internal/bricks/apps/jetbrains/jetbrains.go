@@ -1,8 +1,8 @@
 // Package jetbrains is the table of IDE actions the JetBrains IDEs share, and
-// the bricks it makes for an IDE's app set: one kind per action, pressing the
-// action's shortcut for the platform the daemon runs on, as the IDE's default
-// keymap has it (evaluation, app screens). An IDE's own package, such as
-// goland, registers them under its scope.
+// their app set: one kind per action, such as jetbrains_build, pressing the
+// action's shortcut for the platform the daemon runs on, as the IDEs' default
+// keymap has it, offered on the app screen of every IDE built on the IntelliJ
+// platform (evaluation, app screens).
 //
 // The shortcuts are the IDEs' predefined macOS and Windows keymaps, from
 // JetBrains' GoLand keymap reference (2026.3), read on 13 November 2026;
@@ -133,7 +133,7 @@ type Parameters struct {
 }
 
 // RegisterActions registers each action as a kind of an IDE's set, scoped to
-// it and named with its prefix, such as goland_build.
+// it and named with its prefix, such as jetbrains_build.
 func RegisterActions(registry *brick.Registry, scope string, prefix string) error {
 	for _, row := range Actions() {
 		kindName := prefix + row.Name

@@ -21,7 +21,7 @@ import (
 // for one that has them.
 func (pages *pageHandlers) appSetOf(page config.Page) (brick.AppSet, bool) {
 	if !page.IsAppScreen() || pages.options.Registry == nil {
-		return brick.AppSet{ID: "", Name: "", Identifiers: nil, Groups: nil}, false
+		return brick.AppSet{ID: "", Name: "", Applications: nil, Groups: nil}, false
 	}
 
 	return pages.options.Registry.AppSetFor(page.Application)
@@ -67,11 +67,11 @@ func regularPages(allPages []config.Page) []int {
 	return regular
 }
 
-// screenTitle names an app screen by its application's bricks, as GoLand, or
-// otherwise by the page's own name.
+// screenTitle names an app screen by its application, as its bricks know it,
+// such as PyCharm, or otherwise by the page's own name.
 func (pages *pageHandlers) screenTitle(page config.Page) string {
 	if set, hasSet := pages.appSetOf(page); hasSet {
-		return set.Name
+		return set.NameFor(page.Application)
 	}
 
 	return page.Name
@@ -128,14 +128,14 @@ func (pages *pageHandlers) resolveOn(choice string, page config.Page) (keyType, 
 	return resolved, typeError
 }
 
-// applicationName is what a new app screen is called: the name of the
-// application's own bricks, as GoLand; or its name in the app picker; or the
+// applicationName is what a new app screen is called: the application's name
+// as its bricks know it, such as GoLand; or its name in the app picker; or the
 // last part of its identifier. It is cut to a page name's length.
 func (pages *pageHandlers) applicationName(requestContext context.Context, application string) string {
 	name := ""
 
 	if set, hasSet := pages.options.Registry.AppSetFor(application); hasSet {
-		name = set.Name
+		name = set.NameFor(application)
 	}
 
 	for _, choice := range pages.apps.current(requestContext) {
@@ -198,7 +198,7 @@ func (pages *pageHandlers) appTypeOptions(page config.Page, selected string) []t
 		kind, _ := pages.options.Registry.Kind(kindName)
 		value := kindChoicePrefix + kindName
 		options = append(options, typeOption{
-			Value: value, Label: set.Name + ": " + kindTitle(kind), Selected: value == selected,
+			Value: value, Label: set.NameFor(page.Application) + ": " + kindTitle(kind), Selected: value == selected,
 		})
 	}
 

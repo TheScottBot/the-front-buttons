@@ -184,14 +184,19 @@ func TestRegisterScoped_KeepsAnAppsBricksToItself(t *testing.T) {
 
 // TestAppSets_MatchTheirApplications: an app set names the applications it is
 // for, as a key's application field holds them: a bundle identifier on macOS,
-// an executable's path on Windows.
+// an executable's path on Windows. One set may serve several applications,
+// each named for itself.
 func TestAppSets_MatchTheirApplications(t *testing.T) {
 	t.Parallel()
 
 	registry := brick.NewRegistry()
 
 	setError := registry.RegisterAppSet(brick.AppSet{
-		ID: testAppSetID, Name: "GoLand", Identifiers: []string{"com.jetbrains.goland", "goland64.exe"}, Groups: nil,
+		ID: testAppSetID, Name: "JetBrains IDEs", Groups: nil,
+		Applications: []brick.AppIdentity{
+			{Name: "GoLand", Identifiers: []string{"com.jetbrains.goland", "goland64.exe"}},
+			{Name: "Rider", Identifiers: []string{"com.jetbrains.rider"}},
+		},
 	})
 	if setError != nil {
 		t.Fatal(setError)
@@ -201,6 +206,7 @@ func TestAppSets_MatchTheirApplications(t *testing.T) {
 		"com.jetbrains.goland":                               true,
 		"COM.JETBRAINS.GOLAND":                               true,
 		`C:\Program Files\JetBrains\GoLand\bin\goland64.exe`: true,
+		"com.jetbrains.rider":                                true,
 		"com.jetbrains.pycharm":                              false,
 		"":                                                   false,
 	} {
@@ -210,7 +216,18 @@ func TestAppSets_MatchTheirApplications(t *testing.T) {
 		}
 	}
 
-	if registry.RegisterAppSet(brick.AppSet{ID: testAppSetID, Name: "Again", Identifiers: nil, Groups: nil}) == nil {
+	set, _ := registry.AppSetFor("com.jetbrains.rider")
+	for identifier, wantName := range map[string]string{
+		"COM.JETBRAINS.RIDER":        "Rider",
+		`D:\GoLand\bin\goland64.exe`: "GoLand",
+		"com.example.other":          "JetBrains IDEs",
+	} {
+		if name := set.NameFor(identifier); name != wantName {
+			t.Errorf("%q: want named %q, got %q", identifier, wantName, name)
+		}
+	}
+
+	if registry.RegisterAppSet(brick.AppSet{ID: testAppSetID, Name: "Again", Applications: nil, Groups: nil}) == nil {
 		t.Error("want a second set with the same ID refused")
 	}
 }

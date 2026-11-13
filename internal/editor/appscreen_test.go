@@ -17,7 +17,7 @@ const (
 	openAppType       = "kind:open_application"
 	applicationField  = "field.application"
 	appScreenField    = "field.app_screen"
-	golandBuildType   = "kind:goland_build"
+	golandBuildType   = "kind:jetbrains_build"
 	golandScreenIndex = "1"
 	spotifyIdentifier = "com.spotify.client"
 )
@@ -25,7 +25,7 @@ const (
 // golandRunParts are GoLand's run group's parts, in the drawer's first order.
 //
 //nolint:gochecknoglobals // a fixed list
-var golandRunParts = []string{"goland_run", "goland_debug", "goland_stop", "goland_rerun"}
+var golandRunParts = []string{"jetbrains_run", "jetbrains_debug", "jetbrains_stop", "jetbrains_rerun"}
 
 // appScreenConfiguration has two regular pages, Work and Play, with GoLand's
 // app screen between them in the file, and a GoLand key on Work that opens it.
@@ -44,7 +44,7 @@ pages:
     keys:
       - row: 1
         column: 1
-        kind: goland_build
+        kind: jetbrains_build
         parameters:
           label: Build
   - name: Play
@@ -86,6 +86,19 @@ func refuseBody(t *testing.T, body string, unwanted ...string) {
 	}
 }
 
+// saveAppKey saves an app key asking for its screen on Work's second row.
+func saveAppKey(t *testing.T, harness *editorHarness, column string, application string) {
+	t.Helper()
+
+	response := harness.post(t, "/key", url.Values{
+		pageField: {"0"}, rowField: {"1"}, columnField: {column}, typeField: {openAppType},
+		applicationField: {application}, appScreenField: {"on"},
+	})
+	if response.Code != http.StatusSeeOther {
+		t.Fatalf("want the key saved, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
 // TestEditor_CreatesTheAppScreen_WhenAKeyAsksForIt: ticking App screen on an
 // app key creates the application's screen, named after the application, the
 // first time; a second key asking for it reuses that screen.
@@ -94,26 +107,14 @@ func TestEditor_CreatesTheAppScreen_WhenAKeyAsksForIt(t *testing.T) {
 
 	harness := newHarness(t, nil)
 
-	for _, column := range []string{"1", "2"} {
-		response := harness.post(t, "/key", url.Values{
-			pageField: {"0"}, rowField: {"1"}, columnField: {column}, typeField: {openAppType},
-			applicationField: {golandIdentifier}, appScreenField: {"on"},
-		})
-		if response.Code != http.StatusSeeOther {
-			t.Fatalf("want the key saved, got %d: %s", response.Code, response.Body.String())
-		}
-	}
-
-	response := harness.post(t, "/key", url.Values{
-		pageField: {"0"}, rowField: {"1"}, columnField: {"3"}, typeField: {openAppType},
-		applicationField: {spotifyIdentifier}, appScreenField: {"on"},
-	})
-	if response.Code != http.StatusSeeOther {
-		t.Fatalf("want the key saved, got %d: %s", response.Code, response.Body.String())
-	}
+	// Two GoLand keys share one screen; Spotify and PyCharm get their own.
+	saveAppKey(t, harness, "1", golandIdentifier)
+	saveAppKey(t, harness, "2", golandIdentifier)
+	saveAppKey(t, harness, "3", spotifyIdentifier)
+	saveAppKey(t, harness, "4", "com.jetbrains.pycharm")
 
 	saved := harness.onDisk(t).Pages
-	if len(saved) != 3 {
+	if len(saved) != 4 {
 		t.Fatalf("want Work and one screen for each application, got %+v", saved)
 	}
 
@@ -122,8 +123,10 @@ func TestEditor_CreatesTheAppScreen_WhenAKeyAsksForIt(t *testing.T) {
 		t.Errorf("want an empty GoLand screen, got %+v", saved[1])
 	}
 
-	if saved[2].Name != "Spotify" || saved[2].Application != spotifyIdentifier {
-		t.Errorf("want a Spotify screen, got %+v", saved[2])
+	// PyCharm shares GoLand's bricks, and its screen is named for itself.
+	screens := map[string]string{saved[2].Application: saved[2].Name, saved[3].Application: saved[3].Name}
+	if screens[spotifyIdentifier] != "Spotify" || screens["com.jetbrains.pycharm"] != "PyCharm" {
+		t.Errorf("want Spotify and PyCharm screens, got %+v", saved[2:])
 	}
 }
 
@@ -178,7 +181,7 @@ func TestEditor_AppScreenKeepsItsIconTile(t *testing.T) {
 	}
 
 	grouped := harness.post(t, "/group", url.Values{
-		pageField: {golandScreenIndex}, rowField: {"0"}, columnField: {"0"}, sizeField: {"goland.run"},
+		pageField: {golandScreenIndex}, rowField: {"0"}, columnField: {"0"}, sizeField: {"jetbrains.run"},
 		orderField: golandRunParts,
 	})
 	if grouped.Code == http.StatusSeeOther || !strings.Contains(grouped.Body.String(), "application&#39;s icon") {
@@ -201,14 +204,14 @@ func TestEditor_OffersAnAppsBricksOnItsScreenOnly(t *testing.T) {
 	screen := harness.get(t, "/page?page="+golandScreenIndex).Body.String()
 	requireBody(t, screen,
 		`data-type="`+golandBuildType+`"`, `data-type="kind:open_url"`,
-		`data-group="goland.run" data-width="2" data-height="2"`, "<summary>GoLand</summary>",
+		`data-group="jetbrains.run" data-width="2" data-height="2"`, "<summary>GoLand</summary>",
 	)
 
 	screenForm := harness.get(t, "/key?page=1&row=2&column=2").Body.String()
 	requireBody(t, screenForm, `value="`+golandBuildType+`"`)
 
 	for _, path := range []string{"/page?page=0", "/key?page=0&row=2&column=2"} {
-		refuseBody(t, harness.get(t, path).Body.String(), "goland_")
+		refuseBody(t, harness.get(t, path).Body.String(), golandBuildType, "jetbrains.run")
 	}
 
 	// An app's brick asked for by name on another page is refused.
@@ -225,13 +228,13 @@ func TestEditor_PlacesAnAppGroup(t *testing.T) {
 
 	harness := newAppScreenHarness(t)
 
-	form := harness.get(t, "/group?page=1&row=1&column=2&size=goland.run")
+	form := harness.get(t, "/group?page=1&row=1&column=2&size=jetbrains.run")
 	if form.Code != http.StatusOK {
 		t.Fatalf("want the group's form, got %d", form.Code)
 	}
 
 	response := harness.post(t, "/group", url.Values{
-		pageField: {golandScreenIndex}, rowField: {"1"}, columnField: {"2"}, sizeField: {"goland.run"},
+		pageField: {golandScreenIndex}, rowField: {"1"}, columnField: {"2"}, sizeField: {"jetbrains.run"},
 		orderField: {golandRunParts[1], golandRunParts[0], golandRunParts[2], golandRunParts[3]},
 	})
 	if response.Code != http.StatusSeeOther {

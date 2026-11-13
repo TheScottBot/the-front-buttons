@@ -122,7 +122,8 @@ func NewRegistry() (*brick.Registry, error) {
 
 	appError := errors.Join(
 		registry.RegisterAppSet(brick.AppSet{
-			ID: AppSetID, Name: "Example", Identifiers: []string{AppSetIdentifier}, Groups: nil,
+			ID: AppSetID, Name: "Example", Groups: nil,
+			Applications: []brick.AppIdentity{{Name: "Example", Identifiers: []string{AppSetIdentifier}}},
 		}),
 		brick.RegisterScoped(registry, AppSetID, AppActionKindName, func(_ AppActionParameters, _ brick.Ports) (any, error) {
 			return struct{}{}, nil

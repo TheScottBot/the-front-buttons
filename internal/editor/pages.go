@@ -266,7 +266,7 @@ func (pages *pageHandlers) renderPage(
 	appName := ""
 
 	if set, hasSet := pages.appSetOf(page); hasSet {
-		appName = set.Name
+		appName = set.NameFor(page.Application)
 	}
 
 	view := pageView{

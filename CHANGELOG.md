@@ -166,6 +166,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   forward yet.
 - A press taking a quarter of a second or more is logged as a slow key press,
   with how long it took.
+- Every JetBrains IDE has the app screen keys GoLand had: IntelliJ IDEA,
+  PyCharm, GoLand, WebStorm, PhpStorm, Rider, CLion, RubyMine, DataGrip,
+  DataSpell, RustRover, Aqua and Writerside, and Android Studio, built on the
+  same platform. They share one set of keys, renamed from `goland_` to
+  `jetbrains_`, such as `jetbrains_build`; each IDE has its own screen, named
+  for itself. A configuration using the `goland_` names needs them changed.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two
