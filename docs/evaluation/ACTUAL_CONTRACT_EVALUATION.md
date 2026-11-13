@@ -3235,6 +3235,39 @@ depending on the brick. Tests first, failing before the code; planted
 violations (a marker copied, no page number on an unlabelled marker) failed
 them. The author's existing markers are still open_url keys until changed.
 
+### Brick drawer
+
+The author asked for a drawer in the left gutter beside the pages that opens
+on a click and offers bricks to drag: dropped on an empty tile, the brick opens
+the normal key editor; an existing key is not replaced this way, and shows a
+subtle cross to say so.
+
+The drawer is an aside fixed to the window's left edge: a vertical "Bricks"
+tab, a button with aria-expanded, that opens a panel listing every kind and
+preset from the same list the key form chooses from. Dragging needs the
+script, so the drawer is hidden until the script shows it; the grid's empty
+tiles stay the way to add a key from the keyboard. While a brick is carried
+the grid is marked placing: keys and paging tiles are dimmed and crossed in
+the rule colour and refuse the drop, and only an empty tile takes it. The
+panel fades and lets the drag through to tiles it covers on a narrow window,
+found trying it in the browser pane. A drop opens that tile's key editor in
+the dialog with the brick chosen, through an export the dialog gained; nothing
+is saved until that form is. The existing key drag ignores a carried brick.
+
+At the same time the author asked, through a subagent, for the page copy
+forms to sit in a drawer too: closed by default, with a down chevron. They
+are now in a details element with the chevron drawn in CSS, turning up when
+open, its rotation stopped for reduced motion.
+
+Tests first, failing before the code: the drawer's markup, hidden, with every
+kind and preset; none without a page; the script's drop handling; the crosses
+and the pass through in the stylesheet; the copy forms inside a closed
+details. Planted violations (the drawer shown without the script; the copy
+drawer open) failed them. In the browser pane, with simulated drags: an
+occupied tile refused the brick and showed dimmed, an empty one took it and
+opened its editor with the brick chosen and its level at 50, and the copy
+drawer showed closed with its chevron.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

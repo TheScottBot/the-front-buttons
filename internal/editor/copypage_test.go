@@ -158,6 +158,48 @@ func TestEditor_PageOffersBothCopies(t *testing.T) {
 	}
 }
 
+// TestEditor_CopiesSitInAClosedDrawer: the author asked for the copy section
+// as a drawer, closed until opened (evaluation, deck testing). A native
+// details element needs no script and is reachable by keyboard.
+func TestEditor_CopiesSitInAClosedDrawer(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+	harness.replaceFile(t, twoPageConfiguration("1", "1"))
+
+	body := harness.get(t, "/page?page=0").Body.String()
+
+	const opening = `<details class="copy-page">`
+
+	start := strings.Index(body, opening)
+	if start < 0 {
+		t.Fatalf("want the copies in %s, closed, on the page", opening)
+	}
+
+	drawer := body[start:]
+
+	end := strings.Index(drawer, "</details>")
+	if end < 0 {
+		t.Fatal("want the copy drawer closed with </details>")
+	}
+
+	drawer = drawer[:end]
+
+	if !strings.HasPrefix(drawer[len(opening):], "\n<summary>Copy this page's keys</summary>") {
+		t.Errorf("want the drawer to open with a summary naming the section, got %.80q", drawer)
+	}
+
+	for _, want := range []string{`action="` + copyToNewPath + `"`, `action="` + copyOntoPath + `"`} {
+		if !strings.Contains(drawer, want) {
+			t.Errorf("want %s inside the copy drawer", want)
+		}
+	}
+
+	if strings.Contains(body, `class="copy-page" open`) || strings.Contains(body, `<fieldset class="copy-page">`) {
+		t.Error("want the copy drawer closed by default and no longer a fieldset")
+	}
+}
+
 // markedPages has Work and Play, each marked in its corner, Work with a key at
 // row 2, column 2.
 const markedPages = `schema_version: 1

@@ -116,6 +116,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - A `page_marker` key marks a page and does nothing when pressed; without a
   label it shows its page's number. Copying a page leaves it out, so the page
   copied onto keeps its own.
+- A brick drawer in the pages screen's left gutter opens on a click and offers
+  every brick and preset to drag. Dropped on an empty tile, a brick opens that
+  tile's key editor with it chosen; while one is carried, keys and paging tiles
+  are dimmed and crossed, as only an empty tile takes one.
+- The page copy forms sit in a drawer, closed until opened, with a chevron.
 
 ### Fixed
 

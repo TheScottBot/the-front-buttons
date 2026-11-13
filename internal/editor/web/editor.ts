@@ -4,6 +4,7 @@
 
 import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
+import { enableDrawer } from "./drawer";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
 import { enableSliders } from "./slider";
@@ -19,4 +20,5 @@ const grid = document.querySelector<HTMLTableElement>("table.grid");
 if (grid !== null) {
   enableDrag(grid);
   enableKeyDialog(grid);
+  enableDrawer(grid);
 }

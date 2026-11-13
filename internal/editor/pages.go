@@ -228,6 +228,9 @@ type pageView struct {
 	Rows       [][]cellView
 	// CopyTargets are the pages this one can be copied onto: every other.
 	CopyTargets []copyTarget
+	// Types are the bricks and presets the drawer offers to drag onto an
+	// empty tile, the same list the key form chooses from.
+	Types []typeOption
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
@@ -257,6 +260,7 @@ func (pages *pageHandlers) renderPage(
 		Rows:       nil,
 
 		CopyTargets: copyTargets(configuration, pageIndex),
+		Types:       pages.typeOptions(""),
 	}
 
 	for index, page := range configuration.Pages {

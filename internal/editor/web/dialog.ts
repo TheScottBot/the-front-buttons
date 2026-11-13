@@ -125,6 +125,23 @@ async function load(parts: Elements, url: string, init?: RequestInit): Promise<v
   focusFirst(parts.body);
 }
 
+// openFrom is set once the dialog is enabled: it opens the key editor at an
+// address, with focus going back to the element given when it closes.
+let openFrom: ((address: string, from: HTMLElement) => void) | null = null;
+
+// openKeyDialog opens the key editor at an address, as a tile's click does;
+// the brick drawer uses it once a brick is dropped on an empty tile. Without
+// the dialog it goes to the key's own page.
+export function openKeyDialog(address: string, from: HTMLElement): void {
+  if (openFrom === null) {
+    window.location.assign(address);
+
+    return;
+  }
+
+  openFrom(address, from);
+}
+
 function isPlainClick(event: MouseEvent): boolean {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
@@ -153,6 +170,11 @@ export function enableKeyDialog(grid: HTMLTableElement): void {
     opener = link;
     void load(parts, link.href);
   });
+
+  openFrom = (address: string, from: HTMLElement): void => {
+    opener = from;
+    void load(parts, address);
+  };
 
   // Every form in the dialog is sent from here, so its answer lands in the
   // dialog rather than replacing the page.

@@ -134,6 +134,14 @@
     }
     focusFirst(parts.body);
   }
+  var openFrom = null;
+  function openKeyDialog(address, from) {
+    if (openFrom === null) {
+      window.location.assign(address);
+      return;
+    }
+    openFrom(address, from);
+  }
   function isPlainClick(event) {
     return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
   }
@@ -153,6 +161,10 @@
       opener = link;
       void load(parts, link.href);
     });
+    openFrom = (address, from) => {
+      opener = from;
+      void load(parts, address);
+    };
     parts.body.addEventListener("submit", (event) => {
       const form = event.target;
       if (!(form instanceof HTMLFormElement)) {
@@ -331,6 +343,77 @@
     document.getElementById("drag-help")?.removeAttribute("hidden");
   }
 
+  // internal/editor/web/drawer.ts
+  var brickType = "application/x-front-buttons-brick";
+  var placingClass = "placing";
+  var carryingClass = "carrying";
+  var dropTargetClass2 = "drop-target";
+  function emptyCellOf(target) {
+    const cell = target instanceof Element ? target.closest("td[data-tile]") : null;
+    return cell?.dataset.state === "empty" ? cell : null;
+  }
+  function setOpen(toggle, panel, open) {
+    toggle.setAttribute("aria-expanded", String(open));
+    panel.hidden = !open;
+  }
+  function enableDrawer(grid2) {
+    const drawer = document.getElementById("brick-drawer");
+    const toggle = drawer?.querySelector(".drawer-toggle");
+    const panel = document.getElementById("brick-list");
+    if (drawer === null || toggle === null || toggle === void 0 || panel === null) {
+      return;
+    }
+    let carried = null;
+    toggle.addEventListener("click", () => setOpen(toggle, panel, panel.hidden));
+    panel.addEventListener("dragstart", (event) => {
+      const item = event.target instanceof Element ? event.target.closest("li[data-type]") : null;
+      if (item === null || event.dataTransfer === null) {
+        return;
+      }
+      carried = item.dataset.type ?? null;
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData(brickType, carried ?? "");
+      grid2.classList.add(placingClass);
+      window.setTimeout(() => drawer.classList.add(carryingClass), 0);
+    });
+    panel.addEventListener("dragend", () => {
+      carried = null;
+      grid2.classList.remove(placingClass);
+      drawer.classList.remove(carryingClass);
+      for (const cell of grid2.querySelectorAll(`.${dropTargetClass2}`)) {
+        cell.classList.remove(dropTargetClass2);
+      }
+    });
+    grid2.addEventListener("dragover", (event) => {
+      const cell = emptyCellOf(event.target);
+      if (carried === null || cell === null || event.dataTransfer === null) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      cell.classList.add(dropTargetClass2);
+    });
+    grid2.addEventListener("dragleave", (event) => {
+      if (carried !== null) {
+        emptyCellOf(event.target)?.classList.remove(dropTargetClass2);
+      }
+    });
+    grid2.addEventListener("drop", (event) => {
+      const cell = emptyCellOf(event.target);
+      const link = cell?.querySelector('a[href^="/key?"]');
+      if (carried === null || cell === null || link === null || link === void 0) {
+        return;
+      }
+      event.preventDefault();
+      cell.classList.remove(dropTargetClass2);
+      const address = new URL(link.href);
+      address.searchParams.set("type", carried);
+      setOpen(toggle, panel, false);
+      openKeyDialog(address.pathname + address.search, link);
+    });
+    drawer.hidden = false;
+  }
+
   // internal/editor/web/picker.ts
   function enablePickers(root) {
     root.addEventListener("change", (event) => {
@@ -381,5 +464,6 @@
   if (grid !== null) {
     enableDrag(grid);
     enableKeyDialog(grid);
+    enableDrawer(grid);
   }
 })();

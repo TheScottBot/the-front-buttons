@@ -9,6 +9,15 @@
 <caption>Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}. Choose a key to edit it.</caption>
 {{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
+<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
+<button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
+<div id="brick-list" class="drawer-panel" hidden>
+<p class="help">Drag a brick onto an empty tile to add it there. From the keyboard, choose an empty tile in the grid instead.</p>
+<ul>{{range .Types}}
+<li draggable="true" data-type="{{.Value}}">{{.Label}}</li>{{end}}
+</ul>
+</div>
+</aside>
 <form method="post" action="/page/rename" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
@@ -16,8 +25,8 @@
 <input id="rename-name" name="name" type="text" value="{{.PageName}}" required minlength="1" maxlength="24">
 <button type="submit">Rename</button>
 </form>
-<fieldset class="copy-page">
-<legend>Copy this page's keys</legend>
+<details class="copy-page">
+<summary>Copy this page's keys</summary>
 <form method="post" action="/page/copy/new" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
@@ -35,7 +44,7 @@
 <button type="submit">Copy onto that page</button>
 </form>
 <p class="help">Copying onto a page keeps its keys. If a copied key would land on one, nothing is copied and the clashing tiles are named. The page marker is never copied: each page keeps its own.</p>{{end}}
-</fieldset>
+</details>
 <form method="post" action="/page/delete" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
