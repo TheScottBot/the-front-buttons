@@ -18,12 +18,18 @@ There is no telemetry, analytics or crash reporting.
   It records kinds, pages, positions, reason categories and counts. It never
   records a URL (which can hold colleagues' addresses), a token or a request
   body.
+- Three cookies, in the browser the editor is opened in, sent only to the
+  editor on this machine: the session, which the browser drops when it closes,
+  and two display choices kept for a year, the theme (`theme`) and whether the
+  grid is drawn like the deck (`deck_render`). The display choices hold nothing
+  else.
 
 ## Retention
 
 Everything stays until the person deletes it. Removing the configuration folder
 removes the configuration and logs; credentials are removed in Keychain Access or
-Credential Manager under the name `the-front-buttons`.
+Credential Manager under the name `the-front-buttons`. The cookies go with the
+browser's site data for the editor's address.
 
 ## What this does not protect against
 
