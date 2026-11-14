@@ -930,9 +930,17 @@ label[for$="-picker"] {
   transform: none;
 }
 
+/* The panel is as wide as its widest brick's name, between 15rem and 30rem
+   or the window, so every name shows whole and each section's box spans it;
+   the help text wraps to that width rather than setting it, and a name too
+   long even for the widest panel wraps. */
 .drawer-panel {
-  width: 15rem;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 15rem;
+  max-width: min(30rem, calc(100vw - 3rem));
   max-height: calc(100vh - 10rem);
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 0.75rem;
   background: var(--page);
@@ -958,7 +966,14 @@ label[for$="-picker"] {
   list-style: none;
 }
 
+.drawer-panel .help,
+.drawer-panel .drawer-empty {
+  width: 0;
+  min-width: 100%;
+}
+
 .drawer-panel li {
+  overflow-wrap: anywhere;
   padding: 0.35rem 0.6rem;
   font-size: 0.85rem;
   color: var(--on-block);

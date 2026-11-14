@@ -4062,6 +4062,18 @@ drawer opened, "build" narrowed 80 bricks to one, "spotify" to six across three
 sections, a word matching nothing showed the line, and Escape restored all 80
 with each section as it was.
 
+The drawer was a fixed 15rem, so long names, such as GoLand's
+jetbrains_go_to_declaration, ran out of their boxes and past the sections'.
+The panel is now as wide as its widest name, between 15rem and 30rem or the
+window, with the help text wrapping to that width rather than setting it, and
+a name too long even then wrapping; each section's box spans the panel. And
+Escape anywhere in the drawer now closes it once its search is empty: with
+words in the search the first Escape clears them and a second closes it,
+returning focus to the drawer's tab. Driven in a browser on GoLand's screen:
+the panel 396 pixels wide, none of the 80 names clipped, every section the
+same width; and with "build" typed, one Escape cleared it with the drawer
+still open, and a second closed it with focus on the tab.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

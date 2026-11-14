@@ -124,6 +124,22 @@ function enableSearch(panel: HTMLElement): HTMLInputElement | null {
   return box;
 }
 
+// enableEscapeToClose closes the drawer on Escape from anywhere in it, once
+// its search is empty: with words in the search, the first Escape clears
+// them and a second closes it. Focus goes back to the drawer's tab.
+function enableEscapeToClose(toggle: HTMLButtonElement, panel: HTMLElement): void {
+  panel.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || event.defaultPrevented || panel.hidden) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(toggle, panel, false);
+    toggle.focus();
+  });
+}
+
 function setOpen(toggle: HTMLButtonElement, panel: HTMLElement, open: boolean): void {
   toggle.setAttribute("aria-expanded", String(open));
   panel.hidden = !open;
@@ -176,6 +192,7 @@ export function enableDrawer(grid: HTMLTableElement): void {
   };
 
   const search = enableSearch(panel);
+  enableEscapeToClose(toggle, panel);
 
   toggle.addEventListener("click", () => {
     setOpen(toggle, panel, panel.hidden);

@@ -588,6 +588,17 @@
     });
     return box;
   }
+  function enableEscapeToClose(toggle, panel) {
+    panel.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || event.defaultPrevented || panel.hidden) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(toggle, panel, false);
+      toggle.focus();
+    });
+  }
   function setOpen(toggle, panel, open) {
     toggle.setAttribute("aria-expanded", String(open));
     panel.hidden = !open;
@@ -630,6 +641,7 @@
       marked = stack;
     };
     const search = enableSearch(panel);
+    enableEscapeToClose(toggle, panel);
     toggle.addEventListener("click", () => {
       setOpen(toggle, panel, panel.hidden);
       if (!panel.hidden) {
