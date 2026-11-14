@@ -3888,6 +3888,34 @@ change: the link marked for the script and the hint hidden. Checked in a
 browser on a copy of the page: Escape in the rename field stayed, and Escape
 with a key ticked went to the regular page.
 
+### Render like deck
+
+A switch under the theme switch, Render like deck, draws every key and paging
+tile on the grid as its picture, as the deck draws it, from the previews the
+key form already shows, rather than as words. Its choice is kept in a cookie
+the server reads, as the theme's is, so the grid is drawn either way from the
+start, and the switch draws the page again. Empty tiles stay dark, the page
+marker is drawn in select mode though it is never copied, and select mode
+lifts and rocks the pictures.
+
+The previews now match the deck in two more ways. A key without a label of its
+own shows the label the deck gives it, through a fallback label now shared by
+the deck and the editor in the brick package: a page marker its page number, a
+brick its own name, a brightness key its percentage, an off key the word. And
+the paging tiles are drawn as the deck draws them, with the page's number among
+the regular pages and its neighbours' names; on an app screen they show none,
+as which regular page the screen was opened from is the deck's to know. A key's
+live state, such as a pipeline's status, is the deck's alone and is not drawn.
+
+Tests first, failing before the change: the grid drawn as pictures with the
+switch on, as words without it or switched off, in select mode too; a page
+marker previewed with its page number; and both paging tiles previewed as the
+deck draws them. Planted violations, no default label, no paging pictures, the
+switch's off ignored, and the wrong page number, each failed a test. Checked in
+a browser against the editor's test harness serving a copy of the deck's
+configuration: the grid and select mode drawn as pictures, and the switch
+turning them back to words.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

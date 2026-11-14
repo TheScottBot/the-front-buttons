@@ -1145,10 +1145,19 @@ label[for$="-picker"] {
   --tilt-back: none;
 }
 
-/* The theme switch: a pill whose knob slides right for dark, its state also
-   read out as a switch. Hidden until the script shows it. */
+/* The theme and Render like deck switches: pills whose knob slides right
+   when on, their state also read out as a switch, stacked at the header's
+   end. Hidden until the script shows them. */
 
-.theme-switch {
+.switches {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.theme-switch,
+.render-switch {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
@@ -1157,7 +1166,8 @@ label[for$="-picker"] {
   transform: none;
 }
 
-.theme-switch::before {
+.theme-switch::before,
+.render-switch::before {
   content: "";
   flex: none;
   width: 2.4rem;
@@ -1168,10 +1178,40 @@ label[for$="-picker"] {
   transition: background-position 120ms ease-out;
 }
 
-.theme-switch[aria-checked="true"]::before {
+.theme-switch[aria-checked="true"]::before,
+.render-switch[aria-checked="true"]::before {
   background: radial-gradient(circle at 1.75rem 50%, var(--on-block) 0.4rem, transparent 0.45rem);
 }
 
-.theme-switch[hidden] {
+.theme-switch[hidden],
+.render-switch[hidden] {
   display: none;
+}
+
+/* Render like deck: each key and paging tile is its picture as the deck draws
+   it, on a square black tile as on the deck; empty tiles stay dark. */
+
+[data-render="deck"] .grid td {
+  height: 6.5rem;
+  background: #000;
+}
+
+[data-render="deck"] .grid a,
+[data-render="deck"] .grid .reserved,
+[data-render="deck"] .grid .select-key {
+  padding: 0.2rem;
+}
+
+[data-render="deck"] .grid .select-key {
+  background: #000;
+}
+
+.grid .deck-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 6rem;
+  max-height: 6rem;
+  object-fit: contain;
+  border-radius: 0.6rem;
 }

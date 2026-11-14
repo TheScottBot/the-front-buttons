@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
@@ -96,33 +95,7 @@ func (state *loopState) hiddenByOff(position layout.Position) bool {
 	return state.pages[state.controls.offPage][state.controls.offBrick].key.Position != position
 }
 
-// fallbackLabel is what a key shows when it has no label of its own: a page
-// marker its regular page's number, or on an app screen the screen's name; a
-// brick that names its own its name (a shortcut key its shortcut); a
-// brightness key its percentage; an off key the word; and anything else
-// nothing.
+// fallbackLabel is what a key shows when it has no label of its own.
 func fallbackLabel(configured configuredKey) string {
-	if _, isMarker := configured.instance.(brick.PageMarker); isMarker {
-		if configured.pageNumber == 0 {
-			return configured.pageName
-		}
-
-		return fmt.Sprintf("Page %d", configured.pageNumber)
-	}
-
-	if labelled, isLabelled := configured.instance.(brick.DefaultLabelled); isLabelled {
-		return labelled.DefaultLabel()
-	}
-
-	control, isControl := configured.instance.(brick.DeckControl)
-	if !isControl {
-		return ""
-	}
-
-	request := control.DeckControl()
-	if request.Action == brick.DeckControlBrightness {
-		return fmt.Sprintf("%d%%", request.Percent)
-	}
-
-	return "Off"
+	return brick.FallbackLabel(configured.instance, configured.pageName, configured.pageNumber)
 }

@@ -1,5 +1,5 @@
 {{define "head"}}<!doctype html>
-<html lang="en-GB"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<html lang="en-GB"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .DeckRender}} data-render="deck"{{end}}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,7 +21,10 @@
 <li><a href="/diagnostics">Diagnostics</a></li>
 </ul>
 </nav>
+<div class="switches">
 <button type="button" class="theme-switch" role="switch" aria-checked="false" hidden>Dark mode</button>
+<button type="button" class="render-switch" role="switch" aria-checked="{{if .DeckRender}}true{{else}}false{{end}}" hidden>Render like deck</button>
+</div>
 </header>
 <div class="announcement" role="status" aria-live="polite">{{.Message}}{{if .Undo}}
 <form method="post" action="/key/undo" class="undo-form"><input type="hidden" name="token" value="{{.Token}}"><button type="submit">Undo</button></form>{{end}}</div>

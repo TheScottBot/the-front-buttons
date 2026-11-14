@@ -559,6 +559,22 @@
     });
   }
 
+  // internal/editor/web/render.ts
+  var oneYearSeconds = 60 * 60 * 24 * 365;
+  function enableRenderToggle(page) {
+    const toggle = page.querySelector("button.render-switch");
+    if (toggle === null) {
+      return;
+    }
+    toggle.addEventListener("click", () => {
+      const on = toggle.getAttribute("aria-checked") !== "true";
+      toggle.setAttribute("aria-checked", String(on));
+      page.cookie = `deck_render=${on ? "on" : "off"}; path=/; max-age=${oneYearSeconds}; samesite=strict`;
+      window.location.reload();
+    });
+    toggle.hidden = false;
+  }
+
   // internal/editor/web/select.ts
   var tileAttribute2 = "data-tile";
   var keyState = "key";
@@ -624,7 +640,7 @@
   }
 
   // internal/editor/web/theme.ts
-  var oneYearSeconds = 60 * 60 * 24 * 365;
+  var oneYearSeconds2 = 60 * 60 * 24 * 365;
   var systemDark = "(prefers-color-scheme: dark)";
   function enableThemeToggle(page) {
     const toggle = page.querySelector("button.theme-switch");
@@ -640,7 +656,7 @@
     toggle.addEventListener("click", () => {
       const chosen = isDark() ? "light" : "dark";
       root.dataset["theme"] = chosen;
-      page.cookie = `theme=${chosen}; path=/; max-age=${oneYearSeconds}; samesite=strict`;
+      page.cookie = `theme=${chosen}; path=/; max-age=${oneYearSeconds2}; samesite=strict`;
       show();
     });
     system.addEventListener("change", show);
@@ -655,6 +671,7 @@
   enableGroupOrder(document);
   enablePlatformSwitch(document);
   enableThemeToggle(document);
+  enableRenderToggle(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableSelecting(grid);

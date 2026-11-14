@@ -194,6 +194,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   nothing and names every tile in the way. Shift and a click on a key opens
   select mode with it ticked; in select mode a click ticks or unticks one
   key, Shift held or not, and Escape leaves it.
+- The editor's Render like deck switch, under Dark mode, draws the grid's keys
+  and paging tiles as the deck draws them. Key previews now show the label the
+  deck gives a key without one, such as a page marker's page number, and the
+  paging tiles as the deck draws them.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two

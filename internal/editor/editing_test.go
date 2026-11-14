@@ -217,8 +217,8 @@ func TestEditor_AddsRenamesAndDeletesPages(t *testing.T) {
 		form      url.Values
 		wantPages []string
 	}{
-		{"/page/add", url.Values{nameField: {"Play"}}, []string{"Work", "Play"}},
-		{"/page/rename", url.Values{pageField: {"1"}, nameField: {gamesPage}}, []string{"Work", gamesPage}},
+		{"/page/add", url.Values{nameField: {playName}}, []string{workName, playName}},
+		{"/page/rename", url.Values{pageField: {"1"}, nameField: {gamesPage}}, []string{workName, gamesPage}},
 		{"/page/delete", url.Values{pageField: {"0"}}, []string{gamesPage}},
 	}
 

@@ -9,6 +9,7 @@ import { enableGroupOrder } from "./group";
 import { enablePlatformSwitch } from "./platform";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
+import { enableRenderToggle } from "./render";
 import { enableSelecting } from "./select";
 import { enableSliders } from "./slider";
 import { enableThemeToggle } from "./theme";
@@ -19,6 +20,7 @@ enableSliders(document);
 enableGroupOrder(document);
 enablePlatformSwitch(document);
 enableThemeToggle(document);
+enableRenderToggle(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");
 

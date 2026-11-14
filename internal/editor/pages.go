@@ -70,6 +70,9 @@ type baseView struct {
 	// Theme is the palette chosen with the switch, light or dark, or empty to
 	// follow the system's setting.
 	Theme string
+	// DeckRender is the Render like deck switch: the grid's keys drawn as
+	// pictures, as the deck draws them, rather than words.
+	DeckRender bool
 }
 
 // themeCookie is where the theme switch keeps its choice. It is read here so
@@ -114,6 +117,8 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		Problems: problems,
 		Undo:     undo,
 		Theme:    chosenTheme(request),
+
+		DeckRender: rendersLikeDeck(request),
 	}
 }
 
@@ -206,6 +211,9 @@ type cellView struct {
 	// Image is a picture the cell shows in place of its text: the
 	// application's icon on an app screen's return tile.
 	Image string
+	// Face is the tile's picture as the deck draws it, for Render like deck:
+	// a key's or a paging tile's, and none for an empty tile.
+	Face string
 	// Selectable marks a key select mode offers to tick, Select is its tile
 	// as the copy posts it, "row.column", SelectID its check box's id, and
 	// Checked is ticked already.
@@ -397,19 +405,24 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 
 			switch {
 			case position == grid.BackPosition():
-				cells = append(cells, back(place, tile))
+				cells = append(cells, withFace(back(place, tile), pageIndex, position))
 			case position == grid.ForwardPosition():
-				cells = append(cells, forward(place, tile))
+				cells = append(cells, withFace(forward(place, tile), pageIndex, position))
 			case returnTile && position == grid.ReturnPosition():
 				cells = append(cells, cellView{
 					Reserved: true,
 					Name:     place + "reserved for the application's icon, which goes back to the regular pages",
 					Text:     "Back to the regular pages", Kind: "", Href: "", Tile: tile, State: tileIsReserve,
 					Image:      fmt.Sprintf("/preview.png?page=%d&row=%d&column=%d", pageIndex, row, column),
-					Selectable: false, Select: "", SelectID: "", Checked: false,
+					Selectable: false, Select: "", SelectID: "", Checked: false, Face: "",
 				})
 			default:
-				cells = append(cells, pages.keyCell(page, pageIndex, position, place, tile))
+				cell := pages.keyCell(page, pageIndex, position, place, tile)
+				if cell.State == tileHoldsKey {
+					cell = withFace(cell, pageIndex, position)
+				}
+
+				cells = append(cells, cell)
 			}
 		}
 
@@ -448,11 +461,19 @@ func (pages *pageHandlers) keyCell(
 		State:    state,
 		Image:    "",
 
+		Face:       "",
 		Selectable: found && !brick.IsPageMarker(key.Kind),
 		Select:     fmt.Sprintf("%d.%d", position.Row, position.Column),
 		SelectID:   fmt.Sprintf("%d-%d", position.Row, position.Column),
 		Checked:    false,
 	}
+}
+
+// withFace gives a tile its picture as the deck draws it.
+func withFace(cell cellView, pageIndex int, position layout.Position) cellView {
+	cell.Face = fmt.Sprintf("/preview.png?page=%d&row=%d&column=%d", pageIndex, position.Row, position.Column)
+
+	return cell
 }
 
 // pagingCell builds a paging tile. It links to the regular page a step away,
@@ -470,7 +491,7 @@ func pagingCell(allPages []config.Page, pageIndex int, step int, text string) fu
 		cell := cellView{
 			Reserved: true, Name: place + "reserved for paging " + strings.ToLower(text), Text: text, Kind: "",
 			Href: "", Tile: tile, State: tileIsReserve, Image: "",
-			Selectable: false, Select: "", SelectID: "", Checked: false,
+			Selectable: false, Select: "", SelectID: "", Checked: false, Face: "",
 		}
 
 		target := -1
@@ -907,22 +928,13 @@ func saveProblems(saveError error) []string {
 func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Request) {
 	configuration, _ := pages.configuration()
 	query := request.URL.Query()
-	page := pageAt(configuration, integerParameter(query, "page"))
+	pageIndex := integerParameter(query, "page")
 	position := layout.Position{Row: integerParameter(query, "row"), Column: integerParameter(query, "column")}
-
-	var appearance render.Appearance
-
-	// An app screen's return tile is the application's icon alone.
-	if query.Get("type") == "" && page.IsAppScreen() && position == pages.options.Grid.ReturnPosition() {
-		icon := pages.loadAppIcon(request.Context(), page.Application)
-		appearance = render.Appearance{IconImage: icon, IconMissing: icon == nil, BackgroundFromIcon: true}
-	} else {
-		appearance = pages.keyPreview(request.Context(), page, position, query)
-	}
+	picture := pages.previewPicture(request.Context(), configuration, pageIndex, position, query)
 
 	var encoded bytes.Buffer
 
-	encodeError := png.Encode(&encoded, pages.options.Renderer.Render(appearance))
+	encodeError := png.Encode(&encoded, picture)
 	if encodeError != nil {
 		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
@@ -931,6 +943,55 @@ func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Req
 
 	writer.Header().Set("Content-Type", "image/png")
 	_, _ = writer.Write(encoded.Bytes())
+}
+
+// previewPicture draws a tile as the deck would: a paging tile, an app
+// screen's return tile, or a key, stored or as its form now has it.
+func (pages *pageHandlers) previewPicture(
+	previewContext context.Context,
+	configuration config.Configuration,
+	pageIndex int,
+	position layout.Position,
+	query url.Values,
+) image.Image {
+	page := pageAt(configuration, pageIndex)
+	grid := pages.options.Grid
+	stored := query.Get("type") == ""
+
+	var picture image.Image
+
+	switch {
+	case stored && (position == grid.BackPosition() || position == grid.ForwardPosition()):
+		picture = pages.pagingPicture(configuration, pageIndex, position)
+	// An app screen's return tile is the application's icon alone.
+	case stored && page.IsAppScreen() && position == grid.ReturnPosition():
+		icon := pages.loadAppIcon(previewContext, page.Application)
+		picture = pages.options.Renderer.Render(
+			render.Appearance{IconImage: icon, IconMissing: icon == nil, BackgroundFromIcon: true})
+	default:
+		appearance := pages.keyPreview(previewContext, page, position, query)
+		if stored && appearance.Label == "" {
+			appearance.Label = pages.deckLabel(configuration.Pages, pageIndex, position)
+		}
+
+		picture = pages.options.Renderer.Render(appearance)
+	}
+
+	return picture
+}
+
+// pagingPicture draws a paging tile as the deck draws it.
+func (pages *pageHandlers) pagingPicture(
+	configuration config.Configuration, pageIndex int, position layout.Position,
+) image.Image {
+	direction := render.DirectionForward
+	if position == pages.options.Grid.BackPosition() {
+		direction = render.DirectionBack
+	}
+
+	indication, hasIndication := pageIndication(configuration.Pages, pageIndex)
+
+	return pages.options.Renderer.RenderNavigation(direction, indication, hasIndication)
 }
 
 // keyPreview is how a key is drawn: the form's unsaved fields, or with no

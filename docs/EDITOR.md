@@ -23,6 +23,15 @@ macOS the install script puts the binary in
 "$HOME/Library/Application Support/the-front-buttons/bin/the-front-buttons" -open-editor
 ```
 
+## Render like deck
+
+The **Render like deck** switch, under **Dark mode**, draws every key and paging
+tile on the grid as the deck draws it: its label, icon and colours, a page
+marker's page number, and the paging keys' page count and neighbours. Switched
+off, the grid names each key and its kind in words. The choice is remembered in
+the browser. A key's live state, such as a pipeline's status or a badge, shows
+on the deck only.
+
 ## Copying keys between pages
 
 To put the same keys on several pages, such as cut, copy, paste and Spotify on
