@@ -114,6 +114,7 @@ func TestEditor_PageNamesAreDropTargets(t *testing.T) {
 		`<a href="/page?page=0" data-page="0" aria-current="page">Work</a>`,
 		`<a href="/page?page=2" data-page="2">Play</a>`,
 		`<a href="/page?page=1" data-page="1">GoLand</a>`,
+		"hold Command (Ctrl on Windows) as you drop to copy it instead.",
 		"Drop a key on a page's name to move it to the same tile there, " +
 			"or hold it over the name to open that page and place it.",
 	} {

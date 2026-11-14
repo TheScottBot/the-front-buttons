@@ -3964,6 +3964,17 @@ nothing moved. The first run opened the page twice, as the name, still under
 the key while the page loaded, armed again; the page is now taken as shown the
 moment the hold fires.
 
+Copying by drag stopped working: each drag over a tile set the drop's effect
+from the Option key alone, and some browsers, on macOS especially, report no
+keys held during a drag, so every drop was forced to a move over the
+browser's own copy. A drop now copies when Command, Option or Ctrl is
+reported, or when the browser itself chooses a copy, and a move is never
+forced over that choice. Command is the key the hint names, Ctrl on Windows,
+with Option still copying. Driven in a browser against the test harness: with
+Command held a key was copied, and with no key held a key moved; a real drag
+showed the browser's own choice with no key held is a move, so a plain drop
+stays a move.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

@@ -302,13 +302,13 @@
       announce("Error: the editor could not be reached; is the daemon running?");
     }
   }
-  function relocate(source, destination, copying) {
+  function relocate(source, destination, copying2) {
     return send("/key/move", {
       page: source.page,
       row: source.row,
       column: source.column,
       to: destination,
-      action: copying ? "copy" : "move"
+      action: copying2 ? "copy" : "move"
     });
   }
   function remove(source) {
@@ -340,6 +340,14 @@
   var pageArmingClass = "page-arming";
   var leftBehindClass = "grid-left-behind";
   var holdMilliseconds = 800;
+  function copying(event) {
+    return event.metaKey || event.altKey || event.ctrlKey || event.dataTransfer?.dropEffect === "copy";
+  }
+  function showCopying(event) {
+    if (event.dataTransfer !== null && (event.metaKey || event.altKey || event.ctrlKey)) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
   function pageLinkOf(target) {
     const link = target instanceof Element ? target.closest(`a[${pageAttribute}]`) : null;
     return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute) ?? "") ? link : null;
@@ -465,7 +473,7 @@
       const link = pageLinkOf(event.target);
       if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
         event.preventDefault();
-        event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+        showCopying(event);
         arm(link);
         return;
       }
@@ -474,7 +482,7 @@
         return;
       }
       event.preventDefault();
-      event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+      showCopying(event);
       cell.classList.add(dropTargetClass);
     });
     root.addEventListener("dragleave", (event) => {
@@ -492,7 +500,7 @@
         event.preventDefault();
         disarm();
         dropped = true;
-        void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, event.altKey);
+        void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, copying(event));
         return;
       }
       const cell = cellOf(event.target);
@@ -503,7 +511,7 @@
       event.preventDefault();
       clearDropTargets(root);
       dropped = true;
-      void relocate(source, destination, event.altKey);
+      void relocate(source, destination, copying(event));
     });
     document.getElementById("drag-help")?.removeAttribute("hidden");
   }

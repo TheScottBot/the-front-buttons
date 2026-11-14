@@ -1,5 +1,5 @@
 // Drag and drop for the editor's grid of keys: drag a key onto a free tile to
-// move it, or hold Option (Alt) while dropping to copy it. It only adds to the
+// move it, or hold Command, Option or Ctrl while dropping to copy it. It only adds to the
 // page: every move it makes is the same POST /key/move the move form on each
 // key's page sends, through the same guard and the same checks, and that form
 // stays the way to do it from the keyboard (engineering datum 0.16).
@@ -132,7 +132,7 @@ function clearDropTargets(grid: HTMLElement): void {
 }
 
 // Page names as drop targets: a key dropped on a page's name in the page
-// list moves, or with Option copies, to the same tile on that page; held over
+// list moves, or held to copy copies, to the same tile on that page; held over
 // the name a moment, that page's grid is fetched and shown in place of this
 // one, without leaving the page, so the drag carries on and the key can be
 // dropped on any free tile there. The grid left behind is kept, out of sight,
@@ -145,6 +145,22 @@ const leftBehindClass = "grid-left-behind";
 // holdMilliseconds is how long a key is held over a page's name to open that
 // page; the arming animation in editor.css runs as long.
 const holdMilliseconds = 800;
+
+// copying reports a drop that copies rather than moves: Command, Option or
+// Ctrl held, or the browser itself choosing a copy. Some browsers, on macOS
+// especially, report no keys held during a drag, but still choose a copy for
+// the platform's own copy key, so that choice counts too.
+function copying(event: DragEvent): boolean {
+  return event.metaKey || event.altKey || event.ctrlKey || event.dataTransfer?.dropEffect === "copy";
+}
+
+// showCopying shows a copy as the drag's cursor when a copy key is reported,
+// and otherwise leaves the browser's own choice, never forcing a move over it.
+function showCopying(event: DragEvent): void {
+  if (event.dataTransfer !== null && (event.metaKey || event.altKey || event.ctrlKey)) {
+    event.dataTransfer.dropEffect = "copy";
+  }
+}
 
 function pageLinkOf(target: EventTarget | null): HTMLAnchorElement | null {
   const link = target instanceof Element ? target.closest<HTMLAnchorElement>(`a[${pageAttribute}]`) : null;
@@ -309,7 +325,7 @@ export function enableDrag(grid: HTMLTableElement): void {
     const link = pageLinkOf(event.target);
     if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
       event.preventDefault();
-      event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+      showCopying(event);
       arm(link);
 
       return;
@@ -321,7 +337,7 @@ export function enableDrag(grid: HTMLTableElement): void {
     }
 
     event.preventDefault();
-    event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+    showCopying(event);
     cell.classList.add(dropTargetClass);
   });
 
@@ -344,7 +360,7 @@ export function enableDrag(grid: HTMLTableElement): void {
       event.preventDefault();
       disarm();
       dropped = true;
-      void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, event.altKey);
+      void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, copying(event));
 
       return;
     }
@@ -358,7 +374,7 @@ export function enableDrag(grid: HTMLTableElement): void {
     event.preventDefault();
     clearDropTargets(root);
     dropped = true;
-    void relocate(source, destination as string, event.altKey);
+    void relocate(source, destination as string, copying(event));
   });
 
   document.getElementById("drag-help")?.removeAttribute("hidden");

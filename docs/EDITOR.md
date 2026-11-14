@@ -35,8 +35,8 @@ placeholder icon in its place.
 
 ## Moving keys between pages
 
-Drag a key onto a free tile to move it; hold Option (Alt on Windows) as you drop
-to copy it instead. Drop a key on a page's or app screen's name in the page list
+Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you
+drop to copy it instead. Option (Alt) copies too. Drop a key on a page's or app screen's name in the page list
 to move it to the same tile there. Hold it over the name for a moment instead
 and that page opens in place, the name filling as it counts down, so you can
 drop the key on any free tile of it. Let go anywhere else and you stay on that
@@ -61,4 +61,4 @@ on a regular page, nothing is copied anywhere. Every such tile is named, and
 what was ticked stays ticked to change and try again.
 
 **Copy this page's keys** copies a whole page, and a single key's form, or
-dragging it with Option (Alt on Windows) held, copies one key to any free tile.
+dragging it with Command (Ctrl on Windows) held, copies one key to any free tile.
