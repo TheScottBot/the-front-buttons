@@ -549,6 +549,45 @@
     }
     return stack;
   }
+  function enableSearch(panel) {
+    const box = panel.querySelector("input.drawer-search");
+    const empty = panel.querySelector(".drawer-empty");
+    const sections = Array.from(panel.querySelectorAll("details.drawer-section"));
+    if (box === null) {
+      return null;
+    }
+    const wasOpen = new Map(sections.map((section) => [section, section.open]));
+    const narrow = () => {
+      const words = box.value.toLowerCase().split(/\s+/).filter((word) => word !== "");
+      let matches = 0;
+      for (const section of sections) {
+        const sectionName = section.querySelector("summary")?.textContent?.toLowerCase() ?? "";
+        let shown = 0;
+        for (const item of section.querySelectorAll("li")) {
+          const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""}`;
+          const match = words.every((word) => haystack.includes(word));
+          item.hidden = !match;
+          shown += match ? 1 : 0;
+        }
+        section.hidden = shown === 0;
+        section.open = words.length === 0 ? wasOpen.get(section) ?? false : shown > 0;
+        matches += shown;
+      }
+      if (empty !== null) {
+        empty.hidden = matches > 0;
+      }
+    };
+    box.addEventListener("input", narrow);
+    box.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && box.value !== "") {
+        event.preventDefault();
+        event.stopPropagation();
+        box.value = "";
+        narrow();
+      }
+    });
+    return box;
+  }
   function setOpen(toggle, panel, open) {
     toggle.setAttribute("aria-expanded", String(open));
     panel.hidden = !open;
@@ -590,7 +629,13 @@
       });
       marked = stack;
     };
-    toggle.addEventListener("click", () => setOpen(toggle, panel, panel.hidden));
+    const search = enableSearch(panel);
+    toggle.addEventListener("click", () => {
+      setOpen(toggle, panel, panel.hidden);
+      if (!panel.hidden) {
+        search?.focus();
+      }
+    });
     panel.addEventListener("dragstart", (event) => {
       const item = event.target instanceof Element ? event.target.closest("li[draggable]") : null;
       const picked = item === null ? null : carriedFrom(item);

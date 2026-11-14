@@ -38,6 +38,14 @@ not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
 
+## The brick drawer
+
+The **Bricks** tab on the left opens the drawer of bricks to drag onto an empty
+tile. Its search box takes focus as it opens and narrows the drawer as you
+type, to the bricks whose names hold every word typed; a section's name counts
+for each brick in it, so "spotify" or "goland" finds a whole section. Escape
+clears the search.
+
 ## Moving keys between pages
 
 Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you

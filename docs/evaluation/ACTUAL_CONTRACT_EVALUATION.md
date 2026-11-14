@@ -4032,6 +4032,21 @@ and in a browser, and a stream refused while too many pages follow the deck
 is now logged. Measured in a browser: lit for 2.1 seconds, three blinks, clear
 at 3.0 seconds.
 
+### Searching the brick drawer
+
+As the app sets grew, the drawer grew long, so it now opens with a search box,
+focused, that narrows it as one types: a brick is shown if its name, with its
+section's name, holds every word typed, so "spotify" or "goland" finds a whole
+section. Sections with a match open and the rest hide; a line says when none
+match; clearing the box, or Escape, puts every section back as it was. The
+drawer already works through the script, as dragging needs it, and so does
+its search. Test first, failing before the change: the labelled box and the
+hidden line for no matches. Driven in a browser against the editor's test
+harness on GoLand's screen of the deck's configuration: the box focused as the
+drawer opened, "build" narrowed 80 bricks to one, "spotify" to six across three
+sections, a word matching nothing showed the line, and Escape restored all 80
+with each section as it was.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

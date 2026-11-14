@@ -1326,3 +1326,16 @@ header .theme-switch {
     outline-color: transparent;
   }
 }
+
+/* The drawer's search box, across the panel's width above its sections. */
+
+.drawer-panel .drawer-search {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0.3rem 0 0.6rem;
+}
+
+.drawer-panel .drawer-empty {
+  margin: 0 0 0.6rem;
+  font-style: italic;
+}

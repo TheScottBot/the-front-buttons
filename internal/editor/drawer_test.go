@@ -59,3 +59,22 @@ func TestEditor_PageHoldsAHiddenBrickDrawer(t *testing.T) {
 		t.Error("stylesheet: want the drawer to let a carried brick through to the tiles")
 	}
 }
+
+// TestEditor_DrawerHasASearchBox: the drawer opens with a labelled search box
+// that narrows its bricks as one types, and a line for when none match, hidden
+// until then. Like the drawer, it works through the script.
+func TestEditor_DrawerHasASearchBox(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
+
+	for _, want := range []string{
+		`<label for="brick-search">Search bricks</label>`,
+		`<input type="search" id="brick-search" class="drawer-search" autocomplete="off" spellcheck="false">`,
+		`<p class="drawer-empty" role="status" hidden>No bricks match.</p>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("drawer: want %s", want)
+		}
+	}
+}

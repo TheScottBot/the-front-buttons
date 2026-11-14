@@ -208,6 +208,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   on every page, updating as they change, and a flash on each key pressed. It
   is given pictures and tiles only, behind the editor's guard, with at most
   four pages following at once.
+- The editor's brick drawer has a search box, focused as the drawer opens,
+  that narrows it as you type; a section's name counts for its bricks.
 - Dragging a key with Command held, Ctrl on Windows, copies it; Option still
   does, and copying by drag works again in browsers that report no keys held
   during a drag.

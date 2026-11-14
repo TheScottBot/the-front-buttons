@@ -32,6 +32,9 @@
 {{end}}<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
 <div id="brick-list" class="drawer-panel" hidden>
+<label for="brick-search">Search bricks</label>
+<input type="search" id="brick-search" class="drawer-search" autocomplete="off" spellcheck="false">
+<p class="drawer-empty" role="status" hidden>No bricks match.</p>
 <p class="help">Drag a brick onto an empty tile to add it there; a bigger one needs that many free tiles, wide by high, from where it is dropped. From the keyboard, choose an empty tile in the grid instead.</p>
 {{if .AppName}}<details class="drawer-section" open>
 <summary>{{.AppName}}</summary>
