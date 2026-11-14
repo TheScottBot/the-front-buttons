@@ -22,7 +22,7 @@
 </fieldset>
 <button type="submit">Copy the ticked keys</button>
 <p class="help">Each key goes on the same tile it is on here. If any would land on a key, on any page ticked, nothing is copied and every such tile is named.</p>
-<p><a href="/page?page={{.PageIndex}}">Done selecting</a></p>
+<p><a href="/page?page={{.PageIndex}}" class="select-done">Done selecting</a><span class="select-help" hidden>, or press Escape</span></p>
 </form>
 {{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy</a></p>
 <p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>

@@ -3880,6 +3880,14 @@ fixed click area covering its own tile and half the gap around it. Checked in
 a browser on a copy of the deck's first page: plain clicks and Shift held
 clicks each ticked or unticked exactly the key under the pointer.
 
+Escape now leaves select mode, following the Done selecting link, so it goes
+where that link goes and works the same with the script or the link alone. A
+field being typed in keeps its own Escape, and an open dialog closes first.
+Its hint stays hidden unless the script runs. Test first, failing before the
+change: the link marked for the script and the hint hidden. Checked in a
+browser on a copy of the page: Escape in the rename field stayed, and Escape
+with a key ticked went to the regular page.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

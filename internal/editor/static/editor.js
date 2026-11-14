@@ -591,10 +591,25 @@
       box.checked = !box.checked;
     });
   }
+  function enableEscapeToLeave() {
+    const done = document.querySelector("a.select-done");
+    if (done === null) {
+      return;
+    }
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key !== "Escape" || event.defaultPrevented || typing || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      window.location.assign(done.href);
+    });
+  }
   function enableSelecting(grid2) {
     showHints();
     if (grid2.querySelector(".select-key") !== null) {
       enableShiftTicking(grid2);
+      enableEscapeToLeave();
       return;
     }
     grid2.addEventListener("click", (event) => {

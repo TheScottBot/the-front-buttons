@@ -33,7 +33,8 @@ on, on every page ticked.
 
 Or hold Shift and click a key on the grid to open select mode with that key
 ticked. In select mode a click ticks or unticks one key, with Shift held or not,
-so you can keep holding Shift as you go.
+so you can keep holding Shift as you go. **Done selecting**, or Escape, leaves
+select mode without copying.
 
 If any key would land on a key already there, on a tile kept for paging or for
 an app screen's icon, or on a page that cannot hold it, such as a JetBrains key
