@@ -100,14 +100,7 @@ func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) i
 
 	switch slot.Kind {
 	case layout.SlotBack, layout.SlotForward:
-		direction := render.DirectionForward
-		if slot.Kind == layout.SlotBack {
-			direction = render.DirectionBack
-		}
-
-		indication, hasIndication := state.paging.Indication(state.pageNames)
-
-		return renderer.RenderNavigation(direction, indication, hasIndication)
+		return state.navigationImage(slot.Kind == layout.SlotBack)
 	case layout.SlotApplication:
 		icon := state.appIcon(runContext, state.appScreen)
 
@@ -244,4 +237,20 @@ func (state *loopState) appIcon(runContext context.Context, identifier string) i
 	state.appIcons[identifier] = icon
 
 	return icon
+}
+
+// navigationImage draws a paging tile: numbering the screens of the
+// application showing when it has several, otherwise the regular pages.
+func (state *loopState) navigationImage(back bool) image.Image {
+	direction := render.DirectionForward
+	if back {
+		direction = render.DirectionBack
+	}
+
+	indication, hasIndication := state.screenIndication()
+	if !hasIndication {
+		indication, hasIndication = state.paging.Indication(state.pageNames)
+	}
+
+	return state.options.Renderer.RenderNavigation(direction, indication, hasIndication)
 }

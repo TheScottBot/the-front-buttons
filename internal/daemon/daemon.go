@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"image"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -221,11 +222,16 @@ type loopState struct {
 	// regular lists the regular pages by their index in pages, in order:
 	// paging moves through these and never through an app screen.
 	regular []int
-	// appScreens finds each application's screen by its index in pages.
-	appScreens map[string]int
+	// appScreens lists each application's screens by their index in pages,
+	// in the order of the file.
+	appScreens map[string][]int
+	// allPageNames names every page by its index in pages, for an app
+	// screen's paging tiles.
+	allPageNames []string
 	// appScreen is the application whose screen is showing, or empty while a
-	// regular page is.
+	// regular page is, and appScreenAt which of its screens.
 	appScreen               string
+	appScreenAt             int
 	paging                  layout.Paging
 	hasConfiguration        bool
 	configurationGeneration int
@@ -258,8 +264,10 @@ func newLoopState(options Options) *loopState {
 		pages:                   nil,
 		pageNames:               nil,
 		regular:                 nil,
-		appScreens:              map[string]int{},
+		appScreens:              map[string][]int{},
+		allPageNames:            nil,
 		appScreen:               "",
+		appScreenAt:             0,
 		paging:                  layout.NewPaging(0),
 		hasConfiguration:        false,
 		configurationGeneration: 0,
@@ -326,13 +334,15 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
 	state.pageNames = nil
 	state.regular = nil
-	state.appScreens = map[string]int{}
+	state.appScreens = map[string][]int{}
+	state.allPageNames = nil
 
 	for pageIndex, page := range configuration.Pages {
+		state.allPageNames = append(state.allPageNames, page.Name)
 		pageNumber := 0
 
 		if page.IsAppScreen() {
-			state.appScreens[page.Application] = pageIndex
+			state.appScreens[page.Application] = append(state.appScreens[page.Application], pageIndex)
 		} else {
 			state.regular = append(state.regular, pageIndex)
 			state.pageNames = append(state.pageNames, page.Name)
@@ -352,9 +362,11 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.wantBadges(configuration)
 
 	// A reload keeps the app screen showing while the application still has
-	// one.
-	if _, kept := state.appScreens[state.appScreen]; !kept {
+	// it, or its first screen while it has one.
+	if screens := state.appScreens[state.appScreen]; len(screens) == 0 {
 		state.appScreen = ""
+	} else if state.appScreenAt >= len(screens) {
+		state.appScreenAt = 0
 	}
 
 	if state.hasConfiguration {
@@ -680,18 +692,15 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 }
 
 // pressSlot does what a key does: back and forward page through the regular
-// pages, leaving an app screen; the return tile leaves it for the regular page
-// it was opened over; a brick is pressed.
+// pages, leaving an app screen, or between an application's screens when it
+// has more than one; the return tile leaves it for the regular page it was
+// opened over; a brick is pressed.
 func (state *loopState) pressSlot(runContext context.Context, slot layout.Slot) {
 	switch slot.Kind {
 	case layout.SlotBack:
-		state.appScreen = ""
-		state.paging = state.paging.Back()
-		state.repaintAll(runContext)
+		state.page(runContext, -1)
 	case layout.SlotForward:
-		state.appScreen = ""
-		state.paging = state.paging.Forward()
-		state.repaintAll(runContext)
+		state.page(runContext, 1)
 	case layout.SlotApplication:
 		state.appScreen = ""
 		state.repaintAll(runContext)
@@ -703,11 +712,55 @@ func (state *loopState) pressSlot(runContext context.Context, slot layout.Slot) 
 	}
 }
 
+// pagedScreens is how many screens an application needs before back and
+// forward page between them rather than leaving them.
+const pagedScreens = 2
+
+// page steps back or forward: between the screens of the application showing,
+// wrapping round, when it has more than one; otherwise through the regular
+// pages, leaving any app screen.
+func (state *loopState) page(runContext context.Context, step int) {
+	if screens := state.appScreens[state.appScreen]; len(screens) >= pagedScreens {
+		state.appScreenAt = (state.appScreenAt + step + len(screens)) % len(screens)
+		state.repaintAll(runContext)
+
+		return
+	}
+
+	state.appScreen = ""
+
+	if step < 0 {
+		state.paging = state.paging.Back()
+	} else {
+		state.paging = state.paging.Forward()
+	}
+
+	state.repaintAll(runContext)
+}
+
+// screenIndication is what an app screen's paging tiles show when its
+// application has more than one: which screen it is, and the names of the
+// screens either side.
+func (state *loopState) screenIndication() (layout.PageIndication, bool) {
+	screens := state.appScreens[state.appScreen]
+	if len(screens) < pagedScreens {
+		return layout.PageIndication{Number: 0, Count: 0, CurrentName: "", PreviousName: "", NextName: ""}, false
+	}
+
+	showing, count := state.appScreenAt, len(screens)
+
+	return layout.PageIndication{
+		Number: showing + 1, Count: count, CurrentName: state.allPageNames[screens[showing]],
+		PreviousName: state.allPageNames[screens[(showing+count-1)%count]],
+		NextName:     state.allPageNames[screens[(showing+1)%count]],
+	}, true
+}
+
 // showingPage is the index in pages of the page on the deck: the app screen
 // while one is showing, otherwise the current regular page, if there is one.
 func (state *loopState) showingPage() (int, bool) {
-	if pageIndex, showing := state.appScreens[state.appScreen]; showing {
-		return pageIndex, true
+	if screens := state.appScreens[state.appScreen]; state.appScreenAt < len(screens) {
+		return screens[state.appScreenAt], true
 	}
 
 	if !state.paging.HasPage() {
@@ -766,11 +819,11 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 // ticked is held, before the key launches the application.
 func (state *loopState) openAppScreen(runContext context.Context, configured configuredKey) {
 	application, wanted := wantedScreenOf(configured)
-	if _, hasScreen := state.appScreens[application]; !wanted || !hasScreen || application == state.appScreen {
+	if len(state.appScreens[application]) == 0 || !wanted || application == state.appScreen {
 		return
 	}
 
-	state.appScreen = application
+	state.appScreen, state.appScreenAt = application, 0
 	state.repaintAll(runContext)
 }
 
@@ -818,8 +871,8 @@ func (state *loopState) bringingForward(
 
 // applicationOf is the application whose screen a page is, if it is one.
 func (state *loopState) applicationOf(pageIndex int) (string, bool) {
-	for application, screenIndex := range state.appScreens {
-		if screenIndex == pageIndex {
+	for application, screens := range state.appScreens {
+		if slices.Contains(screens, pageIndex) {
 			return application, true
 		}
 	}

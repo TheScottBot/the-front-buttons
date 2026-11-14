@@ -440,17 +440,42 @@ func TestDecode_ReadsAndWritesAnAppScreen(t *testing.T) {
 	}
 }
 
-// TestDecode_RefusesWhatAnAppScreenCannotBe: one screen per application; its
-// top left tile kept for the application's icon; every key that opens a screen
-// has its screen; and the application named in bounds.
-func TestDecode_RefusesWhatAnAppScreenCannotBe(t *testing.T) {
+// golandApplication is the application of the app screen tests.
+const golandApplication = "com.jetbrains.goland"
+
+// TestDecode_TakesSeveralScreensForAnApplication: an application may have
+// more than one screen, in the order of the file, to page between.
+func TestDecode_TakesSeveralScreensForAnApplication(t *testing.T) {
 	t.Parallel()
 
 	twice := appScreens + `  - name: GoLand again
     application: com.jetbrains.goland
     keys: []
 `
-	requireProblem(t, twice, config.ReasonDuplicateApplication)
+
+	configuration, decodeError := newTestDecoder(t).Decode([]byte(twice))
+	if decodeError != nil {
+		t.Fatalf("want a second GoLand screen taken, got %v", decodeError)
+	}
+
+	screens := 0
+
+	for _, page := range configuration.Pages {
+		if page.Application == golandApplication {
+			screens++
+		}
+	}
+
+	if screens != 2 {
+		t.Errorf("want two GoLand screens, got %d", screens)
+	}
+}
+
+// TestDecode_RefusesWhatAnAppScreenCannotBe: its top left tile kept for the
+// application's icon; every key that opens a screen has its screen; and the
+// application named in bounds.
+func TestDecode_RefusesWhatAnAppScreenCannotBe(t *testing.T) {
+	t.Parallel()
 
 	covered := strings.Replace(appScreens, "      - row: 1\n        column: 1\n        kind: test_screen",
 		"      - row: 0\n        column: 0\n        kind: test_screen", 1)

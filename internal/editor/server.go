@@ -154,6 +154,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("POST /page/add", pages.addPage)
 	mux.HandleFunc("POST /page/rename", pages.renamePage)
 	mux.HandleFunc("POST /page/delete", pages.deletePage)
+	mux.HandleFunc("POST /page/screen/add", pages.addAppScreen)
 	mux.HandleFunc("POST /page/copy/new", pages.copyPageToNew)
 	mux.HandleFunc("POST /page/copy/onto", pages.copyPageOnto)
 	mux.HandleFunc("POST /keys/copy", pages.copyTickedKeys)

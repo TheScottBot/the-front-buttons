@@ -68,9 +68,6 @@ const (
 	ReasonWrongType          Reason = "wrong_type"
 	ReasonOutOfBounds        Reason = "out_of_bounds"
 	ReasonBadFormat          Reason = "bad_format"
-	// ReasonDuplicateApplication is a second page naming an application that
-	// already has its app screen.
-	ReasonDuplicateApplication Reason = "duplicate_application"
 	// ReasonWrongApplication is an application's own brick on a page that is
 	// not that application's screen.
 	ReasonWrongApplication Reason = "wrong_application"

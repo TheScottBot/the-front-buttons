@@ -213,22 +213,16 @@ func (decoder Decoder) decodeRoot(root *yaml.Node, list *problemList) Configurat
 	return configuration
 }
 
-// checkAppScreens refuses a second screen for one application, and a key that
-// opens an application's screen when no page is that screen.
+// checkAppScreens refuses a key that opens an application's screen when no
+// page is that screen. An application may have several screens, in the order
+// of the file, to page between.
 func checkAppScreens(configuration Configuration, pagesNode *yaml.Node, list *problemList) {
 	screens := map[string]bool{}
 
-	for pageIndex, page := range configuration.Pages {
-		if !page.IsAppScreen() {
-			continue
+	for _, page := range configuration.Pages {
+		if page.IsAppScreen() {
+			screens[page.Application] = true
 		}
-
-		if screens[page.Application] {
-			list.addf(pagesNode.Content[pageIndex], fmt.Sprintf("%s[%d].%s", pagesName, pageIndex, applicationName),
-				ReasonDuplicateApplication, "%s already has an app screen", page.Application)
-		}
-
-		screens[page.Application] = true
 	}
 
 	for pageIndex, page := range configuration.Pages {

@@ -235,7 +235,7 @@ func (pages *pageHandlers) blockedTiles(allPages []config.Page, target int, keys
 func (pages *pageHandlers) copyPlaceName(allPages []config.Page, pageIndex int) string {
 	page := allPages[pageIndex]
 	if page.IsAppScreen() {
-		return "the " + pages.screenTitle(page) + " screen"
+		return "the " + pages.screenName(allPages, pageIndex) + " screen"
 	}
 
 	return fmt.Sprintf("page %d, %s", slices.Index(regularPages(allPages), pageIndex)+1, page.Name)
@@ -259,7 +259,7 @@ func (pages *pageHandlers) selectTargets(allPages []config.Page, selection copyS
 			continue
 		}
 
-		label := pages.screenTitle(page) + " screen"
+		label := pages.screenName(allPages, pageIndex) + " screen"
 		if !page.IsAppScreen() {
 			label = fmt.Sprintf("Page %d: %s", slices.Index(regular, pageIndex)+1, page.Name)
 		}

@@ -247,9 +247,11 @@ type pageView struct {
 	Pages      []pageLink
 	// AppScreens are listed apart, under the regular pages, unnumbered.
 	AppScreens []pageLink
-	// ScreenTitle names the application while an app screen is shown.
-	ScreenTitle string
-	Rows        [][]cellView
+	// ScreenTitle names the application while an app screen is shown, and
+	// ScreenCaption says which of its screens it is.
+	ScreenTitle   string
+	ScreenCaption string
+	Rows          [][]cellView
 	// CopyTargets are the pages this one can be copied onto: every other.
 	CopyTargets []copyTarget
 	// Selecting is select mode, where each key is a check box for copying,
@@ -355,8 +357,8 @@ func (pages *pageHandlers) pageViewFor(
 		HasPage:     false,
 		Pages:       nil,
 		AppScreens:  nil,
-		ScreenTitle: "",
-		Rows:        nil,
+		ScreenTitle: "", ScreenCaption: "",
+		Rows: nil,
 
 		CopyTargets: copyTargets(configuration, pageIndex),
 		Types:       pages.typeOptions(""),
@@ -388,6 +390,7 @@ func (pages *pageHandlers) pageViewFor(
 
 		if page.IsAppScreen() {
 			view.ScreenTitle = pages.screenTitle(page)
+			view.ScreenCaption = pages.screenCaption(configuration.Pages, pageIndex)
 		}
 	}
 
@@ -500,6 +503,13 @@ func pagingCell(allPages []config.Page, pageIndex int, step int, text string) fu
 			Reserved: true, Name: place + "reserved for paging " + strings.ToLower(text), Text: text, Kind: "",
 			Href: "", Tile: tile, State: tileIsReserve, Image: "",
 			Selectable: false, Select: "", SelectID: "", Checked: false, Face: "",
+		}
+
+		if screen, named, stepsScreens := screenStep(allPages, pageIndex, step); stepsScreens {
+			cell.Href = fmt.Sprintf("/page?page=%d", screen)
+			cell.Name = fmt.Sprintf("%s%s to %s", place, text, named)
+
+			return cell
 		}
 
 		target := -1

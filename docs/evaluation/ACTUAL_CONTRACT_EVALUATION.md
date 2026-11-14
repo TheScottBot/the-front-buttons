@@ -4151,6 +4151,41 @@ page and on an app screen. Measured in a browser on Claude's screen: 464
 pixels with every section closed, every section open, every brick open and
 while searching, with no name clipped.
 
+### More than one app screen
+
+An application had one app screen: the configuration refused a second page
+naming it, the daemon found each application's screen by one index, and back
+and forward on a screen left it for the regular pages. An application may now
+have several, in the order of the file.
+
+The configuration takes them, and still refuses an app key whose screen does
+not exist. The daemon keeps each application's screens as a list and, while
+one shows, which of them it is. Holding the app key opens the first; with two
+or more, back and forward page between them, wrapping round, as the regular
+pages do, and the paging tiles show which screen it is and the names either
+side; with one, they leave it, as before. The return tile still leaves for the
+regular page, and a reload keeps the screen showing while it is still there,
+or shows the first. The editor offers, on any app screen, to add another for
+its application, named for it with its number and placed straight after its
+last, so an application's screens stay together; the grid's paging tiles on a
+screen link to the screens either side and are drawn numbering them; and
+where an application has several screens, the caption, the copy targets and
+the refusals name each by its own page name.
+
+Tests first, failing before the change: a second screen taken by the
+decoder; the daemon paging between two screens and wrapping, holding the key
+opening the first, the paging tiles numbering the screens, and a reload
+keeping the second screen or falling back to the first; the editor adding a
+screen straight after the last, refusing one for a regular page, linking and
+drawing the paging tiles between screens and naming them; and a paging tile
+of no page drawn rather than refused, which a first version did not survive.
+Planted violations, no wrapping, reopening the last screen shown, the regular
+pages' count on a screen, a screen added at the end of the file, and the grid
+leaving the screens, each failed a test. Driven in a browser against the
+editor's test harness on a copy of the deck's configuration: the button added
+GoLand 2 after GoLand, captioned screen 2 of 2, its paging tiles linking to
+screen 1 and drawn as 2/2.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

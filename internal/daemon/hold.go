@@ -46,9 +46,8 @@ func newHoldState() holdState {
 // other key acts the moment it is pressed.
 func (state *loopState) holdsForScreen(pageIndex int, brickIndex int) bool {
 	application, wanted := wantedScreenOf(state.pages[pageIndex][brickIndex])
-	_, hasScreen := state.appScreens[application]
 
-	return wanted && hasScreen && application != state.appScreen
+	return wanted && len(state.appScreens[application]) > 0 && application != state.appScreen
 }
 
 // startHold notes an app key pressed down and has the loop told when it has

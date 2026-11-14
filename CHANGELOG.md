@@ -210,6 +210,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   flash. It
   is given pictures and tiles only, behind the editor's guard, with at most
   four pages following at once.
+- An application may have more than one app screen. Holding its key opens the
+  first, and back and forward page between them, wrapping round, their tiles
+  numbering the screens; a single screen still leaves for the regular pages.
+  The editor adds another from any of its screens, straight after the last.
 - An application's own bricks are named in the editor by what they do, such as
   Claude: Back rather than claude_back, and listed in that order; a key of one
   without a label previews with that label, as the deck shows it.

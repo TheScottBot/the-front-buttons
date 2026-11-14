@@ -52,6 +52,12 @@ the page the first time. The application's
 icon is top left on its screen, and pressing it goes back to the regular page.
 Paging never reaches an app screen, and back and forward leave one.
 
+An application may have more than one screen: **Add another screen** on any of
+its screens adds one straight after its last, or give several pages the same
+`application`. Holding the app key opens the first; back and forward then page
+between the application's screens, wrapping round, and their tiles show which
+screen it is, such as 1/2. With a single screen they leave it, as before.
+
 ```yaml
 pages:
   - name: Work

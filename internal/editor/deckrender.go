@@ -35,7 +35,7 @@ func pageIndication(allPages []config.Page, pageIndex int) (layout.PageIndicatio
 	place := slices.Index(regular, pageIndex)
 
 	if place < 0 {
-		return layout.PageIndication{Number: 0, Count: 0, CurrentName: "", PreviousName: "", NextName: ""}, false
+		return screenIndication(allPages, pageIndex)
 	}
 
 	names := make([]string, 0, len(regular))
@@ -92,4 +92,24 @@ func (pages *pageHandlers) deckLabel(allPages []config.Page, pageIndex int, posi
 	}
 
 	return brick.FallbackLabel(instance, page.Name, slices.Index(regularPages(allPages), pageIndex)+1)
+}
+
+// screenIndication is what an app screen's paging tiles show when its
+// application has more than one: which screen it is and the names either
+// side, as the deck shows them. A lone screen shows none.
+func screenIndication(allPages []config.Page, pageIndex int) (layout.PageIndication, bool) {
+	page := pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex)
+	screens := screensOf(allPages, page.Application)
+	showing := slices.Index(screens, pageIndex)
+
+	if !page.IsAppScreen() || len(screens) < pagedScreens || showing < 0 {
+		return layout.PageIndication{Number: 0, Count: 0, CurrentName: "", PreviousName: "", NextName: ""}, false
+	}
+
+	count := len(screens)
+
+	return layout.PageIndication{
+		Number: showing + 1, Count: count, CurrentName: page.Name,
+		PreviousName: allPages[screens[(showing+count-1)%count]].Name, NextName: allPages[screens[(showing+1)%count]].Name,
+	}, true
 }
