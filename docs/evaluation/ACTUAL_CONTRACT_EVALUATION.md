@@ -4186,6 +4186,9 @@ editor's test harness on a copy of the deck's configuration: the button added
 GoLand 2 after GoLand, captioned screen 2 of 2, its paging tiles linking to
 screen 1 and drawn as 2/2.
 
+Verified on the physical deck: a second app screen, paged between with back
+and forward.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
