@@ -3916,6 +3916,15 @@ a browser against the editor's test harness serving a copy of the deck's
 configuration: the grid and select mode drawn as pictures, and the switch
 turning them back to words.
 
+Every tile is now one size in both modes, so switching never moves the grid:
+before, a row grew wherever a kind's name wrapped, and pictures were taller
+than words. A kind's name is cut with an ellipsis rather than wrapping. The
+switch sits at the end of the Pages heading's row, beneath the theme switch,
+centred on the heading. Measured in a browser on every page of the deck's
+configuration, words and pictures, in select mode too: the grid the same size
+throughout, the switch centred on the heading and its right edge in line with
+the theme switch's.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

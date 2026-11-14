@@ -1,5 +1,8 @@
 {{template "head" .}}
+<div class="page-heading">
 <h1>Pages</h1>
+<button type="button" class="render-switch" role="switch" aria-checked="{{if .DeckRender}}true{{else}}false{{end}}" hidden>Render like deck</button>
+</div>
 {{if or .Pages .AppScreens}}<nav aria-label="Pages">
 {{if .Pages}}<ol class="pages">{{range .Pages}}<li><a href="/page?page={{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ol>{{end}}
 {{if .AppScreens}}<h2 id="app-screens">App screens</h2>

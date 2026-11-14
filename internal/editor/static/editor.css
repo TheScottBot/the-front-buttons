@@ -279,6 +279,10 @@ main:focus-visible {
 
 .grid .kind {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   margin-top: 0.3rem;
   font-size: 0.72rem;
   font-weight: 400;
@@ -588,7 +592,7 @@ input[type="search"] {
   z-index: 1;
   box-sizing: border-box;
   margin: -3px;
-  height: calc(100% + 6px);
+  height: calc(var(--tile-height) + 6px);
   background: var(--block);
   border: 3px solid var(--rule);
   box-shadow: 4px 4px 0 var(--lift);
@@ -1146,14 +1150,23 @@ label[for$="-picker"] {
 }
 
 /* The theme and Render like deck switches: pills whose knob slides right
-   when on, their state also read out as a switch, stacked at the header's
-   end. Hidden until the script shows them. */
+   when on, their state also read out as a switch; the theme's ends the
+   header, and Render like deck ends the Pages heading's row beneath it.
+   Hidden until the script shows them. */
 
-.switches {
+.page-heading {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 2rem 0 1.5rem;
+}
+
+/* The row carries the heading's margins, so the switch centres on the
+   heading itself rather than on its uneven margins. */
+.page-heading h1 {
+  margin: 0;
 }
 
 .theme-switch,
@@ -1189,29 +1202,43 @@ label[for$="-picker"] {
 }
 
 /* Render like deck: each key and paging tile is its picture as the deck draws
-   it, on a square black tile as on the deck; empty tiles stay dark. */
+   it, on a black tile as on the deck; empty tiles stay dark. Tiles keep their
+   size either way, so switching never moves the grid: the square picture
+   fits the tile's height. */
 
-[data-render="deck"] .grid td {
-  height: 6.5rem;
-  background: #000;
-}
-
-[data-render="deck"] .grid a,
-[data-render="deck"] .grid .reserved,
-[data-render="deck"] .grid .select-key {
-  padding: 0.2rem;
-}
-
+[data-render="deck"] .grid td,
 [data-render="deck"] .grid .select-key {
   background: #000;
 }
 
 .grid .deck-face {
   display: block;
-  width: 100%;
-  height: 100%;
-  max-width: 6rem;
-  max-height: 6rem;
+  width: auto;
+  height: 4.3rem;
+  max-width: 100%;
   object-fit: contain;
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
+}
+
+/* Every tile is the same size, words or pictures, so switching Render like
+   deck never moves the grid and a long label never stretches its row or
+   column: what does not fit is cut, and a kind's name ends in an ellipsis. */
+
+.grid {
+  --tile-width: 6.5rem;
+  --tile-height: 5rem;
+}
+
+.grid td > a,
+.grid td > .reserved,
+.grid td > .select-empty {
+  box-sizing: border-box;
+  width: var(--tile-width);
+  height: var(--tile-height);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grid .select-key {
+  width: calc(var(--tile-width) + 6px);
 }
