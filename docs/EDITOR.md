@@ -31,9 +31,9 @@ becomes a check box: tick the keys, tick every page and app screen to copy them
 onto, and choose **Copy the ticked keys**. Each key lands on the same tile it is
 on, on every page ticked.
 
-Two shortcuts: hold Shift and click a key on the grid to open select mode with
-that key ticked, and in select mode hold Shift and click a key to tick every key
-in the rectangle from the last key you clicked.
+Or hold Shift and click a key on the grid to open select mode with that key
+ticked. In select mode a click ticks or unticks one key, with Shift held or not,
+so you can keep holding Shift as you go.
 
 If any key would land on a key already there, on a tile kept for paging or for
 an app screen's icon, or on a page that cannot hold it, such as a JetBrains key

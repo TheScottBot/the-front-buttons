@@ -9,7 +9,7 @@
 <p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Option (Alt on Windows) as you drop to copy it instead. The move form on each key's page does the same from the keyboard.</p>
 <table class="grid">
 <caption>{{if .ScreenTitle}}App screen for {{.ScreenTitle}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. {{if .Selecting}}Tick the keys to copy.{{else}}Choose a key to edit it.{{end}}</caption>
-{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</label></span>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
+{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{.Text}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{.Text}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</label></span><label class="select-hit" for="tile-{{.SelectID}}" aria-hidden="true"></label>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{.Text}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
 {{if .Selecting}}<form method="post" action="/keys/copy" id="copy-keys" class="copy-keys">
 <input type="hidden" name="token" value="{{.Token}}">
@@ -22,7 +22,6 @@
 </fieldset>
 <button type="submit">Copy the ticked keys</button>
 <p class="help">Each key goes on the same tile it is on here. If any would land on a key, on any page ticked, nothing is copied and every such tile is named.</p>
-<p class="select-help" hidden>Hold Shift and click a key to tick every key in the rectangle from the last key you clicked.</p>
 <p><a href="/page?page={{.PageIndex}}">Done selecting</a></p>
 </form>
 {{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy</a></p>

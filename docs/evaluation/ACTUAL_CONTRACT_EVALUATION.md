@@ -3861,11 +3861,24 @@ test.
 Shift and a click came next. The browser alone knows whether Shift was held,
 so a short script handles it: on the grid, Shift and a click on a key opens
 select mode with that key ticked, by naming its tile in the address, which
-the server ticks; in select mode, Shift and a click ticks every key in the
-rectangle from the last key clicked. Its hints stay hidden unless the script
-runs. Tests first, failing before the change: select mode ticking the keys
-its address names and no tile without a key, and the hints hidden. A planted
-violation, the address's tiles ignored, failed it.
+the server ticks. Its hint stays hidden unless the script runs. Tests first,
+failing before the change: select mode ticking the keys its address names and
+no tile without a key, and the hint hidden. A planted violation, the
+address's tiles ignored, failed it.
+
+At first Shift and a click in select mode ticked every key in the rectangle
+from the last key clicked. On the deck's own page that went wrong: Shift held
+on from opening select mode ticked whole rows at a click, and Shift and a
+click on a ticked key, which the rectangle only ever ticks, did nothing. In
+select mode a click now ticks or unticks one key, Shift held or not; the
+script does the ticking for a click with Shift held, as some browsers do
+nothing for a label clicked with Shift held, which swallowed every click made
+with Shift still down from opening select mode. A ticked
+key also leans past the gap between tiles, so a click near a neighbour's edge
+landed on it; each key in select mode is now a picture, which moves, under a
+fixed click area covering its own tile and half the gap around it. Checked in
+a browser on a copy of the deck's first page: plain clicks and Shift held
+clicks each ticked or unticked exactly the key under the pointer.
 
 ### Still owed
 

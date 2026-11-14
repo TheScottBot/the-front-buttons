@@ -553,14 +553,25 @@ input[type="search"] {
   box-shadow: 4px 4px 0 var(--accent-2);
 }
 
-/* Select mode: the whole key is its check box's label, so a click anywhere on
-   it ticks it. The box itself is hidden from sight but still takes focus. A
-   ticked key is pulled forward, on a deeper shadow with a tick in its corner,
-   and rocks a couple of degrees either way; reduced motion keeps it still. */
+/* Select mode: a key is two layers. The picture, .select-key, draws the
+   tile and is what moves: a ticked key is pulled forward, a little larger on
+   a deeper shadow with a tick in its corner, and rocks a couple of degrees
+   either way; reduced motion keeps it still. Over every picture lies an
+   invisible label for the key's check box, .select-hit, which never moves and
+   covers its own tile and half the gap to each neighbour, so the grid has no
+   dead space between keys, and a click goes to the key whose place it is in,
+   however far a ticked neighbour leans over it. The box itself is hidden
+   from sight but still takes focus. */
+
+.grid td:has(.select-key) {
+  position: relative;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
 
 .grid .select-key,
 .grid .select-empty {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -572,17 +583,33 @@ input[type="search"] {
   overflow-wrap: anywhere;
 }
 
-.grid .select-key label {
-  font-weight: 700;
-  color: var(--on-block-accent);
-  cursor: pointer;
+.grid .select-key {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  margin: -3px;
+  height: calc(100% + 6px);
+  background: var(--block);
+  border: 3px solid var(--rule);
+  box-shadow: 4px 4px 0 var(--lift);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.grid:has(.select-key) {
   user-select: none;
 }
 
-.grid .select-key label::after {
-  content: "";
+.grid .select-key label {
+  font-weight: 700;
+  color: var(--on-block-accent);
+  user-select: none;
+}
+
+.grid .select-hit {
   position: absolute;
-  inset: 0;
+  inset: calc(-3px - 0.25rem);
+  z-index: 2;
+  cursor: pointer;
 }
 
 .grid .select-key input {
@@ -599,22 +626,16 @@ input[type="search"] {
   opacity: 0.6;
 }
 
-.grid td:has(.select-key) {
-  position: relative;
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
-}
-
-.grid td:has(.select-key):hover {
+.grid td:has(.select-hit:hover) .select-key {
   transform: translate(-1px, -1px);
 }
 
-.grid td:has(.select-key input:focus-visible) {
+.grid td:has(.select-key input:focus-visible) .select-key {
   outline: 4px dashed var(--accent);
   outline-offset: 3px;
 }
 
-.grid td:has(.select-key input:checked) {
-  z-index: 1;
+.grid td:has(.select-key input:checked) .select-key {
   outline: 4px solid var(--accent);
   outline-offset: -4px;
   box-shadow: 10px 10px 0 var(--lift), 10px 10px 0 3px var(--rule);

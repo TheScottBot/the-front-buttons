@@ -572,9 +572,6 @@
   function cellOf3(target) {
     return target instanceof Element ? target.closest(`td[${tileAttribute2}]`) : null;
   }
-  function boxOf(cell) {
-    return cell.querySelector('.select-key input[type="checkbox"]');
-  }
   function showHints() {
     for (const hint of document.querySelectorAll(".select-help")) {
       hint.hidden = false;
@@ -584,45 +581,30 @@
     const address = new URLSearchParams({ page: place.page, select: "1", tile: `${place.row}.${place.column}` });
     window.location.assign(`/page?${address.toString()}`);
   }
-  function tickRectangle(grid2, from, to) {
-    const top = Math.min(from.row, to.row);
-    const bottom = Math.max(from.row, to.row);
-    const left = Math.min(from.column, to.column);
-    const right = Math.max(from.column, to.column);
-    for (const cell of grid2.querySelectorAll(`td[${tileAttribute2}]`)) {
-      const place = placeOf2(cell);
-      const box = boxOf(cell);
-      if (place !== null && box !== null && place.row >= top && place.row <= bottom && place.column >= left && place.column <= right) {
-        box.checked = true;
+  function enableShiftTicking(grid2) {
+    grid2.addEventListener("click", (event) => {
+      const box = cellOf3(event.target)?.querySelector('.select-key input[type="checkbox"]');
+      if (!event.shiftKey || box === null || box === void 0 || event.target === box) {
+        return;
       }
-    }
+      event.preventDefault();
+      box.checked = !box.checked;
+    });
   }
   function enableSelecting(grid2) {
-    const selecting = grid2.querySelector(".select-key") !== null;
-    let anchor = null;
     showHints();
+    if (grid2.querySelector(".select-key") !== null) {
+      enableShiftTicking(grid2);
+      return;
+    }
     grid2.addEventListener("click", (event) => {
       const cell = cellOf3(event.target);
       const place = placeOf2(cell);
-      if (cell === null || place === null) {
-        return;
-      }
-      if (!selecting) {
-        if (event.shiftKey && event.button === 0 && cell.getAttribute("data-state") === keyState) {
-          event.preventDefault();
-          event.stopPropagation();
-          openSelecting(place);
-        }
-        return;
-      }
-      if (boxOf(cell) === null) {
-        return;
-      }
-      if (event.shiftKey && anchor !== null) {
+      if (cell !== null && place !== null && event.shiftKey && event.button === 0 && cell.getAttribute("data-state") === keyState) {
         event.preventDefault();
-        tickRectangle(grid2, anchor, place);
+        event.stopPropagation();
+        openSelecting(place);
       }
-      anchor = place;
     }, true);
   }
 

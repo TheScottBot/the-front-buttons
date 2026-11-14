@@ -268,6 +268,8 @@ func TestEditor_SelectModeTicksKeysAndPages(t *testing.T) {
 		`<input type="checkbox" id="copy-to-1" name="to" value="1"> <label for="copy-to-1">GoLand screen</label>`,
 		`<label for="copy-to-3">Page 2: Play</label>`,
 		`<a href="/page?page=0">Done selecting</a>`,
+		// A fixed click area over the key, which moves when ticked.
+		`<label class="select-hit" for="tile-0-1" aria-hidden="true"></label>`,
 	)
 	refuseBody(t, selecting, `href="/key?page=0&amp;row=0&amp;column=1"`, `value="2.2" form="copy-keys"`,
 		`id="copy-to-0"`)
@@ -286,8 +288,8 @@ func TestEditor_SelectModeTicksTheKeysItsAddressNames(t *testing.T) {
 	refuseBody(t, body, `value="0.2" form="copy-keys" checked>`, `value="2.2" form="copy-keys"`)
 }
 
-// TestEditor_ShiftClickHintsWaitForTheScript: the hints for Shift and a
-// click stay hidden until the script, which handles them, shows them.
+// TestEditor_ShiftClickHintsWaitForTheScript: the hint for Shift and a click
+// stays hidden until the script, which handles it, shows it.
 func TestEditor_ShiftClickHintsWaitForTheScript(t *testing.T) {
 	t.Parallel()
 
@@ -295,7 +297,4 @@ func TestEditor_ShiftClickHintsWaitForTheScript(t *testing.T) {
 
 	requireBody(t, harness.get(t, "/page?page=0").Body.String(),
 		`<p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>`)
-	requireBody(t, harness.get(t, "/page?page=0&select=1").Body.String(),
-		`<p class="select-help" hidden>Hold Shift and click a key to tick every key in the rectangle `+
-			`from the last key you clicked.</p>`)
 }

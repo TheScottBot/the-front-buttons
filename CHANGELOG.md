@@ -192,8 +192,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   any number of pages and app screens at once, each key on the tile it came
   from; a copy that would land on a key, or anywhere it cannot go, copies
   nothing and names every tile in the way. Shift and a click on a key opens
-  select mode with it ticked, and in select mode ticks every key in the
-  rectangle from the last key clicked.
+  select mode with it ticked; in select mode a click ticks or unticks one
+  key, Shift held or not.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two
