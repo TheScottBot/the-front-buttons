@@ -52,7 +52,8 @@ command it was made for and the shortcut it presses on macOS and on Windows;
 any other brick, or preset, the fields it asks for. Escape
 clears the search, or with the search empty closes the drawer, so two presses
 close it from a search, wherever focus is, as after dragging a brick back into
-the drawer. The drawer widens to show each brick's name whole.
+the drawer. The drawer is wide enough for the longest name it can show, and
+stays that width however its sections open.
 
 ## Moving keys between pages
 

@@ -930,15 +930,16 @@ label[for$="-picker"] {
   transform: none;
 }
 
-/* The panel is as wide as its widest brick's name, between 15rem and 30rem
-   or the window, so every name shows whole and each section's box spans it;
-   the help text wraps to that width rather than setting it, and a name too
-   long even for the widest panel wraps. */
+/* The panel is as wide as the longest name it can show, in any section, open
+   or closed, so it is one width however its sections and bricks open: the
+   server counts that name's characters and the script sets them as
+   --drawer-chars, the drawer's font being monospaced, a name's characters at
+   0.85rem, with room for the panel's, sections' and bricks' own padding,
+   borders, a brick's marker and the scroll bar. It stays between 15rem and
+   30rem or the window; a longer name, and every description, wraps. */
 .drawer-panel {
   box-sizing: border-box;
-  width: max-content;
-  min-width: 15rem;
-  max-width: min(30rem, calc(100vw - 3rem));
+  width: clamp(15rem, calc(var(--drawer-chars, 0) * 0.85ch + 6.5rem), min(30rem, calc(100vw - 3rem)));
   max-height: calc(100vh - 10rem);
   overflow-x: hidden;
   overflow-y: auto;

@@ -264,6 +264,11 @@ type pageView struct {
 	AppName   string
 	AppTypes  []typeOption
 	AppGroups []appGroupView
+	// FixedGroups are the drawer's own groups, each in a section of its size,
+	// and DrawerChars the length of the longest name the drawer can show, in
+	// any section, so it keeps one width however its sections open.
+	FixedGroups []appGroupView
+	DrawerChars int
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
@@ -359,9 +364,11 @@ func (pages *pageHandlers) pageViewFor(
 		AppTypes:    pages.appTypeOptions(page, ""),
 		AppGroups:   pages.appGroupViews(page),
 
-		Selecting:     false,
-		SelectTargets: nil,
+		Selecting: false, SelectTargets: nil,
+		FixedGroups: fixedGroupViews(), DrawerChars: 0,
 	}
+
+	view.DrawerChars = drawerChars(view)
 
 	for index, listed := range configuration.Pages {
 		link := pageLink{Index: index, Name: listed.Name, Current: index == pageIndex}

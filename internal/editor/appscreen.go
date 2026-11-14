@@ -226,6 +226,8 @@ type appGroupView struct {
 	Label  string
 	Width  int
 	Height int
+	// Size names the section a drawer's own group is shown in.
+	Size string
 }
 
 // appGroupName is what the drawer and the group form call an application's
@@ -247,7 +249,7 @@ func (pages *pageHandlers) appGroupViews(page config.Page) []appGroupView {
 		views = append(views, appGroupView{
 			Name:  appGroupName(set, group),
 			Label: fmt.Sprintf("%dx%d %s", group.Width, group.Height, group.Label),
-			Width: group.Width, Height: group.Height,
+			Width: group.Width, Height: group.Height, Size: "",
 		})
 	}
 
@@ -263,7 +265,9 @@ func (pages *pageHandlers) appGroups(sizes map[string]groupSize, parts map[strin
 
 	for _, set := range pages.options.Registry.AppSets() {
 		for _, group := range set.Groups {
-			sizes[appGroupName(set, group)] = groupSize{width: group.Width, height: group.Height, parts: group.Kinds}
+			sizes[appGroupName(set, group)] = groupSize{
+				width: group.Width, height: group.Height, parts: group.Kinds, label: group.Label,
+			}
 
 			for _, kindName := range group.Kinds {
 				kind, _ := pages.options.Registry.Kind(kindName)

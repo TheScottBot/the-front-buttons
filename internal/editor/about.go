@@ -3,6 +3,8 @@ package editor
 import (
 	"fmt"
 	"slices"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 )
@@ -56,4 +58,43 @@ func fieldAsks(schema brick.Schema) []string {
 	}
 
 	return asks
+}
+
+// fixedGroupViews are the drawer's own groups, each shown in a section named
+// by its size, smallest first, as the drawer has always listed them.
+func fixedGroupViews() []appGroupView {
+	sizes := ownGroupSizes()
+	views := make([]appGroupView, 0, len(sizes))
+
+	for name, size := range sizes {
+		views = append(views, appGroupView{
+			Name: name, Label: size.label, Width: size.width, Height: size.height, Size: name,
+		})
+	}
+
+	slices.SortFunc(views, func(first appGroupView, second appGroupView) int {
+		return strings.Compare(first.Name, second.Name)
+	})
+
+	return views
+}
+
+// drawerChars is the length of the longest name the drawer shows, in any of
+// its sections.
+func drawerChars(view pageView) int {
+	longest := 0
+
+	for _, options := range [][]typeOption{view.Types, view.AppTypes} {
+		for _, option := range options {
+			longest = max(longest, utf8.RuneCountInString(option.Label))
+		}
+	}
+
+	for _, groups := range [][]appGroupView{view.AppGroups, view.FixedGroups} {
+		for _, group := range groups {
+			longest = max(longest, utf8.RuneCountInString(group.Label))
+		}
+	}
+
+	return longest
 }

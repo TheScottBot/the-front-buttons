@@ -647,6 +647,10 @@
       });
       marked = stack;
     };
+    const chars = Number(panel.dataset.chars);
+    if (Number.isInteger(chars) && chars > 0) {
+      panel.style.setProperty("--drawer-chars", String(chars));
+    }
     const search = enableSearch(panel);
     enableEscapeToClose(toggle, panel, search?.clear ?? (() => false));
     toggle.addEventListener("click", () => {

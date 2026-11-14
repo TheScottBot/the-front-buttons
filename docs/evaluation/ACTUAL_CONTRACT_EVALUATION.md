@@ -4139,6 +4139,18 @@ drag from the drawer was cancelled, with focus on the page, Escape closed the
 drawer, and with a search typed, one Escape cleared it and a second closed
 it.
 
+The drawer sized itself to what was showing, so it widened and narrowed as
+its sections and bricks opened and closed. It is now one width: the server
+counts the characters of the longest name the drawer can show, in any section,
+the drawer's own groups now built in Go with the rest so they count too, and
+gives it to the page; the drawer's script sets it as the width, the drawer's
+font being monospaced, with room for padding, borders, a brick's marker and the
+scroll bar, between 15rem and 30rem or the window. Test first, failing before
+the change: the drawer carrying the length of its longest name, on a regular
+page and on an app screen. Measured in a browser on Claude's screen: 464
+pixels with every section closed, every section open, every brick open and
+while searching, with no name clipped.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

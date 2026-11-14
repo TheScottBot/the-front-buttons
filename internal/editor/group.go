@@ -49,6 +49,8 @@ type groupSize struct {
 	width  int
 	height int
 	parts  []string
+	// label is what the drawer calls one of its own groups.
+	label string
 }
 
 // The reasons a group is refused. Each is a whole sentence shown after
@@ -141,14 +143,32 @@ const (
 	fourTiles  = 4
 )
 
+// spotifyGroupLabel names both of Spotify's groups in the drawer.
+const spotifyGroupLabel = "Spotify: album, play, previous and next"
+
 // ownGroupSizes are the drawer's own groups, by their name, width by height.
 func ownGroupSizes() map[string]groupSize {
 	return map[string]groupSize{
-		"1x2": {width: 1, height: twoTiles, parts: []string{characterPart, roll20Part}},
-		"1x3": {width: 1, height: threeTiles, parts: []string{characterPart, roll20Part, discordPart}},
-		"2x2": {width: twoTiles, height: twoTiles, parts: []string{albumPart, playPart, previousPart, nextPart}},
-		"4x1": {width: fourTiles, height: 1, parts: []string{albumPart, playPart, previousPart, nextPart}},
-		"2x1": {width: twoTiles, height: 1, parts: []string{backWindow, forwardWindow}},
+		"1x2": {
+			width: 1, height: twoTiles, parts: []string{characterPart, roll20Part},
+			label: "D&D Beyond sheet and Roll20",
+		},
+		"1x3": {
+			width: 1, height: threeTiles, parts: []string{characterPart, roll20Part, discordPart},
+			label: "D&D Beyond sheet, Roll20 and Discord",
+		},
+		"2x2": {
+			width: twoTiles, height: twoTiles, parts: []string{albumPart, playPart, previousPart, nextPart},
+			label: spotifyGroupLabel,
+		},
+		"4x1": {
+			width: fourTiles, height: 1, parts: []string{albumPart, playPart, previousPart, nextPart},
+			label: spotifyGroupLabel,
+		},
+		"2x1": {
+			width: twoTiles, height: 1, parts: []string{backWindow, forwardWindow},
+			label: "JetBrains windows: previous and next",
+		},
 	}
 }
 

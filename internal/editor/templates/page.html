@@ -31,7 +31,7 @@
 <p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>
 {{end}}<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
-<div id="brick-list" class="drawer-panel" hidden>
+<div id="brick-list" class="drawer-panel" data-chars="{{.DrawerChars}}" hidden>
 <label for="brick-search">Search bricks</label>
 <input type="search" id="brick-search" class="drawer-search" autocomplete="off" spellcheck="false">
 <p class="drawer-empty" role="status" hidden>No bricks match.</p>
@@ -49,37 +49,13 @@
 <li draggable="true" data-type="{{.Value}}">{{if .About}}<details class="brick-about"><summary>{{.Label}}</summary><p>{{.About}}</p>{{if .Asks}}<ul>{{range .Asks}}<li>{{.}}</li>{{end}}</ul>{{end}}</details>{{else}}{{.Label}}{{end}}</li>{{end}}
 </ul>
 </details>
-<details class="drawer-section">
-<summary>1x2</summary>
+{{range .FixedGroups}}<details class="drawer-section">
+<summary>{{.Size}}</summary>
 <ul>
-<li draggable="true" data-group="1x2" data-width="1" data-height="2">D&amp;D Beyond sheet and Roll20</li>
+<li draggable="true" data-group="{{.Name}}" data-width="{{.Width}}" data-height="{{.Height}}">{{.Label}}</li>
 </ul>
 </details>
-<details class="drawer-section">
-<summary>1x3</summary>
-<ul>
-<li draggable="true" data-group="1x3" data-width="1" data-height="3">D&amp;D Beyond sheet, Roll20 and Discord</li>
-</ul>
-</details>
-<details class="drawer-section">
-<summary>2x1</summary>
-<ul>
-<li draggable="true" data-group="2x1" data-width="2" data-height="1">JetBrains windows: previous and next</li>
-</ul>
-</details>
-<details class="drawer-section">
-<summary>2x2</summary>
-<ul>
-<li draggable="true" data-group="2x2" data-width="2" data-height="2">Spotify: album, play, previous and next</li>
-</ul>
-</details>
-<details class="drawer-section">
-<summary>4x1</summary>
-<ul>
-<li draggable="true" data-group="4x1" data-width="4" data-height="1">Spotify: album, play, previous and next</li>
-</ul>
-</details>
-</div>
+{{end}}</div>
 </aside>
 <form method="post" action="/page/rename" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">

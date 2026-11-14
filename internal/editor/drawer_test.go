@@ -1,9 +1,12 @@
 package editor_test
 
 import (
+	"html"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // TestEditor_PageHoldsAHiddenBrickDrawer: the author asked for a drawer in
@@ -25,7 +28,7 @@ func TestEditor_PageHoldsAHiddenBrickDrawer(t *testing.T) {
 	for _, want := range []string{
 		`<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>`,
 		`<button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">`,
-		`<div id="brick-list" class="drawer-panel" hidden>`,
+		`<div id="brick-list" class="drawer-panel" data-chars="`,
 		`<li draggable="true" data-type="kind:open_url">`,
 		`<li draggable="true" data-type="preset:discord_channel">`,
 	} {
@@ -107,5 +110,33 @@ func TestEditor_DrawerSaysWhatEachBrickAsksFor(t *testing.T) {
 		FindString(body)
 	if !strings.Contains(discord, `<p>A preset of the open_url brick, to open_server. It asks for:</p>`) {
 		t.Errorf("discord_channel: want what it expands into, got %s", discord)
+	}
+}
+
+// TestEditor_DrawerIsSizedForItsLongestName: the drawer carries the length of
+// the longest name it can show, in any section, open or closed, so it is one
+// width however its sections open; on an app screen its own bricks count too.
+func TestEditor_DrawerIsSizedForItsLongestName(t *testing.T) {
+	t.Parallel()
+
+	for _, path := range []string{firstPagePath, "/page?page=" + golandScreenIndex} {
+		body := newAppScreenHarness(t).get(t, path).Body.String()
+
+		chars := regexp.MustCompile(`<div id="brick-list" class="drawer-panel" data-chars="(\d+)" hidden>`).
+			FindStringSubmatch(body)
+		if chars == nil {
+			t.Fatalf("%s: want the drawer to carry its longest name's length", path)
+		}
+
+		longest := 0
+
+		names := regexp.MustCompile(`<li draggable="true"[^>]*>(?:<details class="brick-about"><summary>)?([^<]+)<`)
+		for _, name := range names.FindAllStringSubmatch(body, -1) {
+			longest = max(longest, utf8.RuneCountInString(html.UnescapeString(name[1])))
+		}
+
+		if chars[1] != strconv.Itoa(longest) {
+			t.Errorf("%s: want %d characters, the longest name, got %s", path, longest, chars[1])
+		}
 	}
 }

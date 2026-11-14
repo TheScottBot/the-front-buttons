@@ -206,6 +206,12 @@ export function enableDrawer(grid: HTMLTableElement): void {
     marked = stack;
   };
 
+  // One width, for the longest name the drawer can show, however it opens.
+  const chars = Number(panel.dataset.chars);
+  if (Number.isInteger(chars) && chars > 0) {
+    panel.style.setProperty("--drawer-chars", String(chars));
+  }
+
   const search = enableSearch(panel);
   enableEscapeToClose(toggle, panel, search?.clear ?? ((): boolean => false));
 
