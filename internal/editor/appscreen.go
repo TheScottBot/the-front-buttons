@@ -30,11 +30,13 @@ func (pages *pageHandlers) appSetOf(page config.Page) (brick.AppSet, bool) {
 // offeredOn reports whether a type choice may be used on a page: any preset
 // or general brick, and an application's own bricks on its screen only.
 func (pages *pageHandlers) offeredOn(resolved keyType, page config.Page) bool {
-	if resolved.presetName != "" {
-		return true
-	}
+	return resolved.presetName != "" || pages.kindOfferedOn(resolved.kindName, page)
+}
 
-	kind, found := pages.options.Registry.Kind(resolved.kindName)
+// kindOfferedOn reports whether a brick may be used on a page: a general one
+// anywhere, and an application's own on its screen only.
+func (pages *pageHandlers) kindOfferedOn(kindName string, page config.Page) bool {
+	kind, found := pages.options.Registry.Kind(kindName)
 	if !found || kind.Scope() == "" {
 		return found
 	}

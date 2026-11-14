@@ -553,6 +553,104 @@ input[type="search"] {
   box-shadow: 4px 4px 0 var(--accent-2);
 }
 
+/* Select mode: the whole key is its check box's label, so a click anywhere on
+   it ticks it. The box itself is hidden from sight but still takes focus. A
+   ticked key is pulled forward, on a deeper shadow with a tick in its corner,
+   and rocks a couple of degrees either way; reduced motion keeps it still. */
+
+.grid .select-key,
+.grid .select-empty {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 4.4rem;
+  padding: 0.4rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.grid .select-key label {
+  font-weight: 700;
+  color: var(--on-block-accent);
+  cursor: pointer;
+  user-select: none;
+}
+
+.grid .select-key label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.grid .select-key input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.grid .select-empty {
+  color: var(--on-block-accent-2);
+  opacity: 0.6;
+}
+
+.grid td:has(.select-key) {
+  position: relative;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.grid td:has(.select-key):hover {
+  transform: translate(-1px, -1px);
+}
+
+.grid td:has(.select-key input:focus-visible) {
+  outline: 4px dashed var(--accent);
+  outline-offset: 3px;
+}
+
+.grid td:has(.select-key input:checked) {
+  z-index: 1;
+  outline: 4px solid var(--accent);
+  outline-offset: -4px;
+  box-shadow: 10px 10px 0 var(--lift), 10px 10px 0 3px var(--rule);
+  transform: translate(-5px, -5px) scale(1.06);
+  animation: key-rock 1.8s ease-in-out infinite;
+}
+
+.grid td:has(.select-key input:checked) .select-key::before {
+  content: "\2713";
+  position: absolute;
+  top: 0.2rem;
+  right: 0.35rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+@keyframes key-rock {
+  0%,
+  100% {
+    transform: translate(-5px, -5px) scale(1.06) rotate(-2deg);
+  }
+
+  50% {
+    transform: translate(-5px, -5px) scale(1.06) rotate(2deg);
+  }
+}
+
+.copy-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin: 0.4rem 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* The key dialog: the key's editor over the grid, a black framed slab with a
    hard shadow on a darkened page. The browser keeps focus inside it and
    closes it on Escape. */

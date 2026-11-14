@@ -22,3 +22,19 @@ macOS the install script puts the binary in
 ```bash
 "$HOME/Library/Application Support/the-front-buttons/bin/the-front-buttons" -open-editor
 ```
+
+## Copying keys between pages
+
+To put the same keys on several pages, such as cut, copy, paste and Spotify on
+every app screen, choose **Select keys to copy** under the grid. Each key
+becomes a check box: tick the keys, tick every page and app screen to copy them
+onto, and choose **Copy the ticked keys**. Each key lands on the same tile it is
+on, on every page ticked.
+
+If any key would land on a key already there, on a tile kept for paging or for
+an app screen's icon, or on a page that cannot hold it, such as a JetBrains key
+on a regular page, nothing is copied anywhere. Every such tile is named, and
+what was ticked stays ticked to change and try again.
+
+**Copy this page's keys** copies a whole page, and a single key's form, or
+dragging it with Option (Alt on Windows) held, copies one key to any free tile.

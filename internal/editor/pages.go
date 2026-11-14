@@ -102,6 +102,8 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		message, undo = removedMessage, pages.removals.holding()
 	case "credential":
 		message = credentialMessage
+	case copiedQuery:
+		message = copiedMessage
 	}
 
 	return baseView{
@@ -204,6 +206,13 @@ type cellView struct {
 	// Image is a picture the cell shows in place of its text: the
 	// application's icon on an app screen's return tile.
 	Image string
+	// Selectable marks a key select mode offers to tick, Select is its tile
+	// as the copy posts it, "row.column", SelectID its check box's id, and
+	// Checked is ticked already.
+	Selectable bool
+	Select     string
+	SelectID   string
+	Checked    bool
 }
 
 // The states a grid cell can be in, for the drag script.
@@ -235,6 +244,10 @@ type pageView struct {
 	Rows        [][]cellView
 	// CopyTargets are the pages this one can be copied onto: every other.
 	CopyTargets []copyTarget
+	// Selecting is select mode, where each key is a check box for copying,
+	// and SelectTargets are the pages its keys can be copied onto.
+	Selecting     bool
+	SelectTargets []selectTarget
 	// Types are the bricks and presets the drawer offers to drag onto an
 	// empty tile, the same list the key form chooses from.
 	Types []typeOption
@@ -249,8 +262,44 @@ func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Re
 	pages.apps.warm(request.Context())
 
 	configuration, problems := pages.configuration()
-	pages.renderPage(writer, request, http.StatusOK, configuration,
-		integerParameter(request.URL.Query(), "page"), problems)
+	query := request.URL.Query()
+	pageIndex := integerParameter(query, "page")
+
+	if query.Get(selectQuery) == "1" {
+		selection := copySelection{source: pageIndex, tiles: nil, targets: nil}
+		pages.renderPageSelecting(writer, request, http.StatusOK, configuration, selection, problems)
+
+		return
+	}
+
+	pages.renderPage(writer, request, http.StatusOK, configuration, pageIndex, problems)
+}
+
+// renderPageSelecting draws a page in select mode, with the keys and pages of
+// a selection ticked, so a refused copy keeps what was ticked.
+func (pages *pageHandlers) renderPageSelecting(
+	writer http.ResponseWriter,
+	request *http.Request,
+	status int,
+	configuration config.Configuration,
+	selection copySelection,
+	problems []string,
+) {
+	view := pages.pageViewFor(request, configuration, selection.source, problems)
+
+	if view.HasPage {
+		view.Selecting = true
+		view.SelectTargets = pages.selectTargets(configuration.Pages, selection)
+
+		for _, row := range view.Rows {
+			for column := range row {
+				cell := &row[column]
+				cell.Checked = cell.Selectable && slices.Contains(selection.tiles, tileFrom(cell.Select))
+			}
+		}
+	}
+
+	pages.render(writer, status, "page.html", view)
 }
 
 func (pages *pageHandlers) renderPage(
@@ -261,6 +310,16 @@ func (pages *pageHandlers) renderPage(
 	pageIndex int,
 	problems []string,
 ) {
+	pages.render(writer, status, "page.html", pages.pageViewFor(request, configuration, pageIndex, problems))
+}
+
+// pageViewFor is everything the page of the grid shows for one page.
+func (pages *pageHandlers) pageViewFor(
+	request *http.Request,
+	configuration config.Configuration,
+	pageIndex int,
+	problems []string,
+) pageView {
 	page := pageAt(configuration, pageIndex)
 	regular := regularPages(configuration.Pages)
 	appName := ""
@@ -286,6 +345,9 @@ func (pages *pageHandlers) renderPage(
 		AppName:     appName,
 		AppTypes:    pages.appTypeOptions(page, ""),
 		AppGroups:   pages.appGroupViews(page),
+
+		Selecting:     false,
+		SelectTargets: nil,
 	}
 
 	for index, listed := range configuration.Pages {
@@ -309,7 +371,7 @@ func (pages *pageHandlers) renderPage(
 		}
 	}
 
-	pages.render(writer, status, "page.html", view)
+	return view
 }
 
 func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]cellView {
@@ -338,31 +400,11 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 					Reserved: true,
 					Name:     place + "reserved for the application's icon, which goes back to the regular pages",
 					Text:     "Back to the regular pages", Kind: "", Href: "", Tile: tile, State: tileIsReserve,
-					Image: fmt.Sprintf("/preview.png?page=%d&row=%d&column=%d", pageIndex, row, column),
+					Image:      fmt.Sprintf("/preview.png?page=%d&row=%d&column=%d", pageIndex, row, column),
+					Selectable: false, Select: "", SelectID: "", Checked: false,
 				})
 			default:
-				text, kindName := describeKey(pages.options.Presets, page, position)
-
-				state := tileIsEmpty
-				if _, found := keyAt(page, position); found {
-					state = tileHoldsKey
-				}
-
-				name := place + text
-				if kindName != "" {
-					name += " (" + kindName + ")"
-				}
-
-				cells = append(cells, cellView{
-					Reserved: false,
-					Name:     name,
-					Text:     text,
-					Kind:     kindName,
-					Href:     fmt.Sprintf("/key?page=%d&row=%d&column=%d", pageIndex, row, column),
-					Tile:     tile,
-					State:    state,
-					Image:    "",
-				})
+				cells = append(cells, pages.keyCell(page, pageIndex, position, place, tile))
 			}
 		}
 
@@ -370,6 +412,42 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 	}
 
 	return rows
+}
+
+// keyCell is a tile that holds a key or can be given one: a link to its form,
+// or in select mode a check box for a key.
+func (pages *pageHandlers) keyCell(
+	page config.Page, pageIndex int, position layout.Position, place string, tile string,
+) cellView {
+	text, kindName := describeKey(pages.options.Presets, page, position)
+
+	state := tileIsEmpty
+	key, found := keyAt(page, position)
+
+	if found {
+		state = tileHoldsKey
+	}
+
+	name := place + text
+	if kindName != "" {
+		name += " (" + kindName + ")"
+	}
+
+	return cellView{
+		Reserved: false,
+		Name:     name,
+		Text:     text,
+		Kind:     kindName,
+		Href:     fmt.Sprintf("/key?page=%d&row=%d&column=%d", pageIndex, position.Row, position.Column),
+		Tile:     tile,
+		State:    state,
+		Image:    "",
+
+		Selectable: found && !brick.IsPageMarker(key.Kind),
+		Select:     fmt.Sprintf("%d.%d", position.Row, position.Column),
+		SelectID:   fmt.Sprintf("%d-%d", position.Row, position.Column),
+		Checked:    false,
+	}
 }
 
 // pagingCell builds a paging tile. It links to the regular page a step away,
@@ -387,6 +465,7 @@ func pagingCell(allPages []config.Page, pageIndex int, step int, text string) fu
 		cell := cellView{
 			Reserved: true, Name: place + "reserved for paging " + strings.ToLower(text), Text: text, Kind: "",
 			Href: "", Tile: tile, State: tileIsReserve, Image: "",
+			Selectable: false, Select: "", SelectID: "", Checked: false,
 		}
 
 		target := -1

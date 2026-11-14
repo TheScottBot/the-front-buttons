@@ -3831,6 +3831,33 @@ showing it, no waiting at all, and a hold also acting on release, failed it.
 
 Verified on the physical deck: holding an app key showed its screen.
 
+### Copying ticked keys between pages
+
+The same keys, such as cut, copy, paste and Spotify, sit in the same place on
+many pages and app screens, and copying a whole page or one key at a time made
+that slow. The editor now has a select mode, reached from a link under the
+grid, in which each key is a check box rather than a link to its form, and a
+form under the grid ticks every other page and app screen to copy onto. The
+ticked keys go onto every ticked page, each on the tile it came from.
+
+A copy goes everywhere or nowhere. A key landing on a key already there, on a
+paging tile, on an app screen's icon tile, or on a page that does not offer its
+application's own brick refuses the whole copy, and the refusal names each
+such tile with its page; the page is drawn again in select mode with what was
+ticked still ticked. A page marker is never offered, as copying a page leaves
+it behind. Select mode is a plain form that works without the script and from
+the keyboard; the form posts each ticked tile as row and column, so a later
+way of ticking, such as Shift and a click on the grid, only has to post the
+same.
+
+Tests first, failing before the change: copying onto several pages in place, a
+clash naming its tile and copying nothing, the icon tile, an app's own key
+copying onto a screen sharing its bricks and refused on a regular page, a copy
+with nothing ticked, and select mode's check boxes. Planted violations, no
+clash check, no icon tile check, no check of an app's own brick, a partial
+copy, ticks lost on a refusal, and a copy onto the page itself, each failed a
+test.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
