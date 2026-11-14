@@ -43,8 +43,10 @@ state.
 
 The **Bricks** tab on the left opens the drawer of bricks to drag onto an empty
 tile. Its search box takes focus as it opens and narrows the drawer as you
-type, to the bricks whose names hold every word typed; a section's name counts
-for each brick in it, so "spotify" or "goland" finds a whole section. Escape
+type, to the bricks whose names hold every word typed; a section's name and a
+brick's kind count too, so "spotify" or "goland" finds a whole section and
+"session" finds Claude's session keys. An application's own bricks are named by
+what they do, such as GoLand: Build or Claude: Back, in that order. Escape
 clears the search, or with the search empty closes the drawer, so two presses
 close it from a search. The drawer widens to show each brick's name whole.
 

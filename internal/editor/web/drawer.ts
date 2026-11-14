@@ -70,8 +70,8 @@ function stackFrom(grid: HTMLTableElement, cell: HTMLTableCellElement, carried: 
 }
 
 // enableSearch narrows the drawer to the bricks whose names hold every word
-// typed, a section's name counting for each brick in it, so "spotify" or
-// "goland" finds a whole section. Sections with a match open and the rest
+// typed, a section's name and a brick's kind counting too, so "spotify" or
+// "goland" finds a whole section and "session" finds Claude's Close. Sections with a match open and the rest
 // hide; clearing the box, or Escape, puts every section back as it was. It
 // returns the box, to take focus when the drawer opens.
 function enableSearch(panel: HTMLElement): HTMLInputElement | null {
@@ -93,7 +93,8 @@ function enableSearch(panel: HTMLElement): HTMLInputElement | null {
       let shown = 0;
 
       for (const item of section.querySelectorAll<HTMLElement>("li")) {
-        const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""}`;
+        const kindName = (item.dataset.type ?? item.dataset.group ?? "").replace(/_/g, " ");
+        const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""} ${kindName.toLowerCase()}`;
         const match = words.every((word) => haystack.includes(word));
 
         item.hidden = !match;

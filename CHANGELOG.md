@@ -210,6 +210,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   flash. It
   is given pictures and tiles only, behind the editor's guard, with at most
   four pages following at once.
+- An application's own bricks are named in the editor by what they do, such as
+  Claude: Back rather than claude_back, and listed in that order; a key of one
+  without a label previews with that label, as the deck shows it.
 - The editor's brick drawer has a search box, focused as the drawer opens,
   that narrows it as you type; a section's name counts for its bricks.
 - Dragging a key with Command held, Ctrl on Windows, copies it; Option still

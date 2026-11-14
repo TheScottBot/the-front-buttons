@@ -59,11 +59,15 @@ type Registry struct {
 	kinds        map[string]Kind
 	appSets      []AppSet
 	placeholders map[string]string
+	titles       map[string]string
 }
 
 // NewRegistry returns an empty registry.
 func NewRegistry() *Registry {
-	return &Registry{kinds: make(map[string]Kind), appSets: nil, placeholders: make(map[string]string)}
+	return &Registry{
+		kinds: make(map[string]Kind), appSets: nil, placeholders: make(map[string]string),
+		titles: make(map[string]string),
+	}
 }
 
 // Register adds a kind whose parameters are the struct P. It derives the schema
@@ -160,4 +164,22 @@ func (registry *Registry) SetPlaceholderIcon(kindName string, icon string) error
 // PlaceholderIcon is a kind's placeholder icon, or nothing.
 func (registry *Registry) PlaceholderIcon(kindName string) string {
 	return registry.placeholders[kindName]
+}
+
+// SetTitle names a kind by the label its keys show by default, such as Build,
+// for the editor, which cannot build a key whose brick needs a port to learn
+// it. It refuses a kind that is not registered.
+func (registry *Registry) SetTitle(kindName string, title string) error {
+	if _, found := registry.kinds[kindName]; !found {
+		return fmt.Errorf("%w: no kind %q for a title", ErrInvalidKind, kindName)
+	}
+
+	registry.titles[kindName] = title
+
+	return nil
+}
+
+// Title is a kind's title, or nothing.
+func (registry *Registry) Title(kindName string) string {
+	return registry.titles[kindName]
 }

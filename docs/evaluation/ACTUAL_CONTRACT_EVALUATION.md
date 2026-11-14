@@ -4094,6 +4094,24 @@ the panel 396 pixels wide, none of the 80 names clipped, every section the
 same width; and with "build" typed, one Escape cleared it with the drawer
 still open, and a second closed it with focus on the tab.
 
+An application's own bricks were named in the drawer and the key form by
+their kind's name, such as claude_back, which said little. The editor names a
+brick by the label its key shows, learnt by building the brick, and an app's
+bricks cannot be built without the shortcut presser only the daemon has. The
+brick registry now keeps a title for a kind, the label its keys show by
+default, which appkeys records from each action's label as it registers the
+kind; the editor names a brick by it, lists an app's bricks in that order, and
+previews a key of one without a label with it, as the deck shows it. The
+drawer's search still finds a brick by its kind, so "session" finds Claude's
+Close, its claude_close_session. Tests first, failing before the change: the
+registry keeping a title and refusing one for an unknown kind, appkeys titling
+each kind by its label, and GoLand's build key named Build in the drawer and
+the key form, listed by label, and previewed with its label when it has none.
+Planted violations, kinds titled by their own names and the preview ignoring
+the title, each failed a test. Driven in a browser on Claude's screen of the
+deck's configuration: its 23 keys named Back, Browser, Close and on, in that
+order, and "session" finding the five session keys and the session group.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

@@ -130,6 +130,12 @@ func Register(registry *brick.Registry, scope string, prefix string, actions []A
 		if registerError != nil {
 			return registerError //nolint:wrapcheck // RegisterScoped already names the kind
 		}
+
+		// The editor names the kind by its label, as it cannot build the key.
+		titleError := registry.SetTitle(kindName, label)
+		if titleError != nil {
+			return titleError //nolint:wrapcheck // SetTitle already names the kind
+		}
 	}
 
 	return nil

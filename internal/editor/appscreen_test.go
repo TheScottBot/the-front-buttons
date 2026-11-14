@@ -294,3 +294,34 @@ func TestEditor_PreviewsTheReturnTileAsTheDeckDrawsIt(t *testing.T) {
 		t.Error("want no icon on a regular page's free tile")
 	}
 }
+
+// TestEditor_NamesAnAppsBricksByTheirLabels: an application's own bricks are
+// named in the drawer and the key form by what they do, such as Build, not by
+// their kind's name, and a key of one with no label is previewed with that
+// label, as the deck shows it.
+func TestEditor_NamesAnAppsBricksByTheirLabels(t *testing.T) {
+	t.Parallel()
+
+	harness := newAppScreenHarness(t)
+
+	screen := harness.get(t, "/page?page="+golandScreenIndex).Body.String()
+	requireBody(t, screen, `<li draggable="true" data-type="`+golandBuildType+`">GoLand: Build</li>`)
+	refuseBody(t, screen, "GoLand: jetbrains_build")
+
+	keyForm := harness.get(t, "/key?page=1&row=2&column=2").Body.String()
+	requireBody(t, keyForm, `value="`+golandBuildType+`">GoLand: Build</option>`)
+
+	// Listed by what they do: Back before Build before Comment.
+	back, build, comment := strings.Index(screen, "GoLand: Back<"), strings.Index(screen, "GoLand: Build<"),
+		strings.Index(screen, "GoLand: Comment<")
+	if back < 0 || back >= build || build >= comment {
+		t.Errorf("want the bricks listed by label, got Back at %d, Build at %d, Comment at %d", back, build, comment)
+	}
+
+	harness.replaceFile(t, strings.Replace(appScreenConfiguration, "        parameters:\n          label: Build\n", "", 1))
+
+	want := previewRenderer(t).Render(render.Appearance{Label: "Build"})
+	if !testsupport.SameImage(previewImage(t, harness, "/preview.png?page=1&row=1&column=1"), want) {
+		t.Error("want the unlabelled build key previewed with its label, as the deck shows it")
+	}
+}

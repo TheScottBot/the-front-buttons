@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
@@ -172,8 +173,13 @@ func identifierName(application string) string {
 }
 
 // kindTitle is what the editor calls an application's own brick: the label
-// the key shows until given its own, or else the kind's name.
-func kindTitle(kind brick.Kind) string {
+// the key shows until given its own, from the kind's title where the brick
+// cannot be built without a port, or else the kind's name.
+func (pages *pageHandlers) kindTitle(kind brick.Kind) string {
+	if title := pages.options.Registry.Title(kind.Name()); title != "" {
+		return title
+	}
+
 	constructed, constructError := kind.Construct(kind.Schema().NewParameters(), brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: nil,
 		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil,
@@ -200,9 +206,14 @@ func (pages *pageHandlers) appTypeOptions(page config.Page, selected string) []t
 		kind, _ := pages.options.Registry.Kind(kindName)
 		value := kindChoicePrefix + kindName
 		options = append(options, typeOption{
-			Value: value, Label: set.NameFor(page.Application) + ": " + kindTitle(kind), Selected: value == selected,
+			Value: value, Label: set.NameFor(page.Application) + ": " + pages.kindTitle(kind), Selected: value == selected,
 		})
 	}
+
+	// Named by what they do, they are listed in that order.
+	slices.SortStableFunc(options, func(first typeOption, second typeOption) int {
+		return strings.Compare(strings.ToLower(first.Label), strings.ToLower(second.Label))
+	})
 
 	return options
 }
@@ -255,7 +266,7 @@ func (pages *pageHandlers) appGroups(sizes map[string]groupSize, parts map[strin
 			for _, kindName := range group.Kinds {
 				kind, _ := pages.options.Registry.Kind(kindName)
 				parts[kindName] = groupPart{
-					name: kindName, choice: kindChoicePrefix + kindName, title: kindTitle(kind), label: "", icon: "",
+					name: kindName, choice: kindChoicePrefix + kindName, title: pages.kindTitle(kind), label: "", icon: "",
 				}
 			}
 		}

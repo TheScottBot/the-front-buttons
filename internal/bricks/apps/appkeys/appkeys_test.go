@@ -107,6 +107,12 @@ func TestRegister_MakesAScopedKindForEachAction(t *testing.T) {
 		t.Fatalf("want ides_build scoped to ides, got %+v", kind)
 	}
 
+	// Each kind is titled by its action's label, for the editor, which cannot
+	// build the key without its port.
+	if title := registry.Title("ides_build"); title != "Build" {
+		t.Errorf("want ides_build titled Build, got %q", title)
+	}
+
 	build := actionNamed(t, "build")
 
 	for _, onWindows := range []bool{false, true} {

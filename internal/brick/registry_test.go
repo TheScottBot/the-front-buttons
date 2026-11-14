@@ -232,33 +232,43 @@ func TestAppSets_MatchTheirApplications(t *testing.T) {
 	}
 }
 
-// TestRegistry_KeepsAKindsPlaceholderIcon: a kind may name the icon it is
-// drawn with where it has no live state, as in the editor; a kind that is not
-// registered is refused one, and a kind without one has none.
-func TestRegistry_KeepsAKindsPlaceholderIcon(t *testing.T) {
+// TestRegistry_KeepsAKindsPlaceholderAndTitle: a kind may name the icon it is
+// drawn with where it has no live state, and its title, the label its keys
+// show by default, for the editor where it cannot build the key; a kind that
+// is not registered is refused either, and a kind without one has none.
+func TestRegistry_KeepsAKindsPlaceholderAndTitle(t *testing.T) {
 	t.Parallel()
 
-	registry := brick.NewRegistry()
+	for _, kept := range []struct {
+		name string
+		set  func(registry *brick.Registry, kindName string, value string) error
+		get  func(registry *brick.Registry, kindName string) string
+	}{
+		{"placeholder", (*brick.Registry).SetPlaceholderIcon, (*brick.Registry).PlaceholderIcon},
+		{"title", (*brick.Registry).SetTitle, (*brick.Registry).Title},
+	} {
+		registry := brick.NewRegistry()
 
-	registerError := brick.Register(registry, "live_thing", constructSampleTestDouble)
-	if registerError != nil {
-		t.Fatal(registerError)
-	}
+		registerError := brick.Register(registry, "live_thing", constructSampleTestDouble)
+		if registerError != nil {
+			t.Fatal(registerError)
+		}
 
-	setError := registry.SetPlaceholderIcon("live_thing", "vinyl")
-	if setError != nil {
-		t.Fatal(setError)
-	}
+		setError := kept.set(registry, "live_thing", "vinyl")
+		if setError != nil {
+			t.Fatal(setError)
+		}
 
-	if icon := registry.PlaceholderIcon("live_thing"); icon != "vinyl" {
-		t.Errorf("want the placeholder kept, got %q", icon)
-	}
+		if value := kept.get(registry, "live_thing"); value != "vinyl" {
+			t.Errorf("%s: want it kept, got %q", kept.name, value)
+		}
 
-	if registry.SetPlaceholderIcon("no_such_kind", "vinyl") == nil {
-		t.Error("want a placeholder for an unregistered kind refused")
-	}
+		if kept.set(registry, "no_such_kind", "vinyl") == nil {
+			t.Errorf("%s: want one for an unregistered kind refused", kept.name)
+		}
 
-	if icon := registry.PlaceholderIcon("no_such_kind"); icon != "" {
-		t.Errorf("want no placeholder for an unknown kind, got %q", icon)
+		if value := kept.get(registry, "no_such_kind"); value != "" {
+			t.Errorf("%s: want none for an unknown kind, got %q", kept.name, value)
+		}
 	}
 }

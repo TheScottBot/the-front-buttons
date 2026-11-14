@@ -88,7 +88,7 @@ func (pages *pageHandlers) deckLabel(allPages []config.Page, pageIndex int, posi
 		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil,
 	})
 	if constructError != nil {
-		return ""
+		return pages.options.Registry.Title(key.Kind)
 	}
 
 	return brick.FallbackLabel(instance, page.Name, slices.Index(regularPages(allPages), pageIndex)+1)

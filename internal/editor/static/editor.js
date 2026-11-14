@@ -564,7 +564,8 @@
         const sectionName = section.querySelector("summary")?.textContent?.toLowerCase() ?? "";
         let shown = 0;
         for (const item of section.querySelectorAll("li")) {
-          const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""}`;
+          const kindName = (item.dataset.type ?? item.dataset.group ?? "").replace(/_/g, " ");
+          const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""} ${kindName.toLowerCase()}`;
           const match = words.every((word) => haystack.includes(word));
           item.hidden = !match;
           shown += match ? 1 : 0;
