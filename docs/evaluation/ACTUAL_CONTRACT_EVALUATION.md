@@ -3975,6 +3975,53 @@ Command held a key was copied, and with no key held a key moved; a real drag
 showed the browser's own choice with no key held is a move, so a plain drop
 stays a move.
 
+### The deck as it runs, in the editor
+
+With Render like deck on, the editor now shows live keys as the deck draws
+them and flashes each key pressed on the deck. It was built narrowly, as a
+mirror of what anyone looking at the deck could see. A new core package,
+`internal/deckmirror`, is handed to both the daemon and the editor by the
+composition root, so the editor still imports nothing of the daemon. It holds
+two things: pictures the daemon drew of keys whose look depends on live state,
+a live brick, a key showing its application's badge or a key showing a
+press's error, on every page whether showing or not; and word of a press or a
+redraw by tile alone. It holds no track names, results, counts or tokens, and
+album art reaches the browser only as the daemon's own pixels. A key that
+never changes is left to the editor's preview, which draws it the same.
+
+The daemon fills it from its loop: every such key on a new configuration, the
+keys a source's publication touches, the keys whose badge changed, a key whose
+press error changed, and each press on the page showing. It never waits: a
+subscriber that stops reading loses events. A picture is kept with its kind
+of key, so a key moved onto the tile before the daemon reloads is never shown
+another's picture.
+
+The editor reads it through two requests behind its usual guard. A key's
+picture asked for live comes from the mirror when it has one for that kind
+there, and from the editor's own preview otherwise; the grid asks for keys
+live with the switch on, but not for paging tiles, which the deck draws from
+the page alone. An event stream names tiles as press, frame or reload; the
+page flashes a pressed tile, fetches a redrawn key's picture again, and on a
+reload fetches them all. Both are refused with the switch off, so a page drawn
+in words asks for nothing live. The stream has no write deadline, ends when
+its page closes, sends a comment every 25 seconds so a closed page is noticed,
+and at most four may be open at once. SECURITY.md and PRIVACY.md say so.
+
+Tests first, failing before the change. The mirror: a picture kept for its
+kind only, presses, changes and reloads heard by tile, an unchanged redraw not
+heard, subscribers limited, a slow subscriber never waited on, and no mirror
+doing nothing. The daemon: a hidden page's live key mirrored and redrawn when
+its source publishes, a key that never changes not mirrored, and presses heard
+by tile, a paging key among them. The editor: a live picture from the mirror,
+ignored for another kind, and the editor's preview when not asked; keys asked
+for live with the switch on; the stream naming tiles; and the stream refused
+with the switch off or unset, and when full. Planted violations, the kind
+ignored, the stream served with the switch off, no limit, only the showing
+page mirrored, and presses not reported, each failed a test. Checked in a
+browser against the editor's test harness, with its mirror fed a press and a
+new picture every two seconds: the pressed tile flashed, and the redrawn key's
+picture was fetched again and shown.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

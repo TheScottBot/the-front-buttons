@@ -122,10 +122,29 @@ a secret, a request body or what a key typed.
 |---|---|---|
 | USB input reports from the deck | hostile bytes | exact length checked before decoding; the decoder cannot read past its buffer; fuzzed in CI |
 | The configuration file | untrusted, though the person's own | bounded at 1 MiB; one YAML document, no anchors, aliases or duplicate keys; every field checked by type, bounds and format; unknown fields refused; fuzzed in CI |
-| Editor requests | untrusted, from web pages and from other accounts on the machine | the editor's own Host only, defeating DNS rebinding; a session cookie, HttpOnly and SameSite Strict, given only by a one time login link, on every page; any Origin the editor's own, and every change carrying the 256 bit token; bodies bounded at 64 KiB; a strict content security policy; no framing |
+| Editor requests | untrusted, from web pages and from other accounts on the machine | the editor's own Host only, defeating DNS rebinding; a session cookie, HttpOnly and SameSite Strict, given only by a one time login link, on every page; any Origin the editor's own, and every change carrying the 256 bit token; bodies bounded at 64 KiB; a strict content security policy; no framing; the deck's event stream limited to four at once and to pages drawn like the deck |
 | GitHub API responses | untrusted | bounded at 1 MiB; only three fields read; a run's address opened only if https |
 | Spotify's answers | untrusted | the art fetched only from `i.scdn.co`; scripts fixed, never built from configuration |
 | URLs and application names from configuration | untrusted | refused if empty, over 4,096 bytes, led by a hyphen or holding a control character; passed as one argument, never through a shell |
+
+## The deck in the editor
+
+With Render like deck on, the editor shows the deck as it runs, through
+`internal/deckmirror`, which the daemon writes and the editor reads, in one
+process. It holds only pictures the daemon drew of the keys whose look depends
+on live state (live keys, keys showing a Dock badge, keys showing a press's
+error), and word of which tile was pressed or redrawn. It never holds the state
+behind a picture: a track's name, a run's result, a badge's count or a token.
+Album art reaches the browser only as pixels the daemon drew, never as
+Spotify's own file.
+
+Two requests read it, behind the same guard as every other: a key's picture
+asked for live (`/preview.png` with `live=1`), and an event stream
+(`/events`) naming tiles alone. Both give nothing with the switch off. The
+stream is the one long request: it has no write deadline, ends when its page
+closes, and at most four may be open at once
+(`internal/editor/events.go`, `cmd/the-front-buttons/main.go`). The daemon
+never waits on the editor: a page that stops reading loses events.
 
 ## Opening the editor
 

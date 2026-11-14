@@ -420,6 +420,7 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 				cell := pages.keyCell(page, pageIndex, position, place, tile)
 				if cell.State == tileHoldsKey {
 					cell = withFace(cell, pageIndex, position)
+					cell.Face += "&" + liveQuery + "=1"
 				}
 
 				cells = append(cells, cell)
@@ -969,15 +970,35 @@ func (pages *pageHandlers) previewPicture(
 		picture = pages.options.Renderer.Render(
 			render.Appearance{IconImage: icon, IconMissing: icon == nil, BackgroundFromIcon: true})
 	default:
-		appearance := pages.keyPreview(previewContext, page, position, query)
-		if stored {
-			pages.fillDeckDefaults(&appearance, configuration.Pages, pageIndex, position)
-		}
-
-		picture = pages.options.Renderer.Render(appearance)
+		picture = pages.keyPicture(previewContext, configuration, pageIndex, position, query)
 	}
 
 	return picture
+}
+
+// keyPicture draws a key: asked for live, the daemon's own picture of it
+// where the mirror has one; otherwise the editor's preview, a stored key with
+// what the deck would add to it.
+func (pages *pageHandlers) keyPicture(
+	previewContext context.Context,
+	configuration config.Configuration,
+	pageIndex int,
+	position layout.Position,
+	query url.Values,
+) image.Image {
+	stored := query.Get("type") == ""
+
+	if live, found := pages.liveFrame(configuration, pageIndex, position); stored && found &&
+		query.Get(liveQuery) == "1" {
+		return live
+	}
+
+	appearance := pages.keyPreview(previewContext, pageAt(configuration, pageIndex), position, query)
+	if stored {
+		pages.fillDeckDefaults(&appearance, configuration.Pages, pageIndex, position)
+	}
+
+	return pages.options.Renderer.Render(appearance)
 }
 
 // pagingPicture draws a paging tile as the deck draws it.

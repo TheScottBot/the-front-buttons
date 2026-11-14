@@ -19,6 +19,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
+	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/live"
@@ -75,6 +76,9 @@ type Options struct {
 	// Badges reads the badges applications show on their Dock icons, for keys
 	// that ask to show one; nil reads none.
 	Badges platform.ApplicationBadges
+	// Mirror is given the pictures of keys whose look depends on live state,
+	// and word of presses, for the editor; nil keeps none.
+	Mirror *deckmirror.Mirror
 }
 
 // IconFileLoader reads a key's own icon file by its name.
@@ -365,6 +369,7 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 
 	state.hub.Update(runContext, state.liveSources())
 	state.logMissingCredentials(runContext, configuration)
+	state.mirrorAll(runContext)
 	state.repaintAll(runContext)
 }
 
@@ -429,6 +434,11 @@ func (state *loopState) handleLiveChanges(runContext context.Context, identities
 	}
 
 	state.clearPressErrors(identities)
+	state.mirrorWhere(runContext, func(configured configuredKey) bool {
+		source, isLive := configured.instance.(brick.LiveSource)
+
+		return isLive && identities[source.LiveIdentity()]
+	})
 
 	pageIndex, showing := state.showingPage()
 	if !showing {
@@ -657,6 +667,8 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 			continue
 		}
 
+		state.mirrorPress(change.KeyIndex)
+
 		state.pressDown(runContext, change.KeyIndex, slot)
 	}
 }
@@ -857,6 +869,10 @@ func (state *loopState) handlePressResult(runContext context.Context, result pre
 			slog.String("kind", configured.key.Kind), slog.Int("page", result.pageIndex),
 			slog.Int("row", configured.key.Position.Row), slog.Int("column", configured.key.Position.Column),
 			slog.String("reason", configured.errorReason))
+	}
+
+	if configured.errorReason != previousReason {
+		state.mirrorKey(runContext, result.pageIndex, *configured)
 	}
 
 	showingIndex, showing := state.showingPage()

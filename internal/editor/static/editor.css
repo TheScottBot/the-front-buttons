@@ -1299,3 +1299,23 @@ header .theme-switch {
   left: -10000px;
   top: 0;
 }
+
+/* A key pressed on the deck, while the editor draws it like the deck: its
+   tile lights for as long as the script keeps it (flashMilliseconds in
+   live.ts), fading out; reduced motion keeps it lit without the fade. */
+
+.grid td.pressed {
+  outline: 5px solid var(--accent);
+  outline-offset: 2px;
+  animation: key-pressed 0.7s ease-out forwards;
+}
+
+@keyframes key-pressed {
+  from {
+    box-shadow: 0 0 0 6px var(--accent);
+  }
+
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

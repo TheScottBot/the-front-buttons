@@ -20,6 +20,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
+	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/render"
@@ -78,6 +79,7 @@ type harness struct {
 	launches       *testsupport.LaunchRecorder
 	badges         *testsupport.BadgesTestDouble
 	live           *testsupport.LiveController
+	mirror         *deckmirror.Mirror
 	renderer       *render.Renderer
 	counters       *diagnostics.Counters
 	logs           *lockedBuffer
@@ -143,6 +145,7 @@ func startHarness(t *testing.T) *harness {
 		launches:       testsupport.NewLaunchRecorder(),
 		badges:         testsupport.NewBadgesTestDouble(),
 		live:           liveController,
+		mirror:         deckmirror.New(harnessMirrorSubscribers),
 		renderer:       renderer,
 		counters:       diagnostics.NewCounters(),
 		logs:           logs,
@@ -169,6 +172,7 @@ func startHarness(t *testing.T) *harness {
 		IconFiles:       iconFilesTestDouble{},
 		AppIcons:        applicationIconsTestDouble{},
 		Badges:          running.badges,
+		Mirror:          running.mirror,
 		Activator: testsupport.ActivatorTestDouble{
 			Recorder: recorder, Running: []string{knownApplication, slowApplication}, Slow: []string{slowApplication},
 		},
@@ -178,6 +182,9 @@ func startHarness(t *testing.T) *harness {
 
 	return running
 }
+
+// harnessMirrorSubscribers is how many may listen to the harness's mirror.
+const harnessMirrorSubscribers = 2
 
 func (running *harness) stop(t *testing.T) {
 	t.Helper()

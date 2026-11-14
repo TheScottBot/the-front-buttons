@@ -17,6 +17,7 @@ import (
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
+	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
@@ -96,6 +97,9 @@ type Options struct {
 	// Sessions gives the login links; nil makes one for Token.
 	Sessions *Sessions
 	Logger   *slog.Logger
+	// Mirror is what the editor may see of the deck as it runs, for Render
+	// like deck; nil shows only the editor's own previews.
+	Mirror *deckmirror.Mirror
 }
 
 // Listen opens the editor's loopback listener on the preferred port, or, if
@@ -161,6 +165,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("GET /group", pages.showGroup)
 	mux.HandleFunc("POST /group", pages.saveGroup)
 	mux.HandleFunc("GET /preview.png", pages.preview)
+	mux.HandleFunc("GET /events", pages.events)
 	mux.HandleFunc("GET /icons", pages.showIcons)
 	mux.HandleFunc("GET /icon.png", pages.iconPreview)
 	mux.HandleFunc("GET /credentials", pages.showCredentials)

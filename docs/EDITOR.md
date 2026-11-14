@@ -29,9 +29,13 @@ The **Render like deck** switch, under **Dark mode**, draws every key and paging
 tile on the grid as the deck draws it: its label, icon and colours, a page
 marker's page number, and the paging keys' page count and neighbours. Switched
 off, the grid names each key and its kind in words. The choice is remembered in
-the browser. A key's live state, such as a pipeline's status or a badge, shows
-on the deck only; Spotify's album and play keys and pipeline keys show a
-placeholder icon in its place.
+the browser. Keys whose look depends on live state show it as the deck does:
+the current album art, a pipeline's status, a Dock badge, a press's error, each
+updating as it changes on the deck, even for pages the deck is not showing.
+Each key pressed on the deck flashes on the grid. A live key the daemon has
+not yet drawn, such as Spotify's album key while nothing plays, shows a
+placeholder icon. Switched off, the editor shows none of the deck's live
+state.
 
 ## Moving keys between pages
 

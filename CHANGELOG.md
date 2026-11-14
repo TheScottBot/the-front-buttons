@@ -203,6 +203,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - A key dragged onto a page's name in the editor's page list moves to the same
   tile on that page; held over the name for a moment, that page opens in place
   to drop the key anywhere on it.
+- With Render like deck on, the editor shows the deck as it runs: live keys'
+  album art, pipeline status, Dock badges and errors as the daemon draws them,
+  on every page, updating as they change, and a flash on each key pressed. It
+  is given pictures and tiles only, behind the editor's guard, with at most
+  four pages following at once.
 - Dragging a key with Command held, Ctrl on Windows, copies it; Option still
   does, and copying by drag works again in browsers that report no keys held
   during a drag.

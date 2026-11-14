@@ -82,6 +82,7 @@ func getManyIcons(t *testing.T, path string) string {
 		Platform:    "",
 		Sessions:    nil,
 		Logger:      slog.New(slog.DiscardHandler),
+		Mirror:      nil,
 	})
 
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, testOrigin+path, http.NoBody)

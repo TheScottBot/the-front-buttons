@@ -24,6 +24,16 @@ There is no telemetry, analytics or crash reporting.
   grid is drawn like the deck (`deck_render`). The display choices hold nothing
   else.
 
+## What the editor shows
+
+With Render like deck on, the editor shows what the deck shows as it runs: the
+current album art, pipeline results and Dock badges, such as unread message
+counts, and a flash on each key pressed. Anyone with an editor session can see
+them, which needs a one time login link on this machine. The editor is given
+pictures and tile positions only, never the track's name, the result or the
+count behind them, and stores nothing of them. Switched off, the editor shows
+none of it.
+
 ## Retention
 
 Everything stays until the person deletes it. Removing the configuration folder

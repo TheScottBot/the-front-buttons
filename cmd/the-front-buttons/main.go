@@ -25,6 +25,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 	"github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport"
+	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/editor"
 	"github.com/TheScottBot/the-front-buttons/internal/githubactions"
@@ -262,6 +263,9 @@ func executablePath() (string, error) {
 
 // core is everything built from the registry: the kinds, the presets and the
 // grid configuration is checked against.
+// mirrorSubscribers is how many editor pages may follow the deck at once.
+const mirrorSubscribers = 4
+
 type core struct {
 	model       deck.Model
 	grid        layout.Grid
@@ -275,6 +279,9 @@ type core struct {
 	// appIcons reads applications' own icons, for open_application keys that
 	// ask to show one; shared by the daemon and the editor's preview.
 	appIcons platform.ApplicationIcons
+	// mirror is what the editor may see of the deck as it runs: the daemon
+	// draws into it and the editor reads it, for Render like deck.
+	mirror *deckmirror.Mirror
 }
 
 func buildCore() (core, error) {
@@ -322,6 +329,7 @@ func buildCore() (core, error) {
 	return core{
 		model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer, icons: icons,
 		iconFiles: usericons.NewFolder(""), appIcons: systemadapter.NewApplicationIcons(),
+		mirror: deckmirror.New(mirrorSubscribers),
 	}, nil
 }
 
@@ -481,6 +489,7 @@ func startEditor(
 		Credentials: credentials, Counters: counters, Logger: logger,
 		Platform: systemadapter.ShortcutPlatform(),
 		Sessions: sessions,
+		Mirror:   built.mirror,
 	}))
 
 	go func() {
@@ -570,6 +579,7 @@ func daemonOptions(
 		Activator:       systemadapter.NewApplicationActivator(),
 		Badges:          systemadapter.NewApplicationBadges(),
 		AppIcons:        built.appIcons,
+		Mirror:          built.mirror,
 	}
 }
 

@@ -71,7 +71,7 @@ func TestEditor_RendersTheGridLikeTheDeck_WhenSwitchedOn(t *testing.T) {
 	pictures := getRenderingLikeDeck(t, harness, "/page?page=0")
 	requireBody(t, pictures,
 		`<button type="button" class="render-switch" role="switch" aria-checked="true" hidden>Render like deck</button>`,
-		`<img class="deck-face" src="/preview.png?page=0&amp;row=0&amp;column=0" alt="" width="96" height="96">`,
+		`<img class="deck-face" src="/preview.png?page=0&amp;row=0&amp;column=0&amp;live=1" alt="" width="96" height="96">`,
 		`<img class="deck-face" src="/preview.png?page=0&amp;row=3&amp;column=0" alt="" width="96" height="96">`,
 		`<html lang="en-GB" data-render="deck">`,
 	)
@@ -79,7 +79,7 @@ func TestEditor_RendersTheGridLikeTheDeck_WhenSwitchedOn(t *testing.T) {
 	refuseBody(t, pictures, `src="/preview.png?page=0&amp;row=1&amp;column=1"`)
 
 	selecting := getRenderingLikeDeck(t, harness, "/page?page=0&select=1")
-	requireBody(t, selecting, `<img class="deck-face" src="/preview.png?page=0&amp;row=0&amp;column=0"`,
+	requireBody(t, selecting, `<img class="deck-face" src="/preview.png?page=0&amp;row=0&amp;column=0&amp;live=1"`,
 		// The page marker, which is never copied, is still drawn.
 		`<span class="select-empty" aria-label="Row 1, column 2: page_marker"><img class="deck-face"`)
 }

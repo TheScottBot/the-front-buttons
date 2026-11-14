@@ -107,6 +107,11 @@ func (state *loopState) handleBadges(runContext context.Context, read badgesEven
 	}
 
 	state.badges.shown = read.badges
+	state.mirrorWhere(runContext, func(configured configuredKey) bool {
+		identifier, wanted := wantedBadge(configured.key.Parameters)
+
+		return wanted && changed[identifier]
+	})
 	state.repaintBadged(runContext, changed)
 }
 

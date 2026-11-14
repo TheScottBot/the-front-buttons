@@ -15,6 +15,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/allbricks"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
+	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
 	"github.com/TheScottBot/the-front-buttons/internal/editor"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
@@ -64,6 +65,7 @@ type editorHarness struct {
 	credentials *testsupport.CredentialStoreTestDouble
 	counters    *diagnostics.Counters
 	sessions    *editor.Sessions
+	mirror      *deckmirror.Mirror
 }
 
 // noIcons is an icon set with no icons; the editor's tests are not about icons.
@@ -162,6 +164,7 @@ func newHarnessFor(
 		credentials: testsupport.NewCredentialStoreTestDouble(),
 		counters:    diagnostics.NewCounters(),
 		sessions:    editor.NewSessions(testToken),
+		mirror:      deckmirror.New(harnessMirrorSubscribers),
 	}
 
 	harness.handler = editor.NewHandler(harnessOptions(harness, store, registry, presetTable, grid, renderer,
@@ -169,6 +172,9 @@ func newHarnessFor(
 
 	return harness
 }
+
+// harnessMirrorSubscribers is how many may listen to the harness's mirror.
+const harnessMirrorSubscribers = 2
 
 // harnessOptions is the editor's options over the harness's store and fakes.
 func harnessOptions(
@@ -197,6 +203,7 @@ func harnessOptions(
 		Sessions:    harness.sessions,
 		Counters:    harness.counters,
 		Logger:      slog.New(slog.DiscardHandler),
+		Mirror:      harness.mirror,
 	}
 }
 

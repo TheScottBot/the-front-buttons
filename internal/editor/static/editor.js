@@ -655,6 +655,54 @@
     drawer.hidden = false;
   }
 
+  // internal/editor/web/live.ts
+  var pressedClass = "pressed";
+  var flashMilliseconds = 700;
+  function shownTile(tile) {
+    if (!/^\d+\.\d+\.\d+$/.test(tile)) {
+      return null;
+    }
+    return document.querySelector(`table.grid:not(.grid-left-behind) td[data-tile="${tile}"]`);
+  }
+  function refetch(picture) {
+    const address = new URL(picture.src, window.location.href);
+    if (address.searchParams.get("live") !== "1") {
+      return;
+    }
+    address.searchParams.set("drawn", String(Date.now()));
+    picture.src = address.pathname + address.search;
+  }
+  function flash(cell) {
+    cell.classList.remove(pressedClass);
+    void cell.offsetWidth;
+    cell.classList.add(pressedClass);
+    window.setTimeout(() => cell.classList.remove(pressedClass), flashMilliseconds);
+  }
+  function enableLive(page) {
+    if (page.documentElement.dataset["render"] !== "deck" || page.querySelector("table.grid") === null) {
+      return;
+    }
+    const stream = new EventSource("/events");
+    stream.addEventListener("press", (event) => {
+      const cell = shownTile(event.data);
+      if (cell !== null) {
+        flash(cell);
+      }
+    });
+    stream.addEventListener("frame", (event) => {
+      const picture = shownTile(event.data)?.querySelector("img.deck-face");
+      if (picture !== null && picture !== void 0) {
+        refetch(picture);
+      }
+    });
+    stream.addEventListener("reload", () => {
+      for (const picture of page.querySelectorAll("table.grid img.deck-face")) {
+        refetch(picture);
+      }
+    });
+    window.addEventListener("pagehide", () => stream.close());
+  }
+
   // internal/editor/web/picker.ts
   function enablePickers(root) {
     root.addEventListener("change", (event) => {
@@ -784,6 +832,7 @@
   enablePlatformSwitch(document);
   enableThemeToggle(document);
   enableRenderToggle(document);
+  enableLive(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableSelecting(grid);
