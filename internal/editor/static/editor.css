@@ -1306,9 +1306,8 @@ header .theme-switch {
    for the three seconds without the blink. */
 
 .grid td.pressed {
-  outline: 5px solid var(--accent);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 6px var(--accent);
+  outline: 3px dotted var(--accent);
+  outline-offset: 3px;
   animation: key-pressed 3s step-end forwards;
 }
 
@@ -1319,13 +1318,11 @@ header .theme-switch {
   88.8%,
   100% {
     outline-color: var(--accent);
-    box-shadow: 0 0 0 6px var(--accent);
   }
 
   72.2%,
   83.3%,
   94.4% {
     outline-color: transparent;
-    box-shadow: 0 0 0 0 transparent;
   }
 }
