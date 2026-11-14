@@ -266,7 +266,12 @@ func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Re
 	pageIndex := integerParameter(query, "page")
 
 	if query.Get(selectQuery) == "1" {
+		// Tiles in the address start ticked, as Shift and a click opens it.
 		selection := copySelection{source: pageIndex, tiles: nil, targets: nil}
+		for _, value := range query[copyTileField] {
+			selection.tiles = append(selection.tiles, tileFrom(value))
+		}
+
 		pages.renderPageSelecting(writer, request, http.StatusOK, configuration, selection, problems)
 
 		return

@@ -22,9 +22,11 @@
 </fieldset>
 <button type="submit">Copy the ticked keys</button>
 <p class="help">Each key goes on the same tile it is on here. If any would land on a key, on any page ticked, nothing is copied and every such tile is named.</p>
+<p class="select-help" hidden>Hold Shift and click a key to tick every key in the rectangle from the last key you clicked.</p>
 <p><a href="/page?page={{.PageIndex}}">Done selecting</a></p>
 </form>
 {{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy</a></p>
+<p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>
 {{end}}<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
 <div id="brick-list" class="drawer-panel" hidden>

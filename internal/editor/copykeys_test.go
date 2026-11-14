@@ -272,3 +272,30 @@ func TestEditor_SelectModeTicksKeysAndPages(t *testing.T) {
 	refuseBody(t, selecting, `href="/key?page=0&amp;row=0&amp;column=1"`, `value="2.2" form="copy-keys"`,
 		`id="copy-to-0"`)
 }
+
+// TestEditor_SelectModeTicksTheKeysItsAddressNames: select mode opened with
+// tiles in its address, as Shift and a click on a key opens it, starts with
+// those keys ticked; a tile with no key to tick is left alone.
+func TestEditor_SelectModeTicksTheKeysItsAddressNames(t *testing.T) {
+	t.Parallel()
+
+	harness := newCopyKeysHarness(t)
+
+	body := harness.get(t, "/page?page=0&select=1&tile=0.1&tile=1.1&tile=2.2&tile=bad").Body.String()
+	requireBody(t, body, `value="0.1" form="copy-keys" checked>`, `value="1.1" form="copy-keys" checked>`)
+	refuseBody(t, body, `value="0.2" form="copy-keys" checked>`, `value="2.2" form="copy-keys"`)
+}
+
+// TestEditor_ShiftClickHintsWaitForTheScript: the hints for Shift and a
+// click stay hidden until the script, which handles them, shows them.
+func TestEditor_ShiftClickHintsWaitForTheScript(t *testing.T) {
+	t.Parallel()
+
+	harness := newCopyKeysHarness(t)
+
+	requireBody(t, harness.get(t, "/page?page=0").Body.String(),
+		`<p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>`)
+	requireBody(t, harness.get(t, "/page?page=0&select=1").Body.String(),
+		`<p class="select-help" hidden>Hold Shift and click a key to tick every key in the rectangle `+
+			`from the last key you clicked.</p>`)
+}

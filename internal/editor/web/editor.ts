@@ -9,6 +9,7 @@ import { enableGroupOrder } from "./group";
 import { enablePlatformSwitch } from "./platform";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
+import { enableSelecting } from "./select";
 import { enableSliders } from "./slider";
 import { enableThemeToggle } from "./theme";
 
@@ -22,6 +23,7 @@ enableThemeToggle(document);
 const grid = document.querySelector<HTMLTableElement>("table.grid");
 
 if (grid !== null) {
+  enableSelecting(grid);
   enableDrag(grid);
   enableKeyDialog(grid);
   enableDrawer(grid);

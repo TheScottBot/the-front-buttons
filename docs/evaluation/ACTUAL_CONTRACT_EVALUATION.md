@@ -3858,6 +3858,15 @@ clash check, no icon tile check, no check of an app's own brick, a partial
 copy, ticks lost on a refusal, and a copy onto the page itself, each failed a
 test.
 
+Shift and a click came next. The browser alone knows whether Shift was held,
+so a short script handles it: on the grid, Shift and a click on a key opens
+select mode with that key ticked, by naming its tile in the address, which
+the server ticks; in select mode, Shift and a click ticks every key in the
+rectangle from the last key clicked. Its hints stay hidden unless the script
+runs. Tests first, failing before the change: select mode ticking the keys
+its address names and no tile without a key, and the hints hidden. A planted
+violation, the address's tiles ignored, failed it.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

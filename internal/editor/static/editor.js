@@ -559,6 +559,73 @@
     });
   }
 
+  // internal/editor/web/select.ts
+  var tileAttribute2 = "data-tile";
+  var keyState = "key";
+  function placeOf2(cell) {
+    const parts = (cell?.getAttribute(tileAttribute2) ?? "").split(".");
+    if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
+      return null;
+    }
+    return { page: parts[0], row: Number(parts[1]), column: Number(parts[2]) };
+  }
+  function cellOf3(target) {
+    return target instanceof Element ? target.closest(`td[${tileAttribute2}]`) : null;
+  }
+  function boxOf(cell) {
+    return cell.querySelector('.select-key input[type="checkbox"]');
+  }
+  function showHints() {
+    for (const hint of document.querySelectorAll(".select-help")) {
+      hint.hidden = false;
+    }
+  }
+  function openSelecting(place) {
+    const address = new URLSearchParams({ page: place.page, select: "1", tile: `${place.row}.${place.column}` });
+    window.location.assign(`/page?${address.toString()}`);
+  }
+  function tickRectangle(grid2, from, to) {
+    const top = Math.min(from.row, to.row);
+    const bottom = Math.max(from.row, to.row);
+    const left = Math.min(from.column, to.column);
+    const right = Math.max(from.column, to.column);
+    for (const cell of grid2.querySelectorAll(`td[${tileAttribute2}]`)) {
+      const place = placeOf2(cell);
+      const box = boxOf(cell);
+      if (place !== null && box !== null && place.row >= top && place.row <= bottom && place.column >= left && place.column <= right) {
+        box.checked = true;
+      }
+    }
+  }
+  function enableSelecting(grid2) {
+    const selecting = grid2.querySelector(".select-key") !== null;
+    let anchor = null;
+    showHints();
+    grid2.addEventListener("click", (event) => {
+      const cell = cellOf3(event.target);
+      const place = placeOf2(cell);
+      if (cell === null || place === null) {
+        return;
+      }
+      if (!selecting) {
+        if (event.shiftKey && event.button === 0 && cell.getAttribute("data-state") === keyState) {
+          event.preventDefault();
+          event.stopPropagation();
+          openSelecting(place);
+        }
+        return;
+      }
+      if (boxOf(cell) === null) {
+        return;
+      }
+      if (event.shiftKey && anchor !== null) {
+        event.preventDefault();
+        tickRectangle(grid2, anchor, place);
+      }
+      anchor = place;
+    }, true);
+  }
+
   // internal/editor/web/theme.ts
   var oneYearSeconds = 60 * 60 * 24 * 365;
   var systemDark = "(prefers-color-scheme: dark)";
@@ -593,6 +660,7 @@
   enableThemeToggle(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
+    enableSelecting(grid);
     enableDrag(grid);
     enableKeyDialog(grid);
     enableDrawer(grid);
