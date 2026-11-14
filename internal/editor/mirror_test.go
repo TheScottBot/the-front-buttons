@@ -188,3 +188,38 @@ func TestEditor_RefusesTheEventStream_WhenOffOrFull(t *testing.T) {
 		t.Errorf("want the stream refused while full, got %d", response.StatusCode)
 	}
 }
+
+// TestEditor_KeepsTheEventStreamPastTheServersTimeouts: the editor's server
+// bounds each request's reading and writing, as the binary sets it; the stream
+// outlives both and still carries events.
+func TestEditor_KeepsTheEventStreamPastTheServersTimeouts(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		request.Host = testAddress
+		harness.handler.ServeHTTP(writer, request)
+	}))
+	server.Config.ReadTimeout = 200 * time.Millisecond
+	server.Config.WriteTimeout = 200 * time.Millisecond
+	server.Start()
+	t.Cleanup(server.Close)
+
+	streamContext, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	response := openEvents(streamContext, t, server, "on")
+	defer func() { _ = response.Body.Close() }()
+
+	time.Sleep(time.Second)
+	harness.mirror.Press(docsTile)
+
+	reader := bufio.NewScanner(response.Body)
+	for reader.Scan() {
+		if reader.Text() == "event: press" {
+			return
+		}
+	}
+
+	t.Fatalf("want the press heard after the server's timeouts, the stream ended: %v", reader.Err())
+}

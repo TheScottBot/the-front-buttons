@@ -4022,6 +4022,16 @@ browser against the editor's test harness, with its mirror fed a press and a
 new picture every two seconds: the pressed tile flashed, and the redrawn key's
 picture was fetched again and shown.
 
+On the deck the flash went unnoticed after a while: it lasted 0.7 seconds.
+It is now deliberate: a pressed tile is lit for two seconds, blinks three
+times over the next second, then stops, with stepped timing so it blinks
+rather than fades; reduced motion keeps it lit for the three seconds. A key
+pressed again starts its flash afresh. The event stream was checked to
+outlive the server's 30 second request timeouts and page changes, in a test
+and in a browser, and a stream refused while too many pages follow the deck
+is now logged. Measured in a browser: lit for 2.1 seconds, three blinks, clear
+at 3.0 seconds.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

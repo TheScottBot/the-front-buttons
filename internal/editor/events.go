@@ -3,6 +3,7 @@ package editor
 import (
 	"fmt"
 	"image"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -50,6 +51,8 @@ func (pages *pageHandlers) events(writer http.ResponseWriter, request *http.Requ
 
 	events, cancel, subscribed := pages.options.Mirror.Subscribe()
 	if !subscribed {
+		pages.options.Logger.WarnContext(request.Context(), "editor stream refused",
+			slog.String("reason", "too many pages following the deck"))
 		http.Error(writer, "too many pages are following the deck; close one", http.StatusServiceUnavailable)
 
 		return

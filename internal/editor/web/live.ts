@@ -6,9 +6,11 @@
 // A page drawn in words never opens it.
 
 const pressedClass = "pressed";
-// flashMilliseconds is how long a pressed tile stays lit; the flash animation
-// in editor.css runs as long.
-const flashMilliseconds = 700;
+// flashMilliseconds is how long a pressed tile shows it: lit for two seconds,
+// then blinking for one, as the flash animation in editor.css runs.
+const flashMilliseconds = 3000;
+// flashTimers ends each tile's flash, so a key pressed again starts afresh.
+const flashTimers = new Map<HTMLTableCellElement, number>();
 
 function shownTile(tile: string): HTMLTableCellElement | null {
   if (!/^\d+\.\d+\.\d+$/.test(tile)) {
@@ -30,11 +32,15 @@ function refetch(picture: HTMLImageElement): void {
 }
 
 function flash(cell: HTMLTableCellElement): void {
+  window.clearTimeout(flashTimers.get(cell));
   cell.classList.remove(pressedClass);
-  // Reading the layout restarts the flash for a key pressed again quickly.
+  // Reading the layout restarts the flash for a key pressed again.
   void cell.offsetWidth;
   cell.classList.add(pressedClass);
-  window.setTimeout(() => cell.classList.remove(pressedClass), flashMilliseconds);
+  flashTimers.set(cell, window.setTimeout(() => {
+    cell.classList.remove(pressedClass);
+    flashTimers.delete(cell);
+  }, flashMilliseconds));
 }
 
 export function enableLive(page: Document): void {

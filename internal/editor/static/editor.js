@@ -657,7 +657,8 @@
 
   // internal/editor/web/live.ts
   var pressedClass = "pressed";
-  var flashMilliseconds = 700;
+  var flashMilliseconds = 3e3;
+  var flashTimers = /* @__PURE__ */ new Map();
   function shownTile(tile) {
     if (!/^\d+\.\d+\.\d+$/.test(tile)) {
       return null;
@@ -673,10 +674,14 @@
     picture.src = address.pathname + address.search;
   }
   function flash(cell) {
+    window.clearTimeout(flashTimers.get(cell));
     cell.classList.remove(pressedClass);
     void cell.offsetWidth;
     cell.classList.add(pressedClass);
-    window.setTimeout(() => cell.classList.remove(pressedClass), flashMilliseconds);
+    flashTimers.set(cell, window.setTimeout(() => {
+      cell.classList.remove(pressedClass);
+      flashTimers.delete(cell);
+    }, flashMilliseconds));
   }
   function enableLive(page) {
     if (page.documentElement.dataset["render"] !== "deck" || page.querySelector("table.grid") === null) {

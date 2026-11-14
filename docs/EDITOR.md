@@ -32,7 +32,8 @@ off, the grid names each key and its kind in words. The choice is remembered in
 the browser. Keys whose look depends on live state show it as the deck does:
 the current album art, a pipeline's status, a Dock badge, a press's error, each
 updating as it changes on the deck, even for pages the deck is not showing.
-Each key pressed on the deck flashes on the grid. A live key the daemon has
+Each key pressed on the deck lights on the grid for two seconds, blinks for one,
+then stops. A live key the daemon has
 not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
