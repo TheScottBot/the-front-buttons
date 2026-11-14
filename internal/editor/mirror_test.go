@@ -140,10 +140,13 @@ func TestEditor_StreamsTileEventsFromTheMirror(t *testing.T) {
 	}
 
 	harness.mirror.Press(docsTile)
+	harness.mirror.Release(docsTile)
 	harness.mirror.Set(deckmirror.Tile{Page: 1, Position: layout.Position{Row: 2, Column: 3}}, docsKind, livePicture())
 	harness.mirror.Replace(nil)
 
-	want := []string{"event: press", "data: 0.0.0", "event: frame", "data: 1.2.3", "event: reload"}
+	want := []string{
+		"event: press", "data: 0.0.0", "event: release", "data: 0.0.0", "event: frame", "data: 1.2.3", "event: reload",
+	}
 	reader := bufio.NewScanner(response.Body)
 
 	var heard []string

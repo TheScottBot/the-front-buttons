@@ -241,6 +241,9 @@ type loopState struct {
 	controls deckControls
 	badges   badgeState
 	holds    holdState
+	// pressedTiles is the tile each key held down was pressed on, so its
+	// release is reported for that tile though paging changed the page.
+	pressedTiles map[int]deckmirror.Tile
 }
 
 func newLoopState(options Options) *loopState {
@@ -269,8 +272,9 @@ func newLoopState(options Options) *loopState {
 		controls: deckControls{
 			dimmed: false, dimPercent: 0, off: false, offPercent: 0, offPage: 0, offBrick: 0,
 		},
-		badges: newBadgeState(),
-		holds:  newHoldState(),
+		badges:       newBadgeState(),
+		holds:        newHoldState(),
+		pressedTiles: map[int]deckmirror.Tile{},
 	}
 }
 
@@ -628,6 +632,7 @@ func (state *loopState) disconnect(runContext context.Context, reason string) {
 	state.connectionPath = ""
 	state.slots = nil
 	state.deckGeneration++
+	state.releaseAllPressed()
 	state.options.Counters.Increment("deck.disconnects")
 	state.logState(runContext, stateDisconnected, slog.String("reason", reason))
 }
@@ -649,6 +654,7 @@ func (state *loopState) shutdown(runContext context.Context) {
 func (state *loopState) handleKeyChanges(runContext context.Context, changes []deck.KeyChange) {
 	for _, change := range changes {
 		if !change.Pressed {
+			state.mirrorRelease(change.KeyIndex)
 			state.releaseHold(runContext, change)
 
 			continue

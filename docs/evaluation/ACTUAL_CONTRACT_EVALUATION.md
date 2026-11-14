@@ -4032,6 +4032,21 @@ and in a browser, and a stream refused while too many pages follow the deck
 is now logged. Measured in a browser: lit for 2.1 seconds, three blinks, clear
 at 3.0 seconds.
 
+That flash followed every press, quick or held. The daemon now reports a
+key's release as well as its press, through the mirror, on the tile it was
+pressed on, though paging has changed the page by then, and lets go of every
+held key when the deck goes, as no release will come for them. On the grid a
+tile is lit while its key is held down; let go of before half a second, the
+daemon's own hold threshold, the light ends at once; held longer, as for an app
+screen, it stays lit for two seconds after the release, blinks for one, then
+stops. Tests first, failing before the change: a release heard by tile in the
+mirror and in the stream, a press and release heard by the same tile, a paging
+key among them, and a held key let go of when the deck is unplugged; a planted
+violation, the unplugged deck's keys kept held, failed it. Driven in a browser
+against the test harness, with its mirror fed a 150 millisecond press and a 1.2
+second hold: the quick press lit its tile for 150 milliseconds; the hold lit
+its tile for 1.2 seconds, then three seconds of light and blink.
+
 ### Searching the brick drawer
 
 As the app sets grew, the drawer grew long, so it now opens with a search box,

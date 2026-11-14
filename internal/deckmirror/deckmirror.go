@@ -1,6 +1,6 @@
 // Package deckmirror is what the editor may see of the deck as it runs: the
 // pictures of the keys whose look depends on live state, as the daemon draws
-// them, and word of which tile was pressed or redrawn. It holds pixels the
+// them, and word of which tile was pressed, let go of or redrawn. It holds pixels the
 // daemon drew and tile positions, never the state behind them, such as a
 // track's name, a run's result or a badge's count, so the editor can show only
 // what anyone looking at the deck could see.
@@ -28,6 +28,8 @@ type EventKind string
 const (
 	// Pressed is a key pressed on the deck.
 	Pressed EventKind = "press"
+	// Released is a pressed key let go of.
+	Released EventKind = "release"
 	// Redrawn is a key's picture changed.
 	Redrawn EventKind = "frame"
 	// Reloaded is every picture replaced, for a new configuration.
@@ -113,6 +115,18 @@ func (mirror *Mirror) Press(tile Tile) {
 	defer mirror.mutex.Unlock()
 
 	mirror.publish(Event{Kind: Pressed, Tile: tile})
+}
+
+// Release tells subscribers a pressed key was let go of.
+func (mirror *Mirror) Release(tile Tile) {
+	if mirror == nil {
+		return
+	}
+
+	mirror.mutex.Lock()
+	defer mirror.mutex.Unlock()
+
+	mirror.publish(Event{Kind: Released, Tile: tile})
 }
 
 // Frame is the picture kept for a tile, if one is kept for that kind of key.

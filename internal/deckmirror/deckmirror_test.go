@@ -85,11 +85,13 @@ func TestMirror_TellsSubscribersOfPressesAndChanges(t *testing.T) {
 	mirror.Set(albumTile, albumKind, picture(10))
 	mirror.Set(albumTile, albumKind, picture(10))
 	mirror.Press(otherTile)
+	mirror.Release(otherTile)
 	mirror.Replace(map[deckmirror.Tile]deckmirror.Frame{otherTile: {Kind: otherKind, Picture: picture(20)}})
 
 	want := []deckmirror.Event{
 		{Kind: deckmirror.Redrawn, Tile: albumTile},
 		{Kind: deckmirror.Pressed, Tile: otherTile},
+		{Kind: deckmirror.Released, Tile: otherTile},
 		{Kind: deckmirror.Reloaded, Tile: deckmirror.Tile{Page: 0, Position: layout.Position{Row: 0, Column: 0}}},
 	}
 
@@ -163,6 +165,7 @@ func TestMirror_NilDoesNothing(t *testing.T) {
 
 	mirror.Set(albumTile, albumKind, picture(10))
 	mirror.Press(albumTile)
+	mirror.Release(albumTile)
 	mirror.Replace(nil)
 
 	if _, found := mirror.Frame(albumTile, albumKind); found {

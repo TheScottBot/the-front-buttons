@@ -69,13 +69,36 @@ func (state *loopState) mirrorKey(runContext context.Context, pageIndex int, con
 		state.options.Renderer.Render(state.appearanceFor(runContext, configured)))
 }
 
-// mirrorPress tells the mirror a key on the page showing was pressed.
+// mirrorPress tells the mirror a key on the page showing was pressed, and
+// keeps its tile for the release.
 func (state *loopState) mirrorPress(keyIndex int) {
 	pageIndex, showing := state.showingPage()
 	position, onGrid := state.grid.PositionOfKey(keyIndex)
 
 	if showing && onGrid {
-		state.options.Mirror.Press(deckmirror.Tile{Page: pageIndex, Position: position})
+		tile := deckmirror.Tile{Page: pageIndex, Position: position}
+		state.pressedTiles[keyIndex] = tile
+		state.options.Mirror.Press(tile)
+	}
+}
+
+// mirrorRelease tells the mirror a pressed key was let go of, on the tile it
+// was pressed on.
+func (state *loopState) mirrorRelease(keyIndex int) {
+	tile, pressed := state.pressedTiles[keyIndex]
+	if !pressed {
+		return
+	}
+
+	delete(state.pressedTiles, keyIndex)
+	state.options.Mirror.Release(tile)
+}
+
+// releaseAllPressed lets go of every key held down when the deck goes, as no
+// release will come for them.
+func (state *loopState) releaseAllPressed() {
+	for keyIndex := range state.pressedTiles {
+		state.mirrorRelease(keyIndex)
 	}
 }
 

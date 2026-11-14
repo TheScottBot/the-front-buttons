@@ -15,8 +15,8 @@ import (
 // The deck as it runs, for Render like deck: a key's picture asked for live
 // is the daemon's own, from the mirror, where its look depends on live state,
 // such as album art or a pipeline's status; and an event stream tells the page
-// which tile was pressed or redrawn, by tile alone, so it can flash the tile
-// or fetch its picture again. Both are refused with the switch off, so a page
+// which tile was pressed, let go of or redrawn, by tile alone, so it can light
+// the tile or fetch its picture again. Both are refused with the switch off, so a page
 // drawn in words never asks for anything live. The stream is a long request
 // behind the same guard as every other: the editor's host, the session and
 // its own origin; and only so many may be open at once.

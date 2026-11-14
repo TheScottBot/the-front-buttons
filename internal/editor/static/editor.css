@@ -1301,9 +1301,15 @@ header .theme-switch {
 }
 
 /* A key pressed on the deck, while the editor draws it like the deck: its
-   tile is lit for two seconds, then blinks for one, then stops, as long as the
-   script keeps it (flashMilliseconds in live.ts). Reduced motion keeps it lit
-   for the three seconds without the blink. */
+   tile is lit while the key is held down. A key held for half a second or
+   more is lit for two seconds more once let go of, then blinks for one, then
+   stops, as long as the script keeps it (flashMilliseconds in live.ts).
+   Reduced motion keeps it lit for the three seconds without the blink. */
+
+.grid td.held {
+  outline: 3px dotted var(--accent);
+  outline-offset: 3px;
+}
 
 .grid td.pressed {
   outline: 3px dotted var(--accent);

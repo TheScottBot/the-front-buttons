@@ -84,9 +84,10 @@ func TestDaemon_MirrorsLiveKeysOnEveryPage(t *testing.T) {
 	})
 }
 
-// TestDaemon_TellsTheMirrorOfPresses: a key pressed on the deck, a paging key
-// among them, is heard by its tile on the page showing.
-func TestDaemon_TellsTheMirrorOfPresses(t *testing.T) {
+// TestDaemon_TellsTheMirrorOfPressesAndReleases: a key pressed on the deck,
+// a paging key among them, is heard by its tile on the page showing, and its
+// release by the same tile, though paging has changed the page by then.
+func TestDaemon_TellsTheMirrorOfPressesAndReleases(t *testing.T) {
 	t.Parallel()
 
 	synctest.Test(t, func(t *testing.T) {
@@ -106,21 +107,58 @@ func TestDaemon_TellsTheMirrorOfPresses(t *testing.T) {
 
 		grid, _ := layout.NewGrid(xlModel(t).Rows, xlModel(t).Columns)
 		forward, _ := grid.PositionOfKey(forwardKey)
+		first := deckmirror.Tile{Page: 0, Position: layout.Position{Row: 0, Column: 0}}
+		paging := deckmirror.Tile{Page: 0, Position: forward}
 		want := []deckmirror.Event{
-			{Kind: deckmirror.Pressed, Tile: deckmirror.Tile{Page: 0, Position: layout.Position{Row: 0, Column: 0}}},
-			{Kind: deckmirror.Pressed, Tile: deckmirror.Tile{Page: 0, Position: forward}},
+			{Kind: deckmirror.Pressed, Tile: first},
+			{Kind: deckmirror.Released, Tile: first},
+			{Kind: deckmirror.Pressed, Tile: paging},
+			{Kind: deckmirror.Released, Tile: paging},
 		}
 
-		var presses []deckmirror.Event
+		var heard []deckmirror.Event
 
 		for _, event := range drain(events) {
-			if event.Kind == deckmirror.Pressed {
-				presses = append(presses, event)
+			if event.Kind == deckmirror.Pressed || event.Kind == deckmirror.Released {
+				heard = append(heard, event)
 			}
 		}
 
-		if !slices.Equal(presses, want) {
-			t.Fatalf("want presses %+v, got %+v", want, presses)
+		if !slices.Equal(heard, want) {
+			t.Fatalf("want %+v, got %+v", want, heard)
+		}
+
+		running.stop(t)
+	})
+}
+
+// TestDaemon_ReleasesHeldKeys_WhenTheDeckGoes: a key held down as the deck is
+// unplugged is let go of in the mirror, as no release will come for it.
+func TestDaemon_ReleasesHeldKeys_WhenTheDeckGoes(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running := startHarness(t)
+		running.configurations <- livePages()
+
+		device := testsupport.NewDeckDeviceTestDouble(xlModel(t))
+		running.watcher.Attach("deck-a", device)
+		time.Sleep(settle)
+		synctest.Wait()
+
+		events, cancel, _ := running.mirror.Subscribe()
+		defer cancel()
+
+		device.PressKeys(0)
+		time.Sleep(testReadTimeout)
+		synctest.Wait()
+		running.watcher.Detach("deck-a")
+		time.Sleep(settle)
+		synctest.Wait()
+
+		held := deckmirror.Tile{Page: 0, Position: layout.Position{Row: 0, Column: 0}}
+		if heard := drain(events); !slices.Contains(heard, deckmirror.Event{Kind: deckmirror.Released, Tile: held}) {
+			t.Fatalf("want the held key let go of, got %+v", heard)
 		}
 
 		running.stop(t)

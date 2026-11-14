@@ -701,8 +701,11 @@
   }
 
   // internal/editor/web/live.ts
+  var heldClass = "held";
   var pressedClass = "pressed";
+  var holdMilliseconds2 = 500;
   var flashMilliseconds = 3e3;
+  var downSince = /* @__PURE__ */ new Map();
   var flashTimers = /* @__PURE__ */ new Map();
   function shownTile(tile) {
     if (!/^\d+\.\d+\.\d+$/.test(tile)) {
@@ -717,6 +720,27 @@
     }
     address.searchParams.set("drawn", String(Date.now()));
     picture.src = address.pathname + address.search;
+  }
+  function press(tile) {
+    downSince.set(tile, Date.now());
+    const cell = shownTile(tile);
+    if (cell !== null) {
+      window.clearTimeout(flashTimers.get(cell));
+      cell.classList.remove(pressedClass);
+      cell.classList.add(heldClass);
+    }
+  }
+  function release(tile) {
+    const since = downSince.get(tile);
+    downSince.delete(tile);
+    const cell = shownTile(tile);
+    if (cell === null) {
+      return;
+    }
+    cell.classList.remove(heldClass);
+    if (since !== void 0 && Date.now() - since >= holdMilliseconds2) {
+      flash(cell);
+    }
   }
   function flash(cell) {
     window.clearTimeout(flashTimers.get(cell));
@@ -733,12 +757,8 @@
       return;
     }
     const stream = new EventSource("/events");
-    stream.addEventListener("press", (event) => {
-      const cell = shownTile(event.data);
-      if (cell !== null) {
-        flash(cell);
-      }
-    });
+    stream.addEventListener("press", (event) => press(event.data));
+    stream.addEventListener("release", (event) => release(event.data));
     stream.addEventListener("frame", (event) => {
       const picture = shownTile(event.data)?.querySelector("img.deck-face");
       if (picture !== null && picture !== void 0) {

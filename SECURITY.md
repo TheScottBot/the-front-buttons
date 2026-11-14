@@ -133,7 +133,7 @@ With Render like deck on, the editor shows the deck as it runs, through
 `internal/deckmirror`, which the daemon writes and the editor reads, in one
 process. It holds only pictures the daemon drew of the keys whose look depends
 on live state (live keys, keys showing a Dock badge, keys showing a press's
-error), and word of which tile was pressed or redrawn. It never holds the state
+error), and word of which tile was pressed, let go of or redrawn. It never holds the state
 behind a picture: a track's name, a run's result, a badge's count or a token.
 Album art reaches the browser only as pixels the daemon drew, never as
 Spotify's own file.

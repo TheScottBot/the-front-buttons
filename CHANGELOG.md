@@ -205,7 +205,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   to drop the key anywhere on it.
 - With Render like deck on, the editor shows the deck as it runs: live keys'
   album art, pipeline status, Dock badges and errors as the daemon draws them,
-  on every page, updating as they change, and a flash on each key pressed. It
+  on every page, updating as they change; a key pressed on the deck is lit on
+  the grid while held, and a hold of half a second or more is followed by a
+  flash. It
   is given pictures and tiles only, behind the editor's guard, with at most
   four pages following at once.
 - The editor's brick drawer has a search box, focused as the drawer opens,
