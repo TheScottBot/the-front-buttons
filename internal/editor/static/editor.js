@@ -714,11 +714,16 @@
 
   // internal/editor/web/live.ts
   var heldClass = "held";
-  var pressedClass = "pressed";
-  var holdMilliseconds2 = 500;
-  var flashMilliseconds = 3e3;
-  var downSince = /* @__PURE__ */ new Map();
-  var flashTimers = /* @__PURE__ */ new Map();
+  var holdingClass = "holding";
+  var litMilliseconds = 2e3;
+  var shownMilliseconds = 3e3;
+  var holdTimers = /* @__PURE__ */ new Map();
+  function clearTimers(tile) {
+    for (const timer of holdTimers.get(tile) ?? []) {
+      window.clearTimeout(timer);
+    }
+    holdTimers.delete(tile);
+  }
   function shownTile(tile) {
     if (!/^\d+\.\d+\.\d+$/.test(tile)) {
       return null;
@@ -734,35 +739,21 @@
     picture.src = address.pathname + address.search;
   }
   function press(tile) {
-    downSince.set(tile, Date.now());
-    const cell = shownTile(tile);
-    if (cell !== null) {
-      window.clearTimeout(flashTimers.get(cell));
-      cell.classList.remove(pressedClass);
-      cell.classList.add(heldClass);
-    }
-  }
-  function release(tile) {
-    const since = downSince.get(tile);
-    downSince.delete(tile);
     const cell = shownTile(tile);
     if (cell === null) {
       return;
     }
-    cell.classList.remove(heldClass);
-    if (since !== void 0 && Date.now() - since >= holdMilliseconds2) {
-      flash(cell);
-    }
+    clearTimers(tile);
+    cell.classList.remove(holdingClass);
+    cell.classList.add(heldClass);
+    holdTimers.set(tile, [
+      window.setTimeout(() => cell.classList.add(holdingClass), litMilliseconds),
+      window.setTimeout(() => release(tile), shownMilliseconds)
+    ]);
   }
-  function flash(cell) {
-    window.clearTimeout(flashTimers.get(cell));
-    cell.classList.remove(pressedClass);
-    void cell.offsetWidth;
-    cell.classList.add(pressedClass);
-    flashTimers.set(cell, window.setTimeout(() => {
-      cell.classList.remove(pressedClass);
-      flashTimers.delete(cell);
-    }, flashMilliseconds));
+  function release(tile) {
+    clearTimers(tile);
+    shownTile(tile)?.classList.remove(heldClass, holdingClass);
   }
   function enableLive(page) {
     if (page.documentElement.dataset["render"] !== "deck" || page.querySelector("table.grid") === null) {

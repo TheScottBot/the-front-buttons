@@ -4047,6 +4047,26 @@ against the test harness, with its mirror fed a 150 millisecond press and a 1.2
 second hold: the quick press lit its tile for 150 milliseconds; the hold lit
 its tile for 1.2 seconds, then three seconds of light and blink.
 
+That still played a hold's three seconds after a hold barely past the
+threshold. Now a tile is lit only while its key is held down, however long:
+held past half a second, it blinks three times while still held, signalling
+the hold, and letting go at any point clears it at once, so nothing plays
+after the release. Driven in a browser against the test harness, with presses
+of 150 milliseconds, 700 milliseconds and two seconds: the quick press lit its
+tile for 150 milliseconds without a blink; the others blinked from half a
+second and cleared the moment they were let go.
+
+The blink belongs to a long hold, not the app screen's half second. A tile is
+lit only while its key is held down, and letting go clears it at once, a
+fraction short of two seconds included. Held for two seconds, it blinks three
+times over one more, then stops though the key is still held; that ending is
+what keeps a release the page never hears from leaving a tile lit, rather than
+anything built around the browser. Driven in a browser against the test
+harness, with presses of 150 milliseconds, 1.9 seconds, 2.5 seconds and five
+seconds: the first two lit their tile only while held, without a blink; the
+2.5 second hold blinked from two seconds and cleared on release; the five
+second hold blinked from two seconds and stopped at three while still held.
+
 ### Searching the brick drawer
 
 As the app sets grew, the drawer grew long, so it now opens with a search box,

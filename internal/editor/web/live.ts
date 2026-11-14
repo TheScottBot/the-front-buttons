@@ -1,24 +1,30 @@
 // The deck as it runs, on a page drawn like the deck: the server's event
 // stream names the tile of each key pressed and let go of on the deck, lit
-// here while it is held, and given a flash after a hold of half a second; and of
+// here only while it is held; held for two seconds it blinks for one, then
+// stops though still held; and of
 // each key whose picture changed, such as new album art, which is fetched
 // again. A reload fetches every key's picture again. The stream carries tiles
 // alone; the pictures come through the same guarded previews as every other.
 // A page drawn in words never opens it.
 
 const heldClass = "held";
-const pressedClass = "pressed";
-// holdMilliseconds is how long a key is held down before it counts as a
-// hold, as the daemon counts it (holdThreshold in hold.go).
-const holdMilliseconds = 500;
-// flashMilliseconds is how long a held key shows it once let go of: lit for
-// two seconds, then blinking for one, as the flash animation in editor.css
-// runs.
-const flashMilliseconds = 3000;
-// downSince is when each tile held down was pressed; flashTimers ends each
-// tile's flash, so a key pressed again starts afresh.
-const downSince = new Map<string, number>();
-const flashTimers = new Map<HTMLTableCellElement, number>();
+const holdingClass = "holding";
+// A tile is lit while its key is held down. Held for litMilliseconds, it
+// blinks for the rest of shownMilliseconds, as the animation in editor.css
+// runs, and then stops though the key is still held, so a release the page
+// never hears cannot leave it lit.
+const litMilliseconds = 2000;
+const shownMilliseconds = 3000;
+// holdTimers starts each held tile's blink and ends it.
+const holdTimers = new Map<string, number[]>();
+
+function clearTimers(tile: string): void {
+  for (const timer of holdTimers.get(tile) ?? []) {
+    window.clearTimeout(timer);
+  }
+
+  holdTimers.delete(tile);
+}
 
 function shownTile(tile: string): HTMLTableCellElement | null {
   if (!/^\d+\.\d+\.\d+$/.test(tile)) {
@@ -39,45 +45,27 @@ function refetch(picture: HTMLImageElement): void {
   picture.src = address.pathname + address.search;
 }
 
-// press lights a tile for as long as its key is held down.
+// press lights a tile while its key is held down, blinks it once held for
+// two seconds, and stops after three.
 function press(tile: string): void {
-  downSince.set(tile, Date.now());
-
-  const cell = shownTile(tile);
-  if (cell !== null) {
-    window.clearTimeout(flashTimers.get(cell));
-    cell.classList.remove(pressedClass);
-    cell.classList.add(heldClass);
-  }
-}
-
-// release ends a quick press's light at once, and gives a hold its flash.
-function release(tile: string): void {
-  const since = downSince.get(tile);
-  downSince.delete(tile);
-
   const cell = shownTile(tile);
   if (cell === null) {
     return;
   }
 
-  cell.classList.remove(heldClass);
-
-  if (since !== undefined && Date.now() - since >= holdMilliseconds) {
-    flash(cell);
-  }
+  clearTimers(tile);
+  cell.classList.remove(holdingClass);
+  cell.classList.add(heldClass);
+  holdTimers.set(tile, [
+    window.setTimeout(() => cell.classList.add(holdingClass), litMilliseconds),
+    window.setTimeout(() => release(tile), shownMilliseconds),
+  ]);
 }
 
-function flash(cell: HTMLTableCellElement): void {
-  window.clearTimeout(flashTimers.get(cell));
-  cell.classList.remove(pressedClass);
-  // Reading the layout restarts the flash for a key pressed again.
-  void cell.offsetWidth;
-  cell.classList.add(pressedClass);
-  flashTimers.set(cell, window.setTimeout(() => {
-    cell.classList.remove(pressedClass);
-    flashTimers.delete(cell);
-  }, flashMilliseconds));
+// release clears the tile at once, however long it was held.
+function release(tile: string): void {
+  clearTimers(tile);
+  shownTile(tile)?.classList.remove(heldClass, holdingClass);
 }
 
 export function enableLive(page: Document): void {
