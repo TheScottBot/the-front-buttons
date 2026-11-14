@@ -56,6 +56,7 @@ Press an `open_editor` key on the deck, or run:
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | The configuration file, app screens, badges, icons, credentials |
 | [docs/EDITOR.md](docs/EDITOR.md) | The editor and its sessions |
 | [docs/BRICKS.md](docs/BRICKS.md) | Every brick and preset, and their fields |
+| [docs/SPECIFICATION.md](docs/SPECIFICATION.md) | The specification the work was built against |
 | [SECURITY.md](SECURITY.md) | What it does and does not do, and what it trusts |
 | [PRIVACY.md](PRIVACY.md) | What it stores and sends |
 | [TESTING.md](TESTING.md) | Running the checks, every suite and gate |
@@ -63,8 +64,8 @@ Press an `open_editor` key on the deck, or run:
 
 ## Where it came from
 
-Written from the project specification and the author's engineering datum,
-version 2. The Stream Deck protocol is read from the open source
+Written from the project specification, [docs/SPECIFICATION.md](docs/SPECIFICATION.md),
+and the author's engineering datum, version 2. The Stream Deck protocol is read from the open source
 python-elgato-streamdeck library; the commit read, and everything else the work
 rests on, is recorded in `docs/evaluation/ACTUAL_CONTRACT_EVALUATION.md`.
 Vendored files are listed with their digests in `PROVENANCE.md`.
