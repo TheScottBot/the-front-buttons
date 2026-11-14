@@ -38,25 +38,13 @@ const (
 // keys builds a shortcut from a key and its modifiers.
 func keys(key string, held ...int) platform.Shortcut { return appkeys.Keys(key, held...) }
 
-// both builds a row whose Windows shortcut is the macOS one with Ctrl for
-// Command, as most of GitKraken's are.
+// both and apart build the table's rows.
 func both(name string, label string, key string, held ...int) appkeys.Action {
-	windowsHeld := make([]int, 0, len(held))
-
-	for _, modifier := range held {
-		if modifier == command {
-			modifier = control
-		}
-
-		windowsHeld = append(windowsHeld, modifier)
-	}
-
-	return appkeys.Action{Name: name, Label: label, Mac: keys(key, held...), Windows: keys(key, windowsHeld...)}
+	return appkeys.Both(name, label, key, held...)
 }
 
-// apart builds a row whose shortcuts differ by platform.
 func apart(name string, label string, mac platform.Shortcut, windows platform.Shortcut) appkeys.Action {
-	return appkeys.Action{Name: name, Label: label, Mac: mac, Windows: windows}
+	return appkeys.Apart(name, label, mac, windows)
 }
 
 // Actions is every action, grouped as GitKraken's shortcuts guide groups

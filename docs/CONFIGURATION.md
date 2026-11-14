@@ -46,8 +46,9 @@ the editor rewrites the file and drops hand written comments.
 ## App screens
 
 An app screen is a page of one application's keys. Tick App screen on an
-`open_application` key, and pressing it shows that page as well as opening the
-application; the editor creates the page the first time. The application's
+`open_application` key: a tap still just opens the application, and holding the
+key for half a second opens it and shows that page as well. The editor creates
+the page the first time. The application's
 icon is top left on its screen, and pressing it goes back to the regular page.
 Paging never reaches an app screen, and back and forward leave one.
 
@@ -75,7 +76,8 @@ A page names an `application` to be its screen, one per application, and row 0,
 column 0 is kept for the icon. Some applications have bricks of their own,
 the `jetbrains_` keys every JetBrains IDE shares, GoLand, IntelliJ IDEA,
 PyCharm, Rider and the rest, which only those applications' screens may hold;
-each IDE has its own screen. GitKraken has `gitkraken_` keys of its own. A key that
+each IDE has its own screen. GitKraken, Claude, ChatGPT and VS Code, with GitHub Copilot's keys, have
+keys of their own: `gitkraken_`, `claude_`, `chatgpt_` and `vscode_`. A key that
 sends key presses on an app screen, a shortcut or one of the application's own,
 brings the application to the front first unless it is there already; if it is
 not open, nothing is sent and the key shows "not open".

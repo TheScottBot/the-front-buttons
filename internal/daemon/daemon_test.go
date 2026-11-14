@@ -216,6 +216,17 @@ func twoPages() config.Configuration {
 	}
 }
 
+// holdAppKey presses the app key and keeps it down for a second, past the
+// hold that shows its screen, then releases it and lets the daemon catch up.
+func holdAppKey(device *testsupport.DeckDeviceTestDouble) {
+	device.PressKeys(appKeyIndex)
+	time.Sleep(time.Second)
+	synctest.Wait()
+	device.PressKeys()
+	time.Sleep(settle)
+	synctest.Wait()
+}
+
 // tap presses and releases a key, then lets the daemon catch up.
 func tap(device *testsupport.DeckDeviceTestDouble, keyIndex int) {
 	device.PressKeys(keyIndex)

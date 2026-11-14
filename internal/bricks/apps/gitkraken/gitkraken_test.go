@@ -7,6 +7,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/appkeys"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/gitkraken"
+	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
 // TestActions_CoverGitKrakensTabsAndTerminal: GitKraken's table is pressable
@@ -63,42 +64,13 @@ func TestRegister_GivesGitKrakenItsOwnKeys(t *testing.T) {
 		t.Fatal(registerError)
 	}
 
-	for _, identifier := range []string{
-		"com.axosoft.gitkraken", `C:\Users\me\AppData\Local\gitkraken\app-12.6.2\gitkraken.exe`,
-	} {
-		set, found := registry.AppSetFor(identifier)
-		if !found || set.ID != gitkraken.SetID || set.NameFor(identifier) != "GitKraken" {
-			t.Errorf("%s: want GitKraken's set, got %v %+v", identifier, found, set)
-		}
-	}
-
-	if _, found := registry.AppSetFor("com.jetbrains.goland"); found {
-		t.Error("want GoLand left out of GitKraken's set")
-	}
-
-	if kinds := registry.KindNamesIn(gitkraken.SetID); len(kinds) != len(gitkraken.Actions()) ||
-		!slices.Contains(kinds, "gitkraken_next_tab") {
-		t.Errorf("want a gitkraken_ kind per action, got %v", kinds)
-	}
-
-	set, _ := registry.AppSetFor("com.axosoft.gitkraken")
-	for _, group := range set.Groups {
-		assertGroupFilled(t, registry, group)
-	}
-}
-
-// assertGroupFilled checks a group has one of GitKraken's kinds for each of
-// its keys.
-func assertGroupFilled(t *testing.T, registry *brick.Registry, group brick.AppGroup) {
-	t.Helper()
-
-	if len(group.Kinds) != group.Width*group.Height {
-		t.Errorf("%s: want %d kinds, got %d", group.Name, group.Width*group.Height, len(group.Kinds))
-	}
-
-	for _, kindName := range group.Kinds {
-		if kind, found := registry.Kind(kindName); !found || kind.Scope() != gitkraken.SetID {
-			t.Errorf("%s: want %s among GitKraken's kinds", group.Name, kindName)
-		}
-	}
+	testsupport.AssertAppSet(t, registry, testsupport.AppSetExpectations{
+		SetID: gitkraken.SetID,
+		Names: map[string]string{
+			"com.axosoft.gitkraken": "GitKraken", `C:\Users\me\AppData\Local\gitkraken\app-12.6.2\gitkraken.exe`: "GitKraken",
+		},
+		Unmatched: []string{"com.jetbrains.goland"},
+		KindCount: len(gitkraken.Actions()),
+		SomeKinds: []string{"gitkraken_next_tab"},
+	})
 }

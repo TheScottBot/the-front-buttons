@@ -5,8 +5,11 @@ package allbricks
 
 import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/chatgpt"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/claude"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/gitkraken"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/jetbrains"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/vscode"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor"
@@ -34,6 +37,9 @@ func Register(registry *brick.Registry) error {
 		pressshortcut.Register,
 		jetbrains.Register,
 		gitkraken.Register,
+		claude.Register,
+		chatgpt.Register,
+		vscode.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

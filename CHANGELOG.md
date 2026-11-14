@@ -177,6 +177,17 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   in a terminal or the file manager, the command palette, search, fetch,
   branch, stage, commit, undo and the view's panels and zoom. The drawer
   offers previous and next tab as a 2x1 and the terminal's tabs as a 4x1.
+- Claude, ChatGPT and VS Code have their own app screen keys. Claude's
+  move between sessions, start and close them, and open its Code tab's
+  terminal, diff, browser, side chat and permission, model and effort menus.
+  ChatGPT's move between chats and tabs, switch between Chat, Work and Codex,
+  and open its panels. VS Code's are GitHub Copilot's chat, inline chat, agent
+  and suggestions, with the editor's palette, sidebar and terminal. The
+  drawer groups the moves between sessions and chats, ChatGPT's modes, and
+  Copilot's suggestions.
+- An app key with App screen ticked shows its screen only when held for half
+  a second; a tap just opens or raises the application, as a key without an
+  app screen does.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two

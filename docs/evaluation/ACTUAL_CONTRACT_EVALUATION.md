@@ -3785,6 +3785,52 @@ planted violation letting every press cycle on its own failed it.
 Verified on the physical deck: the window keys were quick again, single
 presses and bursts alike.
 
+### AI apps, and holding for an app screen
+
+Claude, ChatGPT and VS Code, where GitHub Copilot lives, have their own app
+screen keys, each its own set as each is its own application. Their shortcuts
+were read where they are defined rather than from memory:
+
+- Claude 5.11492.5's bundle gave its menus, with previous and next session as
+  Command Shift [ and ], and the keys its window handles itself, command
+  palette, search and sidebar, with Command on macOS and Ctrl elsewhere. The
+  Code tab's documented table (code.claude.com/docs/en/desktop) gave new and
+  close session, the terminal, diff, browser and side chat, and the
+  permission, model and effort menus, and its rule that Command becomes Ctrl
+  and Command Option becomes Alt on Windows. The switch between chat and Code
+  has no default shortcut, so it has no key.
+- ChatGPT 26.1103.60933, installed as com.openai.codex, holds a command table
+  with each command's default keys for the desktop app and for each platform.
+  Commands bound only on its website, such as searching chats on Command K,
+  were left out. Its modes are Control 1, 2 and 3 on macOS but Alt 1, 2 and 3
+  on Windows.
+- VS Code's and GitHub Copilot's come from code.visualstudio.com's AI
+  features cheat sheet and default keybindings, and GitHub's Copilot keyboard
+  shortcuts for VS Code. Two the docs give only for a focused chat, a new chat
+  on Command N and the mode picker on Command ., were left out, as the same
+  keys make a new file and open quick fixes in the editor.
+
+Microsoft's Copilot app documents only the key that summons it, so it has no
+set. Claude's and ChatGPT's Windows program names, and VS Code's Windows keys,
+are unconfirmed until tried on the work machine. Each app's own table builds
+on appkeys' Both and Apart, shared now by every set, and a test helper checks
+any set's matching, names, kinds and groups. Tests cover each table, each set
+and the keys that differ by platform; planted violations, ChatGPT's modes held
+with Ctrl on Windows, VS Code's chat with Ctrl Ctrl, and Claude's identifier
+misspelt, failed them.
+
+An app key with App screen ticked now shows its screen only when held: a tap
+opens or raises the application alone, and holding it for half a second does
+that and shows the screen, without waiting for the key to be let go. The
+daemon notes such a key going down, and acts on its release if that comes
+first, or on the hold; every other key still acts the moment it is pressed,
+and the top left key of an app screen returns at once. Tests first, failing
+before the change: a tap launching without the screen, and a hold launching
+once and showing it. Planted violations, a tap showing the screen, a hold not
+showing it, no waiting at all, and a hold also acting on release, failed it.
+
+Verified on the physical deck: holding an app key showed its screen.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

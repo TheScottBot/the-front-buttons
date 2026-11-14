@@ -236,6 +236,7 @@ type loopState struct {
 
 	controls deckControls
 	badges   badgeState
+	holds    holdState
 }
 
 func newLoopState(options Options) *loopState {
@@ -265,6 +266,7 @@ func newLoopState(options Options) *loopState {
 			dimmed: false, dimPercent: 0, off: false, offPercent: 0, offPage: 0, offBrick: 0,
 		},
 		badges: newBadgeState(),
+		holds:  newHoldState(),
 	}
 }
 
@@ -304,6 +306,8 @@ func (state *loopState) handle(runContext context.Context, received any) {
 		}
 	case badgesEvent:
 		state.handleBadges(runContext, typed)
+	case holdEvent:
+		state.handleHold(runContext, typed)
 	}
 }
 
@@ -635,6 +639,8 @@ func (state *loopState) shutdown(runContext context.Context) {
 func (state *loopState) handleKeyChanges(runContext context.Context, changes []deck.KeyChange) {
 	for _, change := range changes {
 		if !change.Pressed {
+			state.releaseHold(runContext, change)
+
 			continue
 		}
 
@@ -651,7 +657,7 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 			continue
 		}
 
-		state.pressSlot(runContext, slot)
+		state.pressDown(runContext, change.KeyIndex, slot)
 	}
 }
 
@@ -673,7 +679,7 @@ func (state *loopState) pressSlot(runContext context.Context, slot layout.Slot) 
 		state.repaintAll(runContext)
 	case layout.SlotBrick:
 		if pageIndex, showing := state.showingPage(); showing {
-			state.press(runContext, pageIndex, slot.BrickIndex)
+			state.press(runContext, pageIndex, slot.BrickIndex, false)
 		}
 	case layout.SlotEmpty:
 	}
@@ -693,7 +699,9 @@ func (state *loopState) showingPage() (int, bool) {
 	return state.regular[state.paging.Current()], true
 }
 
-func (state *loopState) press(runContext context.Context, pageIndex int, brickIndex int) {
+// press does what a key does. An app key shows its application's screen as
+// well only when held (openScreen).
+func (state *loopState) press(runContext context.Context, pageIndex int, brickIndex int, openScreen bool) {
 	configured := state.pages[pageIndex][brickIndex]
 
 	state.options.Logger.InfoContext(runContext, "key press",
@@ -701,7 +709,10 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 		slog.Int("row", configured.key.Position.Row), slog.Int("column", configured.key.Position.Column))
 
 	state.options.Counters.Increment("key_presses." + configured.key.Kind)
-	state.openAppScreen(runContext, configured)
+
+	if openScreen {
+		state.openAppScreen(runContext, configured)
+	}
 
 	if control, isControl := configured.instance.(brick.DeckControl); isControl {
 		state.pressControl(runContext, pageIndex, brickIndex, control.DeckControl())
@@ -734,14 +745,9 @@ func (state *loopState) press(runContext context.Context, pageIndex int, brickIn
 }
 
 // openAppScreen shows the application's screen when a key with its app screen
-// ticked is pressed, before the key launches the application.
+// ticked is held, before the key launches the application.
 func (state *loopState) openAppScreen(runContext context.Context, configured configuredKey) {
-	source, offers := configured.key.Parameters.(brick.ApplicationScreenSource)
-	if !offers {
-		return
-	}
-
-	application, wanted := source.ApplicationScreen()
+	application, wanted := wantedScreenOf(configured)
 	if _, hasScreen := state.appScreens[application]; !wanted || !hasScreen || application == state.appScreen {
 		return
 	}
@@ -801,6 +807,16 @@ func (state *loopState) applicationOf(pageIndex int) (string, bool) {
 	}
 
 	return "", false
+}
+
+// wantedScreenOf is the application whose screen a key asks for, if it asks.
+func wantedScreenOf(configured configuredKey) (string, bool) {
+	source, offers := configured.key.Parameters.(brick.ApplicationScreenSource)
+	if !offers {
+		return "", false
+	}
+
+	return source.ApplicationScreen()
 }
 
 // pressFunction returns what a press of the key does, or nil if the brick does

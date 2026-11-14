@@ -56,6 +56,27 @@ func Keys(key string, held ...int) platform.Shortcut {
 	return shortcut
 }
 
+// Both builds an action whose Windows shortcut is the macOS one with Ctrl in
+// Command's place, as most applications' are.
+func Both(name string, label string, key string, held ...int) Action {
+	windowsHeld := make([]int, 0, len(held))
+
+	for _, modifier := range held {
+		if modifier == Command {
+			modifier = Control
+		}
+
+		windowsHeld = append(windowsHeld, modifier)
+	}
+
+	return Action{Name: name, Label: label, Mac: Keys(key, held...), Windows: Keys(key, windowsHeld...)}
+}
+
+// Apart builds an action whose shortcuts differ by platform.
+func Apart(name string, label string, mac platform.Shortcut, windows platform.Shortcut) Action {
+	return Action{Name: name, Label: label, Mac: mac, Windows: windows}
+}
+
 // Check refuses a table with a repeated or empty name, an action without a
 // label, or a shortcut whose key a shortcut may not name on either platform.
 func Check(actions []Action) error {

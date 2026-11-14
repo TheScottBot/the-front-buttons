@@ -94,7 +94,7 @@ func TestDaemon_OpensTheAppScreen_AndReturnsFromItsIcon(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		running, device := startAppScreenHarness(t)
 
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 
 		if launched := running.launches.Launched(); !slices.Equal(launched, []string{knownApplication}) {
 			t.Fatalf("want the application launched as well, got %v", launched)
@@ -143,12 +143,12 @@ func TestDaemon_PagesThroughRegularPagesOnly(t *testing.T) {
 		tap(device, besideKeyIndex) // Second, wrapping back
 
 		tap(device, forwardKey)
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 		tap(device, forwardKey)
 		tap(device, besideKeyIndex) // the app screen left forward, for Second
 
 		tap(device, backKey)
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 		tap(device, backKey)
 		tap(device, besideKeyIndex) // the app screen left back, for Second
 
@@ -167,7 +167,7 @@ func TestDaemon_KeepsTheAppScreenThroughAReload(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		running, device := startAppScreenHarness(t)
 
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 
 		running.configurations <- appScreenConfiguration()
 
@@ -180,7 +180,7 @@ func TestDaemon_KeepsTheAppScreenThroughAReload(t *testing.T) {
 		tap(device, besideKeyIndex)
 		tap(device, forwardKey)
 		tap(device, besideKeyIndex)
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 
 		withoutScreen := appScreenConfiguration()
 		withoutScreen.Pages = withoutScreen.Pages[1:]
@@ -191,7 +191,7 @@ func TestDaemon_KeepsTheAppScreenThroughAReload(t *testing.T) {
 		time.Sleep(settle)
 		synctest.Wait()
 		tap(device, besideKeyIndex)
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 
 		assertPresses(t, running, "in app", "second", "first", "first")
 
@@ -241,7 +241,7 @@ func TestDaemon_BringsTheApplicationForward_BeforeAKeystrokeOnItsScreen(t *testi
 		synctest.Wait()
 
 		tap(device, besideKeyIndex+1)
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 		tap(device, besideKeyIndex)
 		tap(device, besideKeyIndex+1)
 
@@ -266,7 +266,7 @@ func TestDaemon_SendsNoKeystroke_WhenTheApplicationIsNotOpen(t *testing.T) {
 		time.Sleep(settle)
 		synctest.Wait()
 
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 		tap(device, besideKeyIndex)
 
 		assertPresses(t, running)
@@ -299,12 +299,50 @@ func TestDaemon_LogsASlowPress(t *testing.T) {
 			t.Fatalf("want a quick press left out of the log, got:\n%s", running.logs.String())
 		}
 
-		tap(device, appKeyIndex)
+		holdAppKey(device)
 		tap(device, besideKeyIndex)
 
 		wanted := `"msg":"slow key press","kind":"test_keystroke_button","took":300000000`
 		if !strings.Contains(running.logs.String(), wanted) {
 			t.Fatalf("want the slow press logged with its time, got:\n%s", running.logs.String())
+		}
+
+		running.stop(t)
+	})
+}
+
+// TestDaemon_ShowsTheAppScreenOnAHoldOnly: on a key with its app screen
+// ticked, a tap opens or raises the application and leaves the deck as it
+// was; holding it does that and shows the application's screen, launching it
+// once, without waiting for the key to be let go.
+func TestDaemon_ShowsTheAppScreenOnAHoldOnly(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running, device := startAppScreenHarness(t)
+
+		tap(device, appKeyIndex)
+		tap(device, besideKeyIndex) // still First
+
+		if launched := running.launches.Launched(); len(launched) != 1 {
+			t.Fatalf("want a tap to launch the application, got %v", launched)
+		}
+
+		// Held, the screen shows before the key is let go.
+		device.PressKeys(appKeyIndex)
+		time.Sleep(time.Second)
+		synctest.Wait()
+		device.PressKeys(besideKeyIndex)
+		time.Sleep(testReadTimeout)
+		synctest.Wait()
+		device.PressKeys()
+		time.Sleep(settle)
+		synctest.Wait()
+
+		assertPresses(t, running, "first", "in app")
+
+		if launched := running.launches.Launched(); len(launched) != 2 {
+			t.Fatalf("want the hold to launch the application once more, got %v", launched)
 		}
 
 		running.stop(t)

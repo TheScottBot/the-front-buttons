@@ -28,7 +28,7 @@ type Parameters struct {
 	// AppScreen makes the key open the application's screen too: a page of
 	// its own, outside the regular pages, with the application's icon top left
 	// to return (evaluation, app screens).
-	AppScreen bool `brick:"app_screen" description:"Also show the application's screen on the deck: a page of its own keys, with the application's icon top left to go back. Saving the key creates the screen if there is none."`
+	AppScreen bool `brick:"app_screen" description:"Hold the key for half a second to also show the application's screen on the deck: a page of its own keys, with the application's icon top left to go back. A tap still just opens the application. Saving the key creates the screen if there is none."`
 
 	// ShowNotifications draws the badge the application shows on its Dock
 	// icon, such as a count of unread messages, top right on the key.
