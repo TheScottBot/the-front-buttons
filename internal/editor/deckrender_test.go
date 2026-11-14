@@ -119,3 +119,50 @@ func TestEditor_PreviewsThePagingTilesAsTheDeckDrawsThem(t *testing.T) {
 		t.Error("want Play's forward tile previewed as the deck draws it")
 	}
 }
+
+// placeholderConfiguration has Spotify's album and play keys, with no icon
+// of their own, and a pipeline key labelled TFB.
+const placeholderConfiguration = `schema_version: 1
+pages:
+  - name: Work
+    keys:
+      - row: 0
+        column: 0
+        kind: spotify_album
+      - row: 0
+        column: 1
+        kind: spotify_play_pause
+      - row: 0
+        column: 2
+        kind: pipeline_status
+        parameters:
+          label: TFB
+          repository: owner/name
+          workflow: ci.yml
+          branch: main
+          credential: github
+`
+
+// TestEditor_PreviewsLiveKeysWithAPlaceholder: a key that draws its live
+// state, such as album art or a pipeline's status, has none in the editor, so
+// it is previewed with a placeholder icon rather than left blank.
+func TestEditor_PreviewsLiveKeysWithAPlaceholder(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+	harness.replaceFile(t, placeholderConfiguration)
+	renderer := previewRenderer(t)
+
+	for _, want := range []struct {
+		path       string
+		appearance render.Appearance
+	}{
+		{"/preview.png?page=0&row=0&column=0", render.Appearance{Icon: "vinyl"}},
+		{"/preview.png?page=0&row=0&column=1", render.Appearance{Icon: "player-play"}},
+		{"/preview.png?page=0&row=0&column=2", render.Appearance{Label: "TFB", Icon: "git-branch"}},
+	} {
+		if !testsupport.SameImage(previewImage(t, harness, want.path), renderer.Render(want.appearance)) {
+			t.Errorf("%s: want the placeholder %+v", want.path, want.appearance)
+		}
+	}
+}

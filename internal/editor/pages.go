@@ -970,8 +970,8 @@ func (pages *pageHandlers) previewPicture(
 			render.Appearance{IconImage: icon, IconMissing: icon == nil, BackgroundFromIcon: true})
 	default:
 		appearance := pages.keyPreview(previewContext, page, position, query)
-		if stored && appearance.Label == "" {
-			appearance.Label = pages.deckLabel(configuration.Pages, pageIndex, position)
+		if stored {
+			pages.fillDeckDefaults(&appearance, configuration.Pages, pageIndex, position)
 		}
 
 		picture = pages.options.Renderer.Render(appearance)

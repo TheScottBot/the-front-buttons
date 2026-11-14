@@ -56,8 +56,17 @@ type Parameters struct {
 
 // Register adds the kind to a registry.
 func Register(registry *brick.Registry) error {
-	return brick.Register(registry, KindName, construct) //nolint:wrapcheck // Register already names the kind
+	registerError := brick.Register(registry, KindName, construct)
+	if registerError != nil {
+		return registerError //nolint:wrapcheck // Register already names the kind
+	}
+
+	// A run's status is live; the editor never sees it.
+	return registry.SetPlaceholderIcon(KindName, placeholderIcon) //nolint:wrapcheck // it names the kind
 }
+
+// placeholderIcon stands in for a run's status where there is none.
+const placeholderIcon = "git-branch"
 
 func construct(parameters Parameters, ports brick.Ports) (any, error) {
 	if ports.PipelineProvider == nil || ports.URLOpener == nil {

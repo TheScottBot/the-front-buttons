@@ -3925,6 +3925,20 @@ configuration, words and pictures, in select mode too: the grid the same size
 throughout, the switch centred on the heading and its right edge in line with
 the theme switch's.
 
+Looked at on the deck's own pages, three things still jarred. Spotify's album
+and play keys drew blank and a pipeline key drew its label alone, as what they
+show is live; a kind may now name a placeholder icon in the brick registry, a
+vinyl for the album, play for the play key and a branch for a pipeline, which
+the previews draw where a key has no icon of its own. The paging tiles sat on
+the editor's grey reserved colour; with pictures they are black like every
+other key. And the two switches are one width, their words on one line and
+aligned alike, and the header is three columns, its outer two of a width, so
+the section links stay centred however wide the switch is; it stacks on a
+narrow screen. Tests first for the placeholders: the registry keeping one and
+refusing one for an unknown kind, and each placeholder drawn in a preview.
+Measured in a browser: both switches 248 by 40 pixels, the links centred on the
+header.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

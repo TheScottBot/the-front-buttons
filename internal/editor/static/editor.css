@@ -58,17 +58,30 @@ body {
 
 /* Header: the product as a black tag, the sections as chunky lowercase links. */
 
+/* Three columns, the outer two of a width, so the sections stay centred
+   whatever the product tag and the switch measure. */
 header {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem 0 1rem;
   border-bottom: 4px solid var(--rule);
 }
 
+/* On a narrow screen the header stacks, as the three columns cannot fit. */
+@media (max-width: 44rem) {
+  header {
+    grid-template-columns: 1fr;
+  }
+
+  header .theme-switch {
+    justify-self: start;
+  }
+}
+
 .product {
+  justify-self: start;
   margin: 0;
   display: inline-block;
   padding: 0.3rem 0.7rem;
@@ -1169,8 +1182,18 @@ label[for$="-picker"] {
   margin: 0;
 }
 
+header .theme-switch {
+  justify-self: end;
+}
+
+/* Both switches are one width, their words padded from the knob alike. */
 .theme-switch,
 .render-switch {
+  box-sizing: border-box;
+  width: 15.5rem;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
@@ -1207,6 +1230,7 @@ label[for$="-picker"] {
    fits the tile's height. */
 
 [data-render="deck"] .grid td,
+[data-render="deck"] .grid .reserved,
 [data-render="deck"] .grid .select-key {
   background: #000;
 }

@@ -30,7 +30,8 @@ tile on the grid as the deck draws it: its label, icon and colours, a page
 marker's page number, and the paging keys' page count and neighbours. Switched
 off, the grid names each key and its kind in words. The choice is remembered in
 the browser. A key's live state, such as a pipeline's status or a badge, shows
-on the deck only.
+on the deck only; Spotify's album and play keys and pipeline keys show a
+placeholder icon in its place.
 
 ## Copying keys between pages
 

@@ -56,13 +56,14 @@ func (kind Kind) Construct(parameters any, ports Ports) (any, error) {
 // Registry holds every brick kind. It is a value the composition root builds,
 // not a package global, so tests build their own registries of fake kinds.
 type Registry struct {
-	kinds   map[string]Kind
-	appSets []AppSet
+	kinds        map[string]Kind
+	appSets      []AppSet
+	placeholders map[string]string
 }
 
 // NewRegistry returns an empty registry.
 func NewRegistry() *Registry {
-	return &Registry{kinds: make(map[string]Kind), appSets: nil}
+	return &Registry{kinds: make(map[string]Kind), appSets: nil, placeholders: make(map[string]string)}
 }
 
 // Register adds a kind whose parameters are the struct P. It derives the schema
@@ -140,4 +141,23 @@ func (registry *Registry) KindNamesIn(scope string) []string {
 	return slices.DeleteFunc(registry.KindNames(), func(kindName string) bool {
 		return registry.kinds[kindName].scope != scope
 	})
+}
+
+// SetPlaceholderIcon names the icon a kind is drawn with where it has none of
+// the live state it draws, such as the album art or pipeline status the
+// editor's previews never see, so it does not look blank or broken there. It
+// refuses a kind that is not registered.
+func (registry *Registry) SetPlaceholderIcon(kindName string, icon string) error {
+	if _, found := registry.kinds[kindName]; !found {
+		return fmt.Errorf("%w: no kind %q for a placeholder icon", ErrInvalidKind, kindName)
+	}
+
+	registry.placeholders[kindName] = icon
+
+	return nil
+}
+
+// PlaceholderIcon is a kind's placeholder icon, or nothing.
+func (registry *Registry) PlaceholderIcon(kindName string) string {
+	return registry.placeholders[kindName]
 }

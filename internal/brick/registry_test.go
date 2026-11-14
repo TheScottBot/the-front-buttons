@@ -231,3 +231,34 @@ func TestAppSets_MatchTheirApplications(t *testing.T) {
 		t.Error("want a second set with the same ID refused")
 	}
 }
+
+// TestRegistry_KeepsAKindsPlaceholderIcon: a kind may name the icon it is
+// drawn with where it has no live state, as in the editor; a kind that is not
+// registered is refused one, and a kind without one has none.
+func TestRegistry_KeepsAKindsPlaceholderIcon(t *testing.T) {
+	t.Parallel()
+
+	registry := brick.NewRegistry()
+
+	registerError := brick.Register(registry, "live_thing", constructSampleTestDouble)
+	if registerError != nil {
+		t.Fatal(registerError)
+	}
+
+	setError := registry.SetPlaceholderIcon("live_thing", "vinyl")
+	if setError != nil {
+		t.Fatal(setError)
+	}
+
+	if icon := registry.PlaceholderIcon("live_thing"); icon != "vinyl" {
+		t.Errorf("want the placeholder kept, got %q", icon)
+	}
+
+	if registry.SetPlaceholderIcon("no_such_kind", "vinyl") == nil {
+		t.Error("want a placeholder for an unregistered kind refused")
+	}
+
+	if icon := registry.PlaceholderIcon("no_such_kind"); icon != "" {
+		t.Errorf("want no placeholder for an unknown kind, got %q", icon)
+	}
+}

@@ -197,7 +197,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The editor's Render like deck switch, under Dark mode, draws the grid's keys
   and paging tiles as the deck draws them. Key previews now show the label the
   deck gives a key without one, such as a page marker's page number, and the
-  paging tiles as the deck draws them.
+  paging tiles as the deck draws them. Spotify's album and play keys and
+  pipeline keys preview with a placeholder icon, as their live state is the
+  deck's alone.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two

@@ -7,6 +7,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
 // Render like deck: a switch under the theme switch draws every key and
@@ -48,6 +49,23 @@ func pageIndication(allPages []config.Page, pageIndex int) (layout.PageIndicatio
 	}
 
 	return paging.Indication(names)
+}
+
+// fillDeckDefaults gives a stored key's preview what the deck would draw that
+// its own appearance leaves out: the label the deck gives a key without one,
+// and for a key that draws live state the editor never sees, such as album
+// art, its placeholder icon in place of a blank.
+func (pages *pageHandlers) fillDeckDefaults(
+	appearance *render.Appearance, allPages []config.Page, pageIndex int, position layout.Position,
+) {
+	if appearance.Label == "" {
+		appearance.Label = pages.deckLabel(allPages, pageIndex, position)
+	}
+
+	key, found := keyAt(pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex), position)
+	if found && pages.options.Registry != nil && appearance.Icon == "" && appearance.IconImage == nil {
+		appearance.Icon = pages.options.Registry.PlaceholderIcon(key.Kind)
+	}
 }
 
 // deckLabel is the label the deck gives a stored key that has none of its

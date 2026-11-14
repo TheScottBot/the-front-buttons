@@ -43,6 +43,8 @@ const readTimeout = 10 * time.Second
 const (
 	playIcon  = "player-play"
 	pauseIcon = "player-pause"
+	// albumPlaceholder stands in for the album art where there is none.
+	albumPlaceholder = "vinyl"
 )
 
 // Parameters is every Spotify kind's one declaration of its parameters: only
@@ -68,6 +70,14 @@ func Register(registry *brick.Registry) error {
 		})
 		if registerError != nil {
 			return registerError //nolint:wrapcheck // Register already names the kind
+		}
+	}
+
+	// Album art and whether a track plays are live; the editor never sees them.
+	for kindName, icon := range map[string]string{AlbumKindName: albumPlaceholder, PlayPauseKindName: playIcon} {
+		placeholderError := registry.SetPlaceholderIcon(kindName, icon)
+		if placeholderError != nil {
+			return placeholderError //nolint:wrapcheck // it names the kind
 		}
 	}
 
