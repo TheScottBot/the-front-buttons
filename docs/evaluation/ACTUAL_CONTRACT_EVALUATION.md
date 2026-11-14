@@ -4112,6 +4112,33 @@ the title, each failed a test. Driven in a browser on Claude's screen of the
 deck's configuration: its 23 keys named Back, Browser, Close and on, in that
 order, and "session" finding the five session keys and the session group.
 
+A label alone, such as Claude's Next, still did not say what a key does. Each
+brick in the drawer now opens to say, from what the code holds and nothing
+more. An app's brick says the command it was made for, its action's name in
+the table, and the shortcut it presses on macOS and on Windows, written out by
+a new platform.ShortcutWords in each platform's modifier order and names, such
+as "Next session: presses Shift + Command + ] on macOS, Ctrl + Shift + ] on
+Windows."; appkeys records it in the registry as it registers the kind, beside
+the title. Any other brick says its kind and the fields it asks for, by their
+own descriptions, leaving out the appearance every key shares; a preset says
+what it expands into. The search counts the bricks alone, not the lines inside
+them.
+
+And Escape no longer closed the drawer after a brick was dragged and dropped
+back in it: the drawer heard Escape only from inside it, and the drag had left
+focus outside. It now answers Escape from anywhere while open, clearing a
+search first, unless a field outside it is being typed in or a dialog is open.
+
+Tests first, failing before the change: shortcuts written in each platform's
+words, the registry keeping a description, appkeys describing a kind by its
+action and shortcuts, GoLand's build brick opening to its description, and
+open_url opening to its url field without the appearance, a preset to what it
+expands into. Driven in a browser on Claude's screen of the deck's
+configuration: Next opened to "Next session" and its shortcuts; and after a
+drag from the drawer was cancelled, with focus on the page, Escape closed the
+drawer, and with a search typed, one Escape cleared it and a second closed
+it.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

@@ -72,9 +72,10 @@ function stackFrom(grid: HTMLTableElement, cell: HTMLTableCellElement, carried: 
 // enableSearch narrows the drawer to the bricks whose names hold every word
 // typed, a section's name and a brick's kind counting too, so "spotify" or
 // "goland" finds a whole section and "session" finds Claude's Close. Sections with a match open and the rest
-// hide; clearing the box, or Escape, puts every section back as it was. It
-// returns the box, to take focus when the drawer opens.
-function enableSearch(panel: HTMLElement): HTMLInputElement | null {
+// hide; clearing the box puts every section back as it was. It returns the
+// box, to take focus when the drawer opens, and a way to clear it, which says
+// whether there was anything to clear.
+function enableSearch(panel: HTMLElement): { box: HTMLInputElement; clear: () => boolean } | null {
   const box = panel.querySelector<HTMLInputElement>("input.drawer-search");
   const empty = panel.querySelector<HTMLElement>(".drawer-empty");
   const sections = Array.from(panel.querySelectorAll<HTMLDetailsElement>("details.drawer-section"));
@@ -92,7 +93,7 @@ function enableSearch(panel: HTMLElement): HTMLInputElement | null {
       const sectionName = section.querySelector("summary")?.textContent?.toLowerCase() ?? "";
       let shown = 0;
 
-      for (const item of section.querySelectorAll<HTMLElement>("li")) {
+      for (const item of section.querySelectorAll<HTMLElement>("li[draggable]")) {
         const kindName = (item.dataset.type ?? item.dataset.group ?? "").replace(/_/g, " ");
         const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""} ${kindName.toLowerCase()}`;
         const match = words.every((word) => haystack.includes(word));
@@ -113,32 +114,45 @@ function enableSearch(panel: HTMLElement): HTMLInputElement | null {
 
   box.addEventListener("input", narrow);
 
-  box.addEventListener("keydown", (event: KeyboardEvent) => {
-    if (event.key === "Escape" && box.value !== "") {
-      event.preventDefault();
-      event.stopPropagation();
+  return {
+    box,
+    clear: (): boolean => {
+      if (box.value === "") {
+        return false;
+      }
+
       box.value = "";
       narrow();
-    }
-  });
 
-  return box;
+      return true;
+    },
+  };
 }
 
-// enableEscapeToClose closes the drawer on Escape from anywhere in it, once
-// its search is empty: with words in the search, the first Escape clears
-// them and a second closes it. Focus goes back to the drawer's tab.
-function enableEscapeToClose(toggle: HTMLButtonElement, panel: HTMLElement): void {
-  panel.addEventListener("keydown", (event: KeyboardEvent) => {
-    if (event.key !== "Escape" || event.defaultPrevented || panel.hidden) {
+// enableEscapeToClose answers Escape while the drawer is open, wherever focus
+// is, as a drag from the drawer leaves it outside: with words in the search
+// the first Escape clears them, and with none it closes the drawer and puts
+// focus back on its tab. A field being typed in outside the drawer keeps its
+// own Escape, and an open dialog closes first.
+function enableEscapeToClose(toggle: HTMLButtonElement, panel: HTMLElement, clear: () => boolean): void {
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const typingElsewhere = target !== null && !panel.contains(target) &&
+      target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+
+    if (event.key !== "Escape" || event.defaultPrevented || panel.hidden || typingElsewhere ||
+      document.querySelector("dialog[open]") !== null) {
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
-    setOpen(toggle, panel, false);
-    toggle.focus();
-  });
+
+    if (!clear()) {
+      setOpen(toggle, panel, false);
+      toggle.focus();
+    }
+  }, true);
 }
 
 function setOpen(toggle: HTMLButtonElement, panel: HTMLElement, open: boolean): void {
@@ -193,13 +207,13 @@ export function enableDrawer(grid: HTMLTableElement): void {
   };
 
   const search = enableSearch(panel);
-  enableEscapeToClose(toggle, panel);
+  enableEscapeToClose(toggle, panel, search?.clear ?? ((): boolean => false));
 
   toggle.addEventListener("click", () => {
     setOpen(toggle, panel, panel.hidden);
 
     if (!panel.hidden) {
-      search?.focus();
+      search?.box.focus();
     }
   });
 

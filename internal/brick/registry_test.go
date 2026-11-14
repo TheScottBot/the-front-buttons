@@ -233,8 +233,9 @@ func TestAppSets_MatchTheirApplications(t *testing.T) {
 }
 
 // TestRegistry_KeepsAKindsPlaceholderAndTitle: a kind may name the icon it is
-// drawn with where it has no live state, and its title, the label its keys
-// show by default, for the editor where it cannot build the key; a kind that
+// drawn with where it has no live state, its title, the label its keys show
+// by default, and a description of what it does, for the editor where it
+// cannot build the key; a kind that
 // is not registered is refused either, and a kind without one has none.
 func TestRegistry_KeepsAKindsPlaceholderAndTitle(t *testing.T) {
 	t.Parallel()
@@ -246,6 +247,7 @@ func TestRegistry_KeepsAKindsPlaceholderAndTitle(t *testing.T) {
 	}{
 		{"placeholder", (*brick.Registry).SetPlaceholderIcon, (*brick.Registry).PlaceholderIcon},
 		{"title", (*brick.Registry).SetTitle, (*brick.Registry).Title},
+		{"description", (*brick.Registry).SetDescription, (*brick.Registry).Description},
 	} {
 		registry := brick.NewRegistry()
 

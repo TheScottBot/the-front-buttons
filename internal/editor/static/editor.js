@@ -563,7 +563,7 @@
       for (const section of sections) {
         const sectionName = section.querySelector("summary")?.textContent?.toLowerCase() ?? "";
         let shown = 0;
-        for (const item of section.querySelectorAll("li")) {
+        for (const item of section.querySelectorAll("li[draggable]")) {
           const kindName = (item.dataset.type ?? item.dataset.group ?? "").replace(/_/g, " ");
           const haystack = `${sectionName} ${item.textContent?.toLowerCase() ?? ""} ${kindName.toLowerCase()}`;
           const match = words.every((word) => haystack.includes(word));
@@ -579,26 +579,32 @@
       }
     };
     box.addEventListener("input", narrow);
-    box.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && box.value !== "") {
-        event.preventDefault();
-        event.stopPropagation();
+    return {
+      box,
+      clear: () => {
+        if (box.value === "") {
+          return false;
+        }
         box.value = "";
         narrow();
+        return true;
       }
-    });
-    return box;
+    };
   }
-  function enableEscapeToClose(toggle, panel) {
-    panel.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape" || event.defaultPrevented || panel.hidden) {
+  function enableEscapeToClose(toggle, panel, clear) {
+    document.addEventListener("keydown", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const typingElsewhere = target !== null && !panel.contains(target) && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key !== "Escape" || event.defaultPrevented || panel.hidden || typingElsewhere || document.querySelector("dialog[open]") !== null) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
-      setOpen(toggle, panel, false);
-      toggle.focus();
-    });
+      if (!clear()) {
+        setOpen(toggle, panel, false);
+        toggle.focus();
+      }
+    }, true);
   }
   function setOpen(toggle, panel, open) {
     toggle.setAttribute("aria-expanded", String(open));
@@ -642,11 +648,11 @@
       marked = stack;
     };
     const search = enableSearch(panel);
-    enableEscapeToClose(toggle, panel);
+    enableEscapeToClose(toggle, panel, search?.clear ?? (() => false));
     toggle.addEventListener("click", () => {
       setOpen(toggle, panel, panel.hidden);
       if (!panel.hidden) {
-        search?.focus();
+        search?.box.focus();
       }
     });
     panel.addEventListener("dragstart", (event) => {

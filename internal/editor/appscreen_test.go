@@ -305,15 +305,19 @@ func TestEditor_NamesAnAppsBricksByTheirLabels(t *testing.T) {
 	harness := newAppScreenHarness(t)
 
 	screen := harness.get(t, "/page?page="+golandScreenIndex).Body.String()
-	requireBody(t, screen, `<li draggable="true" data-type="`+golandBuildType+`">GoLand: Build</li>`)
+	requireBody(t, screen, `<li draggable="true" data-type="`+golandBuildType+`"><details class="brick-about">`+
+		`<summary>GoLand: Build</summary>`+
+		`<p>Build: presses Command &#43; F9 on macOS, Ctrl &#43; F9 on Windows.</p></details></li>`)
 	refuseBody(t, screen, "GoLand: jetbrains_build")
 
 	keyForm := harness.get(t, "/key?page=1&row=2&column=2").Body.String()
 	requireBody(t, keyForm, `value="`+golandBuildType+`">GoLand: Build</option>`)
 
 	// Listed by what they do: Back before Build before Comment.
-	back, build, comment := strings.Index(screen, "GoLand: Back<"), strings.Index(screen, "GoLand: Build<"),
-		strings.Index(screen, "GoLand: Comment<")
+	back := strings.Index(screen, "<summary>GoLand: Back<")
+	build := strings.Index(screen, "<summary>GoLand: Build<")
+	comment := strings.Index(screen, "<summary>GoLand: Comment<")
+
 	if back < 0 || back >= build || build >= comment {
 		t.Errorf("want the bricks listed by label, got Back at %d, Build at %d, Comment at %d", back, build, comment)
 	}

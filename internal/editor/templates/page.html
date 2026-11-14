@@ -39,14 +39,14 @@
 {{if .AppName}}<details class="drawer-section" open>
 <summary>{{.AppName}}</summary>
 <ul>{{range .AppTypes}}
-<li draggable="true" data-type="{{.Value}}">{{.Label}}</li>{{end}}{{range .AppGroups}}
+<li draggable="true" data-type="{{.Value}}">{{if .About}}<details class="brick-about"><summary>{{.Label}}</summary><p>{{.About}}</p>{{if .Asks}}<ul>{{range .Asks}}<li>{{.}}</li>{{end}}</ul>{{end}}</details>{{else}}{{.Label}}{{end}}</li>{{end}}{{range .AppGroups}}
 <li draggable="true" data-group="{{.Name}}" data-width="{{.Width}}" data-height="{{.Height}}">{{.Label}}</li>{{end}}
 </ul>
 </details>
 {{end}}<details class="drawer-section">
 <summary>1x1</summary>
 <ul>{{range .Types}}
-<li draggable="true" data-type="{{.Value}}">{{.Label}}</li>{{end}}
+<li draggable="true" data-type="{{.Value}}">{{if .About}}<details class="brick-about"><summary>{{.Label}}</summary><p>{{.About}}</p>{{if .Asks}}<ul>{{range .Asks}}<li>{{.}}</li>{{end}}</ul>{{end}}</details>{{else}}{{.Label}}{{end}}</li>{{end}}
 </ul>
 </details>
 <details class="drawer-section">

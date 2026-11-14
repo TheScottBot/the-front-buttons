@@ -213,6 +213,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - An application's own bricks are named in the editor by what they do, such as
   Claude: Back rather than claude_back, and listed in that order; a key of one
   without a label previews with that label, as the deck shows it.
+- A brick in the editor's drawer opens to say what it is: an application's
+  brick the command it was made for and its shortcut on each platform, any
+  other brick or preset the fields it asks for.
 - The editor's brick drawer has a search box, focused as the drawer opens,
   that narrows it as you type; a section's name counts for its bricks.
 - Dragging a key with Command held, Ctrl on Windows, copies it; Option still

@@ -205,8 +205,10 @@ func (pages *pageHandlers) appTypeOptions(page config.Page, selected string) []t
 	for _, kindName := range kindNames {
 		kind, _ := pages.options.Registry.Kind(kindName)
 		value := kindChoicePrefix + kindName
+		about, asks := pages.aboutKind(kind)
 		options = append(options, typeOption{
 			Value: value, Label: set.NameFor(page.Application) + ": " + pages.kindTitle(kind), Selected: value == selected,
+			About: about, Asks: asks,
 		})
 	}
 

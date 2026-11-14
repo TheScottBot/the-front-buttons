@@ -78,3 +78,34 @@ func TestEditor_DrawerHasASearchBox(t *testing.T) {
 		}
 	}
 }
+
+// TestEditor_DrawerSaysWhatEachBrickAsksFor: a brick in the drawer opens to
+// say what it is: a brick its kind and the fields it asks for, by their own
+// descriptions, leaving out the appearance every key shares; a preset what it
+// expands into.
+func TestEditor_DrawerSaysWhatEachBrickAsksFor(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
+
+	openURL := regexp.MustCompile(`(?s)<li draggable="true" data-type="kind:open_url">.*?</li>`).FindString(body)
+	for _, want := range []string{
+		`<details class="brick-about"><summary>Brick: open_url</summary>`,
+		`<p>The open_url brick. It asks for:</p>`,
+		`<li>url, required: `,
+	} {
+		if !strings.Contains(openURL, want) {
+			t.Errorf("open_url: want %s, got %s", want, openURL)
+		}
+	}
+
+	if strings.Contains(openURL, "<li>label") {
+		t.Errorf("open_url: want the shared appearance left out, got %s", openURL)
+	}
+
+	discord := regexp.MustCompile(`(?s)<li draggable="true" data-type="preset:discord_channel">.*?</details>`).
+		FindString(body)
+	if !strings.Contains(discord, `<p>A preset of the open_url brick, to open_server. It asks for:</p>`) {
+		t.Errorf("discord_channel: want what it expands into, got %s", discord)
+	}
+}

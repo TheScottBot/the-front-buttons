@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
@@ -131,10 +132,12 @@ func Register(registry *brick.Registry, scope string, prefix string, actions []A
 			return registerError //nolint:wrapcheck // RegisterScoped already names the kind
 		}
 
-		// The editor names the kind by its label, as it cannot build the key.
-		titleError := registry.SetTitle(kindName, label)
-		if titleError != nil {
-			return titleError //nolint:wrapcheck // SetTitle already names the kind
+		// The editor names the kind by its label, as it cannot build the key,
+		// and says what it does from the table alone.
+		noteError := errors.Join(registry.SetTitle(kindName, label),
+			registry.SetDescription(kindName, Describe(row)))
+		if noteError != nil {
+			return noteError
 		}
 	}
 
@@ -165,3 +168,14 @@ func (key actionKey) DefaultLabel() string { return key.label }
 
 // SendsKeystrokes marks the key as sending keystrokes.
 func (actionKey) SendsKeystrokes() {}
+
+// Describe says what an action's key does, from its table row alone: the
+// action it is named for, then the shortcut it presses on each platform.
+func Describe(row Action) string {
+	named := strings.ReplaceAll(row.Name, "_", " ")
+	named = strings.ToUpper(named[:1]) + named[1:]
+
+	mac, windows := platform.ShortcutWords(row.Mac, true), platform.ShortcutWords(row.Windows, false)
+
+	return fmt.Sprintf("%s: presses %s on macOS, %s on Windows.", named, mac, windows)
+}

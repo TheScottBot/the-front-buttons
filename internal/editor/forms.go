@@ -145,6 +145,10 @@ type typeOption struct {
 	Value    string
 	Label    string
 	Selected bool
+	// About says what the brick is, and Asks the fields it asks for, for the
+	// drawer, where a brick opens to show them.
+	About string
+	Asks  []string
 }
 
 // keyType resolves a type choice to the schema the form shows and, for a preset,
@@ -185,14 +189,23 @@ func (pages *pageHandlers) typeOptions(selected string) []typeOption {
 
 	for _, kindName := range kindNames {
 		value := kindChoicePrefix + kindName
-		options = append(options, typeOption{Value: value, Label: "Brick: " + kindName, Selected: value == selected})
+		kind, _ := pages.options.Registry.Kind(kindName)
+		about, asks := pages.aboutKind(kind)
+		options = append(options, typeOption{
+			Value: value, Label: "Brick: " + kindName, Selected: value == selected, About: about, Asks: asks,
+		})
 	}
 
 	for _, presetName := range pages.options.Presets.Names() {
 		row, _ := pages.options.Presets.Row(presetName)
 		value := presetChoicePrefix + presetName
 		label := "Preset: " + presetName + " (" + row.Action() + ")"
-		options = append(options, typeOption{Value: value, Label: label, Selected: value == selected})
+		options = append(options, typeOption{
+			Value: value, Label: label, Selected: value == selected,
+			About: fmt.Sprintf("A preset of the %s brick, to %s.", row.TargetKind(), row.Action()) +
+				asksIntro(row.FieldsSchema()),
+			Asks: fieldAsks(row.FieldsSchema()),
+		})
 	}
 
 	return options

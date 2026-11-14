@@ -113,6 +113,13 @@ func TestRegister_MakesAScopedKindForEachAction(t *testing.T) {
 		t.Errorf("want ides_build titled Build, got %q", title)
 	}
 
+	// And described by the action it is named for and the shortcut it
+	// presses on each platform, as the table gives them.
+	want := "Build: presses Command + F9 on macOS, Ctrl + F9 on Windows."
+	if description := registry.Description("ides_build"); description != want {
+		t.Errorf("want ides_build described %q, got %q", want, description)
+	}
+
 	build := actionNamed(t, "build")
 
 	for _, onWindows := range []bool{false, true} {

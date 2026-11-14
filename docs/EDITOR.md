@@ -46,9 +46,13 @@ tile. Its search box takes focus as it opens and narrows the drawer as you
 type, to the bricks whose names hold every word typed; a section's name and a
 brick's kind count too, so "spotify" or "goland" finds a whole section and
 "session" finds Claude's session keys. An application's own bricks are named by
-what they do, such as GoLand: Build or Claude: Back, in that order. Escape
+what they do, such as GoLand: Build or Claude: Back, in that order. Click a
+brick's name to open it and see what it is: an application's brick names the
+command it was made for and the shortcut it presses on macOS and on Windows;
+any other brick, or preset, the fields it asks for. Escape
 clears the search, or with the search empty closes the drawer, so two presses
-close it from a search. The drawer widens to show each brick's name whole.
+close it from a search, wherever focus is, as after dragging a brick back into
+the drawer. The drawer widens to show each brick's name whole.
 
 ## Moving keys between pages
 

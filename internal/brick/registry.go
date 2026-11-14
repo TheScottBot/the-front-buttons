@@ -60,13 +60,14 @@ type Registry struct {
 	appSets      []AppSet
 	placeholders map[string]string
 	titles       map[string]string
+	descriptions map[string]string
 }
 
 // NewRegistry returns an empty registry.
 func NewRegistry() *Registry {
 	return &Registry{
 		kinds: make(map[string]Kind), appSets: nil, placeholders: make(map[string]string),
-		titles: make(map[string]string),
+		titles: make(map[string]string), descriptions: make(map[string]string),
 	}
 }
 
@@ -152,13 +153,7 @@ func (registry *Registry) KindNamesIn(scope string) []string {
 // editor's previews never see, so it does not look blank or broken there. It
 // refuses a kind that is not registered.
 func (registry *Registry) SetPlaceholderIcon(kindName string, icon string) error {
-	if _, found := registry.kinds[kindName]; !found {
-		return fmt.Errorf("%w: no kind %q for a placeholder icon", ErrInvalidKind, kindName)
-	}
-
-	registry.placeholders[kindName] = icon
-
-	return nil
+	return registry.note(registry.placeholders, kindName, icon, "placeholder icon")
 }
 
 // PlaceholderIcon is a kind's placeholder icon, or nothing.
@@ -170,16 +165,32 @@ func (registry *Registry) PlaceholderIcon(kindName string) string {
 // for the editor, which cannot build a key whose brick needs a port to learn
 // it. It refuses a kind that is not registered.
 func (registry *Registry) SetTitle(kindName string, title string) error {
-	if _, found := registry.kinds[kindName]; !found {
-		return fmt.Errorf("%w: no kind %q for a title", ErrInvalidKind, kindName)
-	}
-
-	registry.titles[kindName] = title
-
-	return nil
+	return registry.note(registry.titles, kindName, title, "title")
 }
 
 // Title is a kind's title, or nothing.
 func (registry *Registry) Title(kindName string) string {
 	return registry.titles[kindName]
+}
+
+// SetDescription says what a kind's keys do, in a sentence, for the editor
+// to show beside the kind. It refuses a kind that is not registered.
+func (registry *Registry) SetDescription(kindName string, description string) error {
+	return registry.note(registry.descriptions, kindName, description, "description")
+}
+
+// Description is what a kind's keys do, or nothing.
+func (registry *Registry) Description(kindName string) string {
+	return registry.descriptions[kindName]
+}
+
+// note keeps one thing said of a registered kind.
+func (registry *Registry) note(notes map[string]string, kindName string, value string, what string) error {
+	if _, found := registry.kinds[kindName]; !found {
+		return fmt.Errorf("%w: no kind %q for a %s", ErrInvalidKind, kindName, what)
+	}
+
+	notes[kindName] = value
+
+	return nil
 }

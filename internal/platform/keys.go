@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"errors"
+	"strings"
 )
 
 // The ways a key press can fail that the person can act on, each shown on the
@@ -59,4 +60,40 @@ type ShortcutPresser interface {
 	PressShortcut(pressContext context.Context, shortcut Shortcut) error
 	DescribeShortcut(shortcut Shortcut) string
 	ForThisPlatform(pair ShortcutPair) Shortcut
+}
+
+// keyMarks are the keys written as the mark on them, or more plainly than
+// their names, when a shortcut is written out.
+//
+//nolint:gochecknoglobals // a fixed table
+var keyMarks = map[string]string{
+	"LeftBracket": "[", "RightBracket": "]", "Backslash": "\\", "Semicolon": ";", "Quote": "'",
+	"Comma": ",", "Period": ".", "Slash": "/", "Grave": "`", "Minus": "-", "Equals": "=",
+	"Left": "Left arrow", "Right": "Right arrow", "Up": "Up arrow", "Down": "Down arrow",
+	"ForwardDelete": "Forward Delete", "PageUp": "Page Up", "PageDown": "Page Down",
+}
+
+// ShortcutWords writes a shortcut as a person reads it on the Mac or on
+// Windows: its modifiers in that platform's order and by its names, then its
+// key, joined by plus signs, such as Command + Shift + ].
+func ShortcutWords(shortcut Shortcut, mac bool) string {
+	names := [4]string{"Ctrl", "Alt", "Shift", "Win"}
+	if mac {
+		names = [4]string{"Control", "Option", "Shift", "Command"}
+	}
+
+	var words []string
+
+	for index, held := range []bool{shortcut.Control, shortcut.Alt, shortcut.Shift, shortcut.Command} {
+		if held {
+			words = append(words, names[index])
+		}
+	}
+
+	key := shortcut.Key
+	if mark, found := keyMarks[key]; found {
+		key = mark
+	}
+
+	return strings.Join(append(words, key), " + ")
 }
