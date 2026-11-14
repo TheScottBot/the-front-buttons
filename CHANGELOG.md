@@ -200,6 +200,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   paging tiles as the deck draws them. Spotify's album and play keys and
   pipeline keys preview with a placeholder icon, as their live state is the
   deck's alone.
+- A key dragged onto a page's name in the editor's page list moves to the same
+  tile on that page; held over the name for a moment, that page opens in place
+  to drop the key anywhere on it.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two

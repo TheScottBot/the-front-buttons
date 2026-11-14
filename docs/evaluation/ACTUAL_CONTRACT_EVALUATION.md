@@ -3939,6 +3939,31 @@ refusing one for an unknown kind, and each placeholder drawn in a preview.
 Measured in a browser: both switches 248 by 40 pixels, the links centred on the
 header.
 
+### Dragging keys to other pages
+
+A key dragged onto a page's or app screen's name in the page list now moves
+there, or with Option copies, to the same tile, through the same POST
+/key/move as every other move, so a taken tile is refused in its own words.
+Held over the name for 800 milliseconds, shown by the name filling from the
+left, that page's grid and page list are fetched and shown in place, without
+leaving the page, so the drag carries on and the key can be dropped on any
+free tile there. The grid left behind holds the key being dragged, which the
+browser needs to finish the drag, so it is kept in the page out of sight, and
+the drag's listeners sit on the page's main part rather than on a grid that is
+swapped. Let go anywhere else after a hold, and the page opened is drawn
+afresh, with nothing moved. The move form on each key's page still does all of
+it from the keyboard.
+
+Test first, failing before the change: each page and app screen name marked
+for the script, and the drag hint saying what a drop and a hold do. The drag
+was driven in a browser against the editor's test harness serving a copy of
+the deck's configuration: a quick drop on a page's name moved the key to the
+same tile there; a hold opened the page, once, and a drop on a free tile
+placed the key; and a hold then letting go stayed on the opened page with
+nothing moved. The first run opened the page twice, as the name, still under
+the key while the page loaded, armed again; the page is now taken as shown the
+moment the hold fires.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

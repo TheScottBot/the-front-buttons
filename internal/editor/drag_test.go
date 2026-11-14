@@ -99,3 +99,26 @@ func TestEditor_KeyPageWrapsEveryFormInItsEditor(t *testing.T) {
 		}
 	}
 }
+
+// TestEditor_PageNamesAreDropTargets: every page and app screen in the page
+// list names its page for the drag script, so a key dropped on one moves to
+// the same tile there, and the drag hint, hidden until the script runs, says
+// so and that holding over a name opens that page.
+func TestEditor_PageNamesAreDropTargets(t *testing.T) {
+	t.Parallel()
+
+	harness := newAppScreenHarness(t)
+	body := harness.get(t, "/page?page=0").Body.String()
+
+	for _, want := range []string{
+		`<a href="/page?page=0" data-page="0" aria-current="page">Work</a>`,
+		`<a href="/page?page=2" data-page="2">Play</a>`,
+		`<a href="/page?page=1" data-page="1">GoLand</a>`,
+		"Drop a key on a page's name to move it to the same tile there, " +
+			"or hold it over the name to open that page and place it.",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("want %s in the page", want)
+		}
+	}
+}

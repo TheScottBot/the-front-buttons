@@ -33,6 +33,15 @@ the browser. A key's live state, such as a pipeline's status or a badge, shows
 on the deck only; Spotify's album and play keys and pipeline keys show a
 placeholder icon in its place.
 
+## Moving keys between pages
+
+Drag a key onto a free tile to move it; hold Option (Alt on Windows) as you drop
+to copy it instead. Drop a key on a page's or app screen's name in the page list
+to move it to the same tile there. Hold it over the name for a moment instead
+and that page opens in place, the name filling as it counts down, so you can
+drop the key on any free tile of it. Let go anywhere else and you stay on that
+page with nothing moved. Each key's form does the same from the keyboard.
+
 ## Copying keys between pages
 
 To put the same keys on several pages, such as cut, copy, paste and Spotify on

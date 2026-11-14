@@ -335,9 +335,79 @@
       cell.classList.remove(dropTargetClass);
     }
   }
+  var pageAttribute = "data-page";
+  var pageDropClass = "page-drop";
+  var pageArmingClass = "page-arming";
+  var leftBehindClass = "grid-left-behind";
+  var holdMilliseconds = 800;
+  function pageLinkOf(target) {
+    const link = target instanceof Element ? target.closest(`a[${pageAttribute}]`) : null;
+    return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute) ?? "") ? link : null;
+  }
+  function shownGrid() {
+    return document.querySelector(`table.grid:not(.${leftBehindClass})`);
+  }
+  async function openPageDuringDrag(page) {
+    try {
+      const response = await fetch(`/page?page=${page}`, { credentials: "same-origin" });
+      if (!response.ok) {
+        return false;
+      }
+      const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+      const incoming = parsed.querySelector("table.grid");
+      const incomingPages = parsed.querySelector('nav[aria-label="Pages"]');
+      const current = shownGrid();
+      if (incoming === null || current === null) {
+        return false;
+      }
+      current.classList.add(leftBehindClass);
+      current.setAttribute("aria-hidden", "true");
+      current.after(document.importNode(incoming, true));
+      if (incomingPages !== null) {
+        document.querySelector('nav[aria-label="Pages"]')?.replaceWith(document.importNode(incomingPages, true));
+      }
+      window.history.replaceState(null, "", `/page?page=${page}`);
+      announce("Opened that page: drop the key on a free tile.");
+      return true;
+    } catch {
+      announce("Error: that page could not be opened; is the daemon running?");
+      return false;
+    }
+  }
   function enableDrag(grid2) {
+    const root = grid2.closest("main") ?? document.body;
     let source = null;
+    let shownPage = "";
+    let opened = false;
+    let dropped = false;
+    let armed = null;
+    let armTimer;
     const bin = document.getElementById("key-bin");
+    const disarm = () => {
+      window.clearTimeout(armTimer);
+      armed?.classList.remove(pageDropClass, pageArmingClass);
+      armed = null;
+    };
+    const arm = (link) => {
+      if (armed === link) {
+        return;
+      }
+      disarm();
+      armed = link;
+      link.classList.add(pageDropClass, pageArmingClass);
+      const page = link.getAttribute(pageAttribute) ?? "";
+      armTimer = window.setTimeout(() => {
+        disarm();
+        const before = shownPage;
+        shownPage = page;
+        void openPageDuringDrag(page).then((done) => {
+          opened || (opened = done);
+          if (!done) {
+            shownPage = before;
+          }
+        });
+      }, holdMilliseconds);
+    };
     if (bin !== null) {
       bin.addEventListener("dragover", (event) => {
         if (source === null || event.dataTransfer === null) {
@@ -353,52 +423,86 @@
           return;
         }
         event.preventDefault();
+        dropped = true;
         const carried = source;
         hideBin(bin);
         void remove(carried);
       });
     }
-    grid2.addEventListener("dragstart", (event) => {
+    root.addEventListener("dragstart", (event) => {
       const cell = cellOf(event.target);
       if (cell === null || stateOf(cell) !== "key" || event.dataTransfer === null) {
         return;
       }
       source = parseTile(cell.getAttribute(tileAttribute));
+      shownPage = source?.page ?? "";
+      opened = false;
+      dropped = false;
       event.dataTransfer.effectAllowed = "copyMove";
       event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
       cell.classList.add(draggingClass);
-      if (bin !== null) {
-        showBin(bin, grid2);
+      const shown = shownGrid();
+      if (bin !== null && shown !== null) {
+        showBin(bin, shown);
       }
     });
-    grid2.addEventListener("dragend", (event) => {
+    root.addEventListener("dragend", (event) => {
       cellOf(event.target)?.classList.remove(draggingClass);
-      clearDropTargets(grid2);
+      clearDropTargets(root);
+      disarm();
       source = null;
       if (bin !== null) {
         hideBin(bin);
       }
+      if (opened && !dropped) {
+        window.location.assign(`/page?page=${shownPage}`);
+      }
     });
-    grid2.addEventListener("dragover", (event) => {
+    root.addEventListener("dragover", (event) => {
+      if (source === null || event.dataTransfer === null) {
+        return;
+      }
+      const link = pageLinkOf(event.target);
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+        arm(link);
+        return;
+      }
       const cell = cellOf(event.target);
-      if (source === null || cell === null || stateOf(cell) !== "empty" || event.dataTransfer === null) {
+      if (cell === null || stateOf(cell) !== "empty") {
         return;
       }
       event.preventDefault();
       event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
       cell.classList.add(dropTargetClass);
     });
-    grid2.addEventListener("dragleave", (event) => {
+    root.addEventListener("dragleave", (event) => {
       cellOf(event.target)?.classList.remove(dropTargetClass);
+      if (armed !== null && pageLinkOf(event.target) === armed && !armed.contains(event.relatedTarget)) {
+        disarm();
+      }
     });
-    grid2.addEventListener("drop", (event) => {
+    root.addEventListener("drop", (event) => {
+      if (source === null) {
+        return;
+      }
+      const link = pageLinkOf(event.target);
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+        event.preventDefault();
+        disarm();
+        dropped = true;
+        void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, event.altKey);
+        return;
+      }
       const cell = cellOf(event.target);
       const destination = cell?.getAttribute(tileAttribute) ?? null;
-      if (source === null || cell === null || stateOf(cell) !== "empty" || parseTile(destination) === null) {
+      if (cell === null || stateOf(cell) !== "empty" || parseTile(destination) === null) {
         return;
       }
       event.preventDefault();
-      clearDropTargets(grid2);
+      clearDropTargets(root);
+      dropped = true;
       void relocate(source, destination, event.altKey);
     });
     document.getElementById("drag-help")?.removeAttribute("hidden");

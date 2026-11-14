@@ -131,9 +131,112 @@ function clearDropTargets(grid: HTMLElement): void {
   }
 }
 
+// Page names as drop targets: a key dropped on a page's name in the page
+// list moves, or with Option copies, to the same tile on that page; held over
+// the name a moment, that page's grid is fetched and shown in place of this
+// one, without leaving the page, so the drag carries on and the key can be
+// dropped on any free tile there. The grid left behind is kept, out of sight,
+// as it holds the key being dragged, which the browser needs to finish the
+// drag. Every drop is still the same POST /key/move.
+const pageAttribute = "data-page";
+const pageDropClass = "page-drop";
+const pageArmingClass = "page-arming";
+const leftBehindClass = "grid-left-behind";
+// holdMilliseconds is how long a key is held over a page's name to open that
+// page; the arming animation in editor.css runs as long.
+const holdMilliseconds = 800;
+
+function pageLinkOf(target: EventTarget | null): HTMLAnchorElement | null {
+  const link = target instanceof Element ? target.closest<HTMLAnchorElement>(`a[${pageAttribute}]`) : null;
+
+  return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute) ?? "") ? link : null;
+}
+
+// shownGrid is the grid on show: the page's own, or the one a held drag
+// opened.
+function shownGrid(): HTMLTableElement | null {
+  return document.querySelector<HTMLTableElement>(`table.grid:not(.${leftBehindClass})`);
+}
+
+// openPageDuringDrag shows another page's grid and page list in place of
+// these, keeping the grid left behind out of sight.
+async function openPageDuringDrag(page: string): Promise<boolean> {
+  try {
+    const response = await fetch(`/page?page=${page}`, { credentials: "same-origin" });
+    if (!response.ok) {
+      return false;
+    }
+
+    const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+    const incoming = parsed.querySelector("table.grid");
+    const incomingPages = parsed.querySelector('nav[aria-label="Pages"]');
+    const current = shownGrid();
+    if (incoming === null || current === null) {
+      return false;
+    }
+
+    current.classList.add(leftBehindClass);
+    current.setAttribute("aria-hidden", "true");
+    current.after(document.importNode(incoming, true));
+
+    if (incomingPages !== null) {
+      document.querySelector('nav[aria-label="Pages"]')?.replaceWith(document.importNode(incomingPages, true));
+    }
+
+    window.history.replaceState(null, "", `/page?page=${page}`);
+    announce("Opened that page: drop the key on a free tile.");
+
+    return true;
+  } catch {
+    announce("Error: that page could not be opened; is the daemon running?");
+
+    return false;
+  }
+}
+
 export function enableDrag(grid: HTMLTableElement): void {
+  // Listening on the page's main part, not the grid, keeps the drag working
+  // on a grid a held drag brings in.
+  const root: HTMLElement = grid.closest("main") ?? document.body;
   let source: Tile | null = null;
+  let shownPage = "";
+  let opened = false;
+  let dropped = false;
+  let armed: HTMLAnchorElement | null = null;
+  let armTimer: number | undefined;
   const bin = document.getElementById("key-bin");
+
+  const disarm = (): void => {
+    window.clearTimeout(armTimer);
+    armed?.classList.remove(pageDropClass, pageArmingClass);
+    armed = null;
+  };
+
+  const arm = (link: HTMLAnchorElement): void => {
+    if (armed === link) {
+      return;
+    }
+
+    disarm();
+    armed = link;
+    link.classList.add(pageDropClass, pageArmingClass);
+
+    const page = link.getAttribute(pageAttribute) ?? "";
+    armTimer = window.setTimeout(() => {
+      disarm();
+
+      // Taken as shown at once, so the name, still under the key while the
+      // page loads, does not arm again.
+      const before = shownPage;
+      shownPage = page;
+      void openPageDuringDrag(page).then((done) => {
+        opened ||= done;
+        if (!done) {
+          shownPage = before;
+        }
+      });
+    }, holdMilliseconds);
+  };
 
   if (bin !== null) {
     bin.addEventListener("dragover", (event: DragEvent) => {
@@ -154,41 +257,66 @@ export function enableDrag(grid: HTMLTableElement): void {
       }
 
       event.preventDefault();
+      dropped = true;
       const carried = source;
       hideBin(bin);
       void remove(carried);
     });
   }
 
-  grid.addEventListener("dragstart", (event: DragEvent) => {
+  root.addEventListener("dragstart", (event: DragEvent) => {
     const cell = cellOf(event.target);
     if (cell === null || stateOf(cell) !== "key" || event.dataTransfer === null) {
       return;
     }
 
     source = parseTile(cell.getAttribute(tileAttribute));
+    shownPage = source?.page ?? "";
+    opened = false;
+    dropped = false;
     event.dataTransfer.effectAllowed = "copyMove";
     event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
     cell.classList.add(draggingClass);
 
-    if (bin !== null) {
-      showBin(bin, grid);
+    const shown = shownGrid();
+    if (bin !== null && shown !== null) {
+      showBin(bin, shown);
     }
   });
 
-  grid.addEventListener("dragend", (event: DragEvent) => {
+  root.addEventListener("dragend", (event: DragEvent) => {
     cellOf(event.target)?.classList.remove(draggingClass);
-    clearDropTargets(grid);
+    clearDropTargets(root);
+    disarm();
     source = null;
 
     if (bin !== null) {
       hideBin(bin);
     }
+
+    // A drag that opened another page and was let go of nowhere stays on
+    // that page, drawn afresh so everything on it works.
+    if (opened && !dropped) {
+      window.location.assign(`/page?page=${shownPage}`);
+    }
   });
 
-  grid.addEventListener("dragover", (event: DragEvent) => {
+  root.addEventListener("dragover", (event: DragEvent) => {
+    if (source === null || event.dataTransfer === null) {
+      return;
+    }
+
+    const link = pageLinkOf(event.target);
+    if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+      arm(link);
+
+      return;
+    }
+
     const cell = cellOf(event.target);
-    if (source === null || cell === null || stateOf(cell) !== "empty" || event.dataTransfer === null) {
+    if (cell === null || stateOf(cell) !== "empty") {
       return;
     }
 
@@ -197,19 +325,39 @@ export function enableDrag(grid: HTMLTableElement): void {
     cell.classList.add(dropTargetClass);
   });
 
-  grid.addEventListener("dragleave", (event: DragEvent) => {
+  root.addEventListener("dragleave", (event: DragEvent) => {
     cellOf(event.target)?.classList.remove(dropTargetClass);
+
+    if (armed !== null && pageLinkOf(event.target) === armed && !armed.contains(event.relatedTarget as Node | null)) {
+      disarm();
+    }
   });
 
-  grid.addEventListener("drop", (event: DragEvent) => {
+  root.addEventListener("drop", (event: DragEvent) => {
+    if (source === null) {
+      return;
+    }
+
+    // A quick drop on a page's name: the same tile on that page.
+    const link = pageLinkOf(event.target);
+    if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+      event.preventDefault();
+      disarm();
+      dropped = true;
+      void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, event.altKey);
+
+      return;
+    }
+
     const cell = cellOf(event.target);
     const destination = cell?.getAttribute(tileAttribute) ?? null;
-    if (source === null || cell === null || stateOf(cell) !== "empty" || parseTile(destination) === null) {
+    if (cell === null || stateOf(cell) !== "empty" || parseTile(destination) === null) {
       return;
     }
 
     event.preventDefault();
-    clearDropTargets(grid);
+    clearDropTargets(root);
+    dropped = true;
     void relocate(source, destination as string, event.altKey);
   });
 

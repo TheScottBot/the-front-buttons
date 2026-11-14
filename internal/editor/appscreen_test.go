@@ -142,7 +142,7 @@ func TestEditor_ListsAppScreensApartFromRegularPages(t *testing.T) {
 	requireBody(t, play,
 		"Page 2 of 2: Play",
 		`<h2 id="app-screens">App screens</h2>`,
-		`<a href="/page?page=1">GoLand</a>`,
+		`<a href="/page?page=1" data-page="1">GoLand</a>`,
 	)
 
 	// Work pages forward to Play and back, round, to Play: never GoLand.

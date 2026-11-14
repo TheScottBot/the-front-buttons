@@ -1266,3 +1266,36 @@ header .theme-switch {
 .grid .select-key {
   width: calc(var(--tile-width) + 6px);
 }
+
+/* A page's name with a key carried over it: outlined as a drop target, and
+   filling from the left while held, as long as the script waits before
+   opening that page (holdMilliseconds in drag.ts). Reduced motion leaves it
+   outlined, without the fill. */
+
+.pages a.page-drop {
+  outline: 4px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pages a.page-arming {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-size: 0% 4px;
+  background-position: left bottom;
+  animation: page-arming 0.8s linear forwards;
+}
+
+@keyframes page-arming {
+  to {
+    background-size: 100% 4px;
+  }
+}
+
+/* The grid a held drag left behind holds the key being carried, so it stays
+   in the page, out of sight, until the drag ends. */
+
+.grid.grid-left-behind {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+}
