@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
@@ -106,10 +107,17 @@ func TestEditor_DashboardPreviewShowsBothViews(t *testing.T) {
 	body := response.Body.String()
 	for _, want := range []string{
 		`<h1>Dashboard</h1>`,
-		`<table class="grid dashboard-preview" data-dashboard-view="pages">`,
-		`<table class="grid dashboard-preview" data-dashboard-view="world">`,
+		`<table class="dashboard-preview" data-dashboard-view="pages">`,
+		`<table class="dashboard-preview" data-dashboard-view="world">`,
 		`<img src="/dashboard/key.png?view=pages&amp;key=0" alt="" width="96" height="96">`,
-		`<img src="/dashboard/key.png?view=world&amp;key=31" alt="" width="96" height="96">`,
+		// The clock keys are drawn again as often as their figure can change:
+		// the seconds' second figure each second, its first each ten, the
+		// rest and the date each minute.
+		`<img src="/dashboard/key.png?view=pages&amp;key=6" alt="" width="96" height="96" data-period="1">`,
+		`<img src="/dashboard/key.png?view=pages&amp;key=5" alt="" width="96" height="96" data-period="10">`,
+		`<img src="/dashboard/key.png?view=pages&amp;key=1" alt="" width="96" height="96" data-period="60">`,
+		`<img src="/dashboard/key.png?view=world&amp;key=31" alt="" width="96" height="96" data-period="60">`,
+		`<img src="/dashboard/key.png?view=world&amp;key=7" alt="" width="96" height="96">`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("dashboard: want %s", want)
@@ -221,4 +229,74 @@ pages:
 		renderer.Render(render.Appearance{Label: workName, Icon: firstPageIcon}))
 	requireSamePicture(t, "Play, marked", dashboardKey(t, harness, "pages", 9),
 		renderer.Render(render.Appearance{Label: playName, Icon: secondPageIcon, Background: marked}))
+}
+
+// twoMarkers has a page marker on Work and another on Play.
+const twoMarkers = `schema_version: 1
+pages:
+  - name: Work
+    keys:
+      - row: 0
+        column: 0
+        kind: page_marker
+  - name: Play
+    keys:
+      - row: 1
+        column: 2
+        kind: page_marker
+`
+
+// TestEditor_DashboardPreviewOpensFromThePageTheDeckShows: once the deck has
+// said which page it shows, the preview is opened from that page, marked,
+// with its marker in the top left; a page the file no longer has is taken as
+// none said.
+func TestEditor_DashboardPreviewOpensFromThePageTheDeckShows(t *testing.T) {
+	t.Parallel()
+
+	harness := newDashboardHarness(t, twoMarkers)
+	renderer := previewRenderer(t)
+	marked, _ := render.ParseColour("#4b2050")
+
+	harness.mirror.ShowPage(1)
+	requireSamePicture(t, "Play's marker", dashboardKey(t, harness, "pages", 0),
+		previewImage(t, harness, "/preview.png?page=1&row=1&column=2"))
+	requireSamePicture(t, "Work", dashboardKey(t, harness, "pages", 8),
+		renderer.Render(render.Appearance{Label: workName, Icon: firstPageIcon}))
+	requireSamePicture(t, "Play, marked", dashboardKey(t, harness, "pages", 9),
+		renderer.Render(render.Appearance{Label: playName, Icon: secondPageIcon, Background: marked}))
+
+	if showing := harness.get(t, "/dashboard/showing").Body.String(); showing != "1" {
+		t.Errorf("want the page the deck shows said as 1, got %q", showing)
+	}
+
+	harness.mirror.ShowPage(7)
+	requireSamePicture(t, "Work, marked", dashboardKey(t, harness, "pages", 8),
+		renderer.Render(render.Appearance{Label: workName, Icon: firstPageIcon, Background: marked}))
+}
+
+// TestEditor_DashboardPreviewDrawsItsClocksAtTheMomentAsked: a clock key
+// asked for at a moment is drawn as the deck would draw it then, the local
+// time in the top row and each world clock's in its zone, so the page's
+// script can draw them again each second.
+func TestEditor_DashboardPreviewDrawsItsClocksAtTheMomentAsked(t *testing.T) {
+	t.Parallel()
+
+	harness := newDashboardHarness(t, dashboardConfiguration)
+	renderer := previewRenderer(t)
+	moment := time.Date(2026, time.March, 4, 9, 27, 58, 0, time.UTC)
+	berlin, _ := time.LoadLocation("Europe/Berlin")
+	atMoment := fmt.Sprintf("&at=%d", moment.Unix())
+
+	local := time.Unix(moment.Unix(), 0).Format("150405")
+	requireSamePicture(t, "the local hour",
+		previewImage(t, harness, fmt.Sprintf(dashboardKeyImage, "pages", 1)+atMoment),
+		renderer.RenderClockDigit(local[0:1]))
+	requireSamePicture(t, "Berlin's seconds",
+		previewImage(t, harness, fmt.Sprintf(dashboardKeyImage, "world", 6)+atMoment),
+		renderer.RenderClockSecondDigit(moment.In(berlin).Format("05")[1:], false))
+
+	if script := harness.get(t, "/static/editor.js").Body.String(); !strings.Contains(script, "dataset.period") ||
+		!strings.Contains(script, "/dashboard/showing") {
+		t.Error("want the script to draw the clocks again and follow the deck's page")
+	}
 }

@@ -4900,6 +4900,52 @@ showed the word that the file names no clocks lost on a refusal, now kept,
 with a test. The announcements moved from a switch to a table, as one more
 case took the switch past the complexity limit.
 
+### The dashboard preview, live
+
+Looking at the preview, the author asked for four changes: the views centred
+at the proportions of the pages screen's grid, the page the deck shows marked
+rather than the first page with a marker (the deck was on page 2), the clocks
+ticking rather than a snapshot, and the header's sections tidied, as with six
+of them the last wrapped beside the product tag.
+
+The mirror the daemon shares with the editor now keeps the page the deck
+shows, by its index, which the daemon sets on every repaint of the page,
+with or without a deck attached, as every change of page comes through
+there. The preview opens from that page, marking it and drawing its own
+marker in the top left, blank if it has none; a page the file no longer has,
+or none said yet, falls back to the first marker, as before. A route says the
+page as text.
+
+A key's picture may be asked for at a second, and is drawn as the deck would
+draw it then. Each clock key carries how often its figure can change: the
+seconds' second figure each second, their first each ten, and the rest of a
+time and the date each minute, which holds whatever a zone's offset. A new
+script draws each key again on the second it is due, loading the new picture
+before swapping it in so nothing flashes, and asks once a second which page
+the deck shows, drawing the pages view again when it changes. About five
+pictures a second, all on the loopback.
+
+The views are stacked and centred, each key as wide as a tile of the pages
+screen's grid with its border, so the eight across measure the grid's own
+width, 952 pixels in the author's window; the general table styles had added
+borders and padding until taken off. The preview tables lost the grid class,
+which would have woken the pages screen's drag script on them. The header
+puts the product tag and the dark mode switch on its top row and the
+sections on a row of their own, centred.
+
+Tests first, failing before the change: the mirror keeps the page said, and
+none before or from no mirror; the daemon says the first page and the next
+after paging; the preview opens from the page the deck shows with its marker
+and falls back for a page the file has not; the route says the page; a clock
+key asked for at a moment shows the local hour and Berlin's seconds then; each
+key carries its period; and the script draws by period and follows the page.
+Planting each of the daemon never saying the page, saying it only with a
+deck, the preview ignoring it, trusting a page the file has not, ignoring the
+moment, the seconds every ten, the route saying the page wrongly and the
+script not started failed a test. On this MacBook the preview showed page 2
+marked with its own marker, measured the grid's width, and its seconds key
+was asked for again each second and its tens key each ten.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

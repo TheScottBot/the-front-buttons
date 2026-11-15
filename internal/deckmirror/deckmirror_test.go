@@ -167,6 +167,11 @@ func TestMirror_NilDoesNothing(t *testing.T) {
 	mirror.Press(albumTile)
 	mirror.Release(albumTile)
 	mirror.Replace(nil)
+	mirror.ShowPage(1)
+
+	if _, showing := mirror.ShowingPage(); showing {
+		t.Error("want no page from no mirror")
+	}
 
 	if _, found := mirror.Frame(albumTile, albumKind); found {
 		t.Error("want no picture from no mirror")
@@ -174,5 +179,24 @@ func TestMirror_NilDoesNothing(t *testing.T) {
 
 	if _, _, subscribed := mirror.Subscribe(); subscribed {
 		t.Error("want no subscription to no mirror")
+	}
+}
+
+// TestMirror_KnowsThePageTheDeckShows: the page the deck shows is kept, by
+// its index, once the daemon has said, and none before.
+func TestMirror_KnowsThePageTheDeckShows(t *testing.T) {
+	t.Parallel()
+
+	mirror := deckmirror.New(1)
+
+	if _, showing := mirror.ShowingPage(); showing {
+		t.Error("before the daemon says: want no page")
+	}
+
+	mirror.ShowPage(2)
+	mirror.ShowPage(0)
+
+	if page, showing := mirror.ShowingPage(); !showing || page != 0 {
+		t.Errorf("want page 0, the last said, got %d (%v)", page, showing)
 	}
 }

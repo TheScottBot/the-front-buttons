@@ -172,9 +172,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("GET /group", pages.showGroup)
 	mux.HandleFunc("POST /group", pages.saveGroup)
 	mux.HandleFunc("GET /preview.png", pages.preview)
-	mux.HandleFunc("GET /dashboard", pages.showDashboard)
-	mux.HandleFunc("GET /dashboard/key.png", pages.dashboardKey)
-	mux.HandleFunc("POST /dashboard/clocks", pages.saveClocks)
+	routeDashboard(mux, pages)
 	mux.HandleFunc("GET /events", pages.events)
 	mux.HandleFunc("GET /icons", pages.showIcons)
 	mux.HandleFunc("GET /icon.png", pages.iconPreview)
@@ -184,6 +182,15 @@ func NewHandler(options Options) http.Handler {
 	mux.Handle("GET /static/", http.FileServerFS(embeddedFiles))
 
 	return guard{options: options, next: mux}
+}
+
+// routeDashboard adds the Dashboard section's routes: its page, its keys'
+// pictures, the page the deck shows, and the world clocks form.
+func routeDashboard(mux *http.ServeMux, pages *pageHandlers) {
+	mux.HandleFunc("GET /dashboard", pages.showDashboard)
+	mux.HandleFunc("GET /dashboard/key.png", pages.dashboardKey)
+	mux.HandleFunc("GET /dashboard/showing", pages.dashboardShowing)
+	mux.HandleFunc("POST /dashboard/clocks", pages.saveClocks)
 }
 
 // guard enforces the editor's request rules before any handler runs.

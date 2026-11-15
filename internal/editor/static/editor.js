@@ -780,6 +780,52 @@
     });
   }
 
+  // internal/editor/web/dashboard.ts
+  var previewSelector = ".dashboard-previews";
+  var keySelector = "table.dashboard-preview img";
+  var pagesSelector = 'table.dashboard-preview[data-dashboard-view="pages"] img';
+  function drawAt(key, second) {
+    const address = new URL(key.src, document.baseURI);
+    address.searchParams.set("at", String(second));
+    const next = new Image();
+    next.addEventListener("load", () => {
+      key.src = next.src;
+    });
+    next.src = address.toString();
+  }
+  async function followDeck(previews, second) {
+    const response = await fetch("/dashboard/showing", { credentials: "same-origin" });
+    if (!response.ok) {
+      return;
+    }
+    const showing = await response.text();
+    if (showing === previews.dataset.showing) {
+      return;
+    }
+    previews.dataset.showing = showing;
+    for (const key of previews.querySelectorAll(pagesSelector)) {
+      drawAt(key, second);
+    }
+  }
+  function tick(previews) {
+    const second = Math.floor(Date.now() / 1e3);
+    for (const key of previews.querySelectorAll(keySelector)) {
+      const period = Number(key.dataset.period ?? "0");
+      if (period > 0 && second % period === 0) {
+        drawAt(key, second);
+      }
+    }
+    followDeck(previews, second).catch(() => void 0);
+    window.setTimeout(() => tick(previews), 1e3 - Date.now() % 1e3);
+  }
+  function enableDashboardClock(root) {
+    const previews = root.querySelector(previewSelector);
+    if (previews === null) {
+      return;
+    }
+    window.setTimeout(() => tick(previews), 1e3 - Date.now() % 1e3);
+  }
+
   // internal/editor/web/group.ts
   var partSelector = "li.group-part";
   function renumber(list) {
@@ -2130,6 +2176,7 @@
   enableLive(document);
   enablePageReorder(document);
   enableRenamePage(document);
+  enableDashboardClock(document);
   var grid = document.querySelector("table.grid");
   var overview = document.querySelector("[data-overview-page]") !== null;
   if (grid !== null && overview) {

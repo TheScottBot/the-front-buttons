@@ -164,3 +164,28 @@ func TestDaemon_ReleasesHeldKeys_WhenTheDeckGoes(t *testing.T) {
 		running.stop(t)
 	})
 }
+
+// TestDaemon_TellsTheMirrorThePageTheDeckShows: the mirror knows the page the
+// deck shows, from the first, and follows it as the deck pages.
+func TestDaemon_TellsTheMirrorThePageTheDeckShows(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running := startHarness(t)
+		running.configurations <- twoPages()
+
+		device := deckAttached(t, running)
+
+		if page, showing := running.mirror.ShowingPage(); !showing || page != 0 {
+			t.Errorf("at first: want page 0, got %d (%v)", page, showing)
+		}
+
+		tap(device, forwardKey)
+
+		if page, showing := running.mirror.ShowingPage(); !showing || page != 1 {
+			t.Errorf("paged forward: want page 1, got %d (%v)", page, showing)
+		}
+
+		running.stop(t)
+	})
+}

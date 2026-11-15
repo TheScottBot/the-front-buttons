@@ -21,9 +21,15 @@ var errNoIconFiles = errors.New("no icons folder")
 var errNoAppIcons = errors.New("no way to read application icons")
 
 // repaintAll draws every key of the current page: the full repaint on connect,
-// on paging and on reload. A failed write means the deck has gone, so the deck
-// is dropped and the next one to appear gets a full repaint of its own.
+// on paging and on reload. It tells the mirror the page the deck shows first,
+// with or without a deck, as every change of page comes through here. A failed
+// write means the deck has gone, so the deck is dropped and the next one to
+// appear gets a full repaint of its own.
 func (state *loopState) repaintAll(runContext context.Context) {
+	if pageIndex, showing := state.showingPage(); showing {
+		state.options.Mirror.ShowPage(pageIndex)
+	}
+
 	if state.connected == nil {
 		return
 	}

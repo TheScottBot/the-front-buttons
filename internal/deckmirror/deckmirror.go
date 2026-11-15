@@ -1,6 +1,7 @@
 // Package deckmirror is what the editor may see of the deck as it runs: the
 // pictures of the keys whose look depends on live state, as the daemon draws
-// them, and word of which tile was pressed, let go of or redrawn. It holds pixels the
+// them, the page the deck shows, and word of which tile was pressed, let go
+// of or redrawn. It holds pixels the
 // daemon drew and tile positions, never the state behind them, such as a
 // track's name, a run's result or a badge's count, so the editor can show only
 // what anyone looking at the deck could see.
@@ -63,12 +64,17 @@ type Mirror struct {
 	frames      map[Tile]Frame
 	subscribers map[chan Event]struct{}
 	maximum     int
+	// page is the page the deck shows, by its index in the configuration,
+	// once the daemon has said.
+	page        int
+	pageShowing bool
 }
 
 // New makes a mirror that allows up to maximum subscribers at once.
 func New(maximum int) *Mirror {
 	return &Mirror{
 		mutex: sync.Mutex{}, frames: map[Tile]Frame{}, subscribers: map[chan Event]struct{}{}, maximum: maximum,
+		page: 0, pageShowing: false,
 	}
 }
 
@@ -103,6 +109,30 @@ func (mirror *Mirror) Set(tile Tile, kind string, picture image.Image) {
 	if !had || previous.Kind != kind || !samePicture(previous.Picture, picture) {
 		mirror.publish(Event{Kind: Redrawn, Tile: tile})
 	}
+}
+
+// ShowPage keeps the page the deck shows, by its index in the configuration.
+func (mirror *Mirror) ShowPage(page int) {
+	if mirror == nil {
+		return
+	}
+
+	mirror.mutex.Lock()
+	defer mirror.mutex.Unlock()
+
+	mirror.page, mirror.pageShowing = page, true
+}
+
+// ShowingPage is the page the deck shows, once the daemon has said.
+func (mirror *Mirror) ShowingPage() (int, bool) {
+	if mirror == nil {
+		return 0, false
+	}
+
+	mirror.mutex.Lock()
+	defer mirror.mutex.Unlock()
+
+	return mirror.page, mirror.pageShowing
 }
 
 // Press tells subscribers a key was pressed.

@@ -65,11 +65,13 @@ grids show the deck's pictures and live state, as the pages screen does.
 ## Dashboard
 
 **Dashboard**, in the editor's sections, shows the page dashboard as the deck
-draws it, its pages and its world clocks side by side, each key its picture,
-drawn by the same code as the deck's. It is shown as opened from the first
-page with a page marker, that marker in its top left; with none, the page says
-the deck cannot open the dashboard yet. The clocks show the time the page was
-loaded.
+draws it, its pages and then its world clocks, each as wide as the pages
+screen's grid, each key its picture, drawn by the same code as the deck's. It
+is shown as opened from the page the deck shows, marked, with that page's
+marker in its top left, and follows the deck to another page within a second;
+before the deck has shown a page, it is shown from the first page with a page
+marker. With no marker at all, the page says the deck cannot open the
+dashboard yet. The clocks tick as the deck's do.
 
 Beneath it, **Set the world clocks** has a row for each of up to four clocks,
 a label and a zone, filled in from the file, or with the defaults the deck

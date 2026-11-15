@@ -3,6 +3,7 @@
 // static/editor.js (scripts/build-editor-script.sh, run by go generate).
 
 import { enableClipboard } from "./clipboard";
+import { enableDashboardClock } from "./dashboard";
 import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
 import { enableDrawer } from "./drawer";
@@ -34,6 +35,7 @@ enableRenderToggle(document);
 enableLive(document);
 enablePageReorder(document);
 enableRenamePage(document);
+enableDashboardClock(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");
 
