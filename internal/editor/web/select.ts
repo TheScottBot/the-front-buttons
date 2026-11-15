@@ -79,8 +79,27 @@ function enableEscapeToLeave(): void {
   });
 }
 
+// enablePlainShiftClicks takes a Shift-click on a link in the grid that
+// nothing else here answers, such as a paging tile or an empty tile, as a
+// plain click, in this tab, rather than the browser opening the link in a new
+// window. It listens last, so Shift and a click on a key still opens select
+// mode; Command and Ctrl clicks keep opening a new tab, as asked.
+function enablePlainShiftClicks(): void {
+  document.addEventListener("click", (event: MouseEvent) => {
+    const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("table.grid a[href]") : null;
+    if (link === null || event.defaultPrevented || !event.shiftKey || event.button !== 0 || event.metaKey ||
+      event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    event.preventDefault();
+    link.click();
+  });
+}
+
 export function enableSelecting(grid: HTMLTableElement): void {
   showHints();
+  enablePlainShiftClicks();
 
   if (grid.querySelector(".select-key") !== null) {
     enableShiftTicking(grid);

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/config"
@@ -303,4 +304,16 @@ func TestEditor_ShiftClickHintsWaitForTheScript(t *testing.T) {
 	requireBody(t, harness.get(t, "/page?page=0&select=1").Body.String(),
 		`<a href="/page?page=0" class="select-done">Done selecting</a>`,
 		`<span class="select-help" hidden>, or press Escape</span>`)
+}
+
+// TestEditor_ShiftClickOnAGridLinkStaysInTheTab: a Shift-click on a paging
+// tile or an empty tile, links the browser would open in a new window, is
+// taken as a plain click by the script.
+func TestEditor_ShiftClickOnAGridLinkStaysInTheTab(t *testing.T) {
+	t.Parallel()
+
+	script := newCopyKeysHarness(t).get(t, "/static/editor.js").Body.String()
+	if !strings.Contains(script, `closest("table.grid a[href]")`) || !strings.Contains(script, "link.click()") {
+		t.Error("script: want a Shift-click on a grid link taken as a plain click")
+	}
 }

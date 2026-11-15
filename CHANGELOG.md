@@ -278,6 +278,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- Shift and a click on a paging tile or an empty tile in the editor's grid
+  opened it in a new window, as browsers do for links; it now acts as a plain
+  click, while Shift and a click on a key still opens select mode.
 - The editor's focus outline, the thick ink line and yellow halo, was lost from
   links, buttons and fields when a rule was added in the middle of its list;
   they now have it again. The box for renaming a page in the page list is the

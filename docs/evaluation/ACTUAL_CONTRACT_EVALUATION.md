@@ -4401,6 +4401,15 @@ failing on the stylesheet as it was committed, holds the list together. The
 halo swamped a box that small, so the rename box alone, focused, takes the
 dotted line a pressed key has on the grid instead.
 
+The author found Shift and a click on a paging tile opened it in a new window,
+as browsers do for any link held with Shift. Empty tiles are links too, and did
+the same. The script now takes a Shift-click on a grid link that nothing else
+answers as a plain click, in the tab, listening last so Shift and a click on a
+key still opens select mode, and leaving Command and Ctrl clicks to open a new
+tab. Driven in a browser against the harness: a real Shift-click on the forward
+tile paged to the next page with one tab still open, and one on a key opened
+select mode with it ticked.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

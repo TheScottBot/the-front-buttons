@@ -1677,8 +1677,19 @@
       window.location.assign(done.href);
     });
   }
+  function enablePlainShiftClicks() {
+    document.addEventListener("click", (event) => {
+      const link = event.target instanceof Element ? event.target.closest("table.grid a[href]") : null;
+      if (link === null || event.defaultPrevented || !event.shiftKey || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      event.preventDefault();
+      link.click();
+    });
+  }
   function enableSelecting(grid2) {
     showHints();
+    enablePlainShiftClicks();
     if (grid2.querySelector(".select-key") !== null) {
       enableShiftTicking(grid2);
       enableEscapeToLeave();
