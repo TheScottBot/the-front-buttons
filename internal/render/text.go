@@ -36,6 +36,8 @@ type textFaces struct {
 	clockFigure font.Face
 	clockLabel  font.Face
 	clockColon  font.Face
+	// clockWord names a part of the date, a little smaller than its figures.
+	clockWord font.Face
 }
 
 // faceSizes are the sizes, as fractions of the key's width in hundredths. They
@@ -61,6 +63,7 @@ const (
 	clockFigureHundredths   = 66
 	clockLabelHundredths    = 30
 	clockColonHundredths    = 44
+	clockWordHundredths     = 27
 )
 
 func provisionalFaceSizes() faceSizes {
@@ -81,7 +84,7 @@ func loadFaces(keyPixels int) (textFaces, error) {
 	if mediumError != nil || boldError != nil {
 		return textFaces{
 				labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil,
-				clockFigure: nil, clockLabel: nil, clockColon: nil,
+				clockFigure: nil, clockLabel: nil, clockColon: nil, clockWord: nil,
 			},
 			fmt.Errorf("parsing the compiled in Go fonts: %w %w", mediumError, boldError)
 	}
@@ -103,7 +106,7 @@ func loadFaces(keyPixels int) (textFaces, error) {
 
 	faces := textFaces{
 		labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil,
-		clockFigure: nil, clockLabel: nil, clockColon: nil,
+		clockFigure: nil, clockLabel: nil, clockColon: nil, clockWord: nil,
 	}
 
 	var sizeError error
@@ -137,14 +140,15 @@ func loadClockFaces(makeFace func(parsed *opentype.Font, hundredths int) (font.F
 		return fmt.Errorf("parsing the vendored JetBrains Mono font: %w", monoError)
 	}
 
-	var figureError, labelError, colonError error
+	var figureError, labelError, colonError, wordError error
 
 	faces.clockFigure, figureError = makeFace(mono, clockFigureHundredths)
 	faces.clockLabel, labelError = makeFace(mono, clockLabelHundredths)
 	faces.clockColon, colonError = makeFace(mono, clockColonHundredths)
+	faces.clockWord, wordError = makeFace(mono, clockWordHundredths)
 
-	if figureError != nil || labelError != nil || colonError != nil {
-		return fmt.Errorf("building the clock's faces: %w", errors.Join(figureError, labelError, colonError))
+	if figureError != nil || labelError != nil || colonError != nil || wordError != nil {
+		return fmt.Errorf("building the clock's faces: %w", errors.Join(figureError, labelError, colonError, wordError))
 	}
 
 	return nil

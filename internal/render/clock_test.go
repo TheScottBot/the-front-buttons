@@ -168,26 +168,65 @@ func TestRenderClock_DrawsAPairTogether_WithAColon(t *testing.T) {
 }
 
 // TestRenderClock_DrawsADatePartSmallInTheTopRight: a part of a date is
-// drawn in Thyme's date colour, smaller than a figure of the time, and in
-// its key's top right corner, apart from the times.
+// drawn in Thyme's date colour, smaller than a figure of the time, in its
+// key's top right corner.
 func TestRenderClock_DrawsADatePartSmallInTheTopRight(t *testing.T) {
 	t.Parallel()
 
 	renderer := newTestRenderer(t)
-	date := renderer.RenderClockDate("26")
+	date := renderer.RenderClockDate("26", "month")
+	dateColour := color.RGBA{R: 0xe4, G: 0x8b, B: 0xe6, A: 0xff}
 
-	if !hasColour(date, color.RGBA{R: 0xe4, G: 0x8b, B: 0xe6, A: 0xff}) {
+	if !hasColour(date, dateColour) {
 		t.Error("want the date in Thyme's date colour")
 	}
 
-	ink := inkBounds(date, clockNavy())
+	top := inkBounds(cropped(date, image.Rect(0, 0, testKeyPixels, testKeyPixels/2)), clockNavy())
 	figure := inkBounds(renderer.RenderClockDigit("2"), clockNavy())
 
-	if ink.Dy() >= figure.Dy()/2 {
-		t.Errorf("want the date well under half a figure's height, %d against %d", ink.Dy(), figure.Dy())
+	if top.Dy() >= figure.Dy()/2 || top.Min.X <= testKeyPixels/2 || top.Min.Y < 2 || top.Max.X > testKeyPixels-2 {
+		t.Errorf("want the date small in the top right corner, clear of the edges, got %v", top)
+	}
+}
+
+// TestRenderClock_DrawsADatePartsWordInTheBottomRight: a date part's word,
+// such as month, the longest, is drawn in the dimmer label colour in its
+// key's bottom right corner, within the key and no taller than the date.
+func TestRenderClock_DrawsADatePartsWordInTheBottomRight(t *testing.T) {
+	t.Parallel()
+
+	date := newTestRenderer(t).RenderClockDate("26", "month")
+
+	if !hasColour(date, clockLabelPink()) {
+		t.Error("want the word in Thyme's label colour")
 	}
 
-	if ink.Min.X <= testKeyPixels/2 || ink.Max.Y >= testKeyPixels/2 || ink.Min.Y < 2 || ink.Max.X > testKeyPixels-2 {
-		t.Errorf("want the date in the top right corner, clear of the edges, got %v", ink)
+	top := inkBounds(cropped(date, image.Rect(0, 0, testKeyPixels, testKeyPixels/2)), clockNavy())
+	bottom := inkBounds(cropped(date, image.Rect(0, testKeyPixels/2, testKeyPixels, testKeyPixels)), clockNavy())
+
+	if bottom.Empty() || bottom.Max.X > testKeyPixels-2 || bottom.Max.Y > testKeyPixels-2 || bottom.Min.X < 2 {
+		t.Errorf("want the word in the bottom right, within the key, got %v", bottom)
 	}
+
+	if bottom.Dy() > top.Dy() {
+		t.Errorf("want the word no taller than the date, %d against %d", bottom.Dy(), top.Dy())
+	}
+}
+
+// cropped is the part of an image within a rectangle, on the navy elsewhere.
+func cropped(rendered image.Image, within image.Rectangle) image.Image {
+	part := image.NewRGBA(rendered.Bounds())
+	bounds := rendered.Bounds()
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			if image.Pt(x, y).In(within) {
+				part.Set(x, y, rendered.At(x, y))
+			} else {
+				part.Set(x, y, clockNavy())
+			}
+		}
+	}
+
+	return part
 }

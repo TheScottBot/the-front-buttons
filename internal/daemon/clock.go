@@ -87,6 +87,11 @@ func dateParts() []string {
 	return []string{"06", "01", "02"}
 }
 
+// dateWords name the date's parts beneath their figures.
+func dateWords() []string {
+	return []string{"year", "month", "day"}
+}
+
 // ticks reports a key the clock draws again as time passes: a figure of a
 // time, or a part of the date.
 func ticks(tile dashboardTile) bool {
@@ -130,7 +135,7 @@ func (state *loopState) clockKeyImage(tile dashboardTile) image.Image {
 	case dashboardWorld:
 		return renderer.RenderClockIcon(worldIcon)
 	case dashboardDate:
-		return renderer.RenderClockDate(state.figureOf(tile))
+		return renderer.RenderClockDate(state.figureOf(tile), dateWords()[tile.figure])
 	default:
 		return state.clockImage(tile, state.figureOf(tile))
 	}

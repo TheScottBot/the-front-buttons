@@ -22,9 +22,9 @@ const (
 	clockLabelPacked      = 0xd583d7
 	// clockDatePacked is Thyme's date, a clear step dimmer than the time.
 	clockDatePacked = 0xe48be6
-	// clockDateInsetHundredths is how far a date part sits in from its key's
-	// top and right edges.
-	clockDateInsetHundredths = 10
+	// clockDateInsetHundredths is how far a date part and its word sit in
+	// from their key's edges.
+	clockDateInsetHundredths = 8
 	// clockIconHundredths is a clock icon's size, as a share of the key.
 	clockIconHundredths = 60
 	// clockFigureWidthHundredths is the share of the key a figure is
@@ -78,27 +78,35 @@ func (renderer *Renderer) RenderClockSecondDigit(figure string, colon bool) imag
 
 // RenderClockDate draws a part of a date, such as its year's two figures,
 // small and in the key's top right corner, in Thyme's date colour, so it sits
-// apart from the times beside it.
-func (renderer *Renderer) RenderClockDate(part string) image.Image {
+// apart from the times beside it, and the word for it, such as year, a little
+// smaller in its bottom right corner in the dimmer label colour.
+func (renderer *Renderer) RenderClockDate(part string, word string) image.Image {
 	if renderer.frame != nil {
-		return renderer.frame.place(renderer.frame.inner.RenderClockDate(part))
+		return renderer.frame.place(renderer.frame.inner.RenderClockDate(part, word))
 	}
 
 	renderer.mutex.Lock()
 	defer renderer.mutex.Unlock()
 
 	key := renderer.newKey(rgb(clockBackgroundPacked))
-	face := renderer.faces.clockLabel
 	inset := renderer.scaled(clockDateInsetHundredths)
-	ink, _ := font.BoundString(face, part)
+	right := fixed.I(renderer.keyPixels - inset)
 
-	drawer := font.Drawer{
-		Dst: key, Src: image.NewUniform(rgb(clockDatePacked)), Face: face,
-		Dot: fixed.Point26_6{X: fixed.I(renderer.keyPixels-inset) - ink.Max.X, Y: fixed.I(inset) - ink.Min.Y},
-	}
-	drawer.DrawString(part)
+	partInk, _ := font.BoundString(renderer.faces.clockLabel, part)
+	drawAt(key, renderer.faces.clockLabel, part, rgb(clockDatePacked),
+		fixed.Point26_6{X: right - partInk.Max.X, Y: fixed.I(inset) - partInk.Min.Y})
+
+	wordInk, _ := font.BoundString(renderer.faces.clockWord, word)
+	drawAt(key, renderer.faces.clockWord, word, rgb(clockLabelPacked),
+		fixed.Point26_6{X: right - wordInk.Max.X, Y: fixed.I(renderer.keyPixels-inset) - wordInk.Max.Y})
 
 	return key
+}
+
+// drawAt draws text with its pen at a point.
+func drawAt(key *image.RGBA, face font.Face, text string, colour color.RGBA, dot fixed.Point26_6) {
+	drawer := font.Drawer{Dst: key, Src: image.NewUniform(colour), Face: face, Dot: dot}
+	drawer.DrawString(text)
 }
 
 // RenderClockLabel draws a clock's short label, such as a time zone's.

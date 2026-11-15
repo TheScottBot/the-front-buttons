@@ -246,7 +246,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   right to go back. Both tick each second. Each pair of figures is drawn
   towards each other, with a small colon after the hours and minutes, so the
   time reads in pairs. The world clocks' right column shows the local date,
-  YY, MM and DD, small in each key's top right in Thyme's date colour.
+  YY, MM and DD, small in each key's top right in Thyme's date colour, with
+  its word, year, month or day, a little smaller in the bottom right in the
+  dimmer label colour.
 - Holding a page marker on the deck for half a second opens the page
   dashboard: the marker in the top left to come back, the rest of the top row
   kept for a clock to come, the regular pages on the second row and the app

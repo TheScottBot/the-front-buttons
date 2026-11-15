@@ -130,7 +130,7 @@ func TestDaemon_WorldIconShowsFourClocks(t *testing.T) {
 
 // TestDaemon_WorldClocksShowTheDateDownTheRightColumn: under the world icon,
 // the world clocks' right column shows the local date, YY, MM and DD, a key
-// each, small in its key's top right.
+// each, small in its key's top right, with its word, year, month or day.
 func TestDaemon_WorldClocksShowTheDateDownTheRightColumn(t *testing.T) {
 	t.Parallel()
 
@@ -141,12 +141,16 @@ func TestDaemon_WorldClocksShowTheDateDownTheRightColumn(t *testing.T) {
 		tap(device, worldKeyIndex)
 
 		now := time.Now()
+		words := []string{"year", "month", "day"}
+
 		for row, layout := range []string{"06", "01", "02"} {
 			part := now.Format(layout)
 			other := strconv.Itoa((int(part[0]-'0')+1)%10) + part[1:]
 
 			requireCloser(t, device, (row+1)*keysPerRow+worldKeyIndex,
-				running.renderer.RenderClockDate(part), running.renderer.RenderClockDate(other))
+				running.renderer.RenderClockDate(part, words[row]), running.renderer.RenderClockDate(other, words[row]))
+			requireCloser(t, device, (row+1)*keysPerRow+worldKeyIndex,
+				running.renderer.RenderClockDate(part, words[row]), running.renderer.RenderClockDate(part, ""))
 		}
 
 		running.stop(t)

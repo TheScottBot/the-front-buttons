@@ -69,7 +69,8 @@ world icon, which shows the world clocks: UTC, London (LDN), Berlin (BER) and
 Sao Paulo (SAO), a row each, its label and then its HHMMSS, with the world icon
 kept in the top right to go back to the dashboard, and the local date, YY, MM
 and DD, down the right column beneath it, small in each key's top right corner
-in Thyme's date colour. Both tick each second. The
+in Thyme's date colour, with its word, year, month or day, a little smaller in
+the bottom right. Both tick each second. The
 second row holds your regular pages, each by its number and name,
 the page you came from marked; the third holds the app screens, each by its
 application's icon and name. Pressing a page or screen shows it. With more app

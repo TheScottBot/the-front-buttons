@@ -4697,6 +4697,17 @@ half a figure's height, in the top right clear of the edges; and the world
 clocks' right column showing the local YY, MM and DD. The whole world view
 rendered with the real font read as intended.
 
+The author then asked for the words year, month and day, a couple of pixels
+smaller, at the bottom right of those keys, for context. Each date key now
+draws its word there at 27 hundredths of the key against the figures' 30, in
+Thyme's dimmer zone label colour, #d583d7, so the figures still read first;
+both sit 8 hundredths in from the edges. Tests first, failing before the
+change: the word, month being the longest, in the label colour in the key's
+bottom half, within the key and no taller than the figures; and each world
+date key closer to its word than to the same key without one. Planting the
+word below the key's foot failed the first. A rendered world view showed
+month fitting with room to spare.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
