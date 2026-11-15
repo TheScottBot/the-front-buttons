@@ -4442,6 +4442,23 @@ around such letters; links now underline unbroken. Driven in a browser against
 the harness: Page maintenance sat as one row under the grid, opened in place
 with the page unloaded, and showed every form on the darker ground.
 
+Opening select mode loaded a new page, which the author found jarring, and
+asked for it to be a drawer too, with an edit mode box to switch it. Select
+mode now sits in a Select keys drawer above Page maintenance, styled alike,
+holding an Edit mode check box and, in select mode, its copy, move, remove and
+colour form. Without the script the box is sent with an Apply button, loading
+the page in or out of select mode as before. With it, ticking or unticking the
+box, Shift and a click on a key, and Escape fetch the page as the server draws
+it in the other mode and put its grid and the drawer's contents on show in
+place, drawing the keys from the pictures already held; select mode's buttons
+are sent as changes made in place, to the address of the button pressed, so a
+copy, move, removal or colouring leaves select mode in place too. Driven in a
+browser against the harness: ticking edit mode switched the grid to tick boxes
+and showed the form without loading the page; two keys ticked and removed left
+select mode in place with the drawer still open; Command-Z put them back;
+Shift and a click opened select mode with the key ticked, and Escape left it,
+all with the page never loaded.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

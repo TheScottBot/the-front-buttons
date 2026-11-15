@@ -25,7 +25,16 @@
 <caption>{{if .ScreenTitle}}{{.ScreenCaption}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. {{if .Selecting}}Tick the keys to copy, move or remove.{{else}}Choose a key to edit it.{{end}}</caption>
 {{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</label></span><label class="select-hit" for="tile-{{.SelectID}}" aria-hidden="true" draggable="true"></label>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
-{{if .Selecting}}<form method="post" action="/keys/copy" id="copy-keys" class="copy-keys">
+<details class="maintenance select-drawer" id="select-drawer"{{if .Selecting}} open{{end}}>
+<summary>Select keys</summary>
+<div class="maintenance-body">
+<form method="get" action="/page" class="select-mode">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="checkbox" id="select-mode-box" name="select" value="1"{{if .Selecting}} checked{{end}}>
+<label for="select-mode-box" class="select-toggle">Edit mode: tick keys on the grid to copy, move, remove or colour them</label>
+<button type="submit" class="select-apply">Apply</button>
+</form>
+{{if .Selecting}}<form method="post" action="/keys/copy" id="copy-keys" class="copy-keys in-place">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
 <fieldset>
@@ -46,11 +55,12 @@
 <button type="submit" formaction="/keys/colour" formnovalidate>Colour the ticked keys</button>
 <button type="submit" formaction="/keys/colour" formnovalidate name="clear" value="1">Clear their colour</button>
 <p class="help">Colouring needs no page ticked; each ticked key takes the colour as its background, or with Clear their colour goes back to the usual.</p>
-<p><a href="/page?page={{.PageIndex}}" class="select-done">Done selecting</a><span class="select-help" hidden>, or press Escape</span></p>
+<p class="select-help" hidden>Untick edit mode, or press Escape, to stop.</p>
 </form>
-{{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy, move or remove</a></p>
-<p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>
-{{end}}<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
+{{else}}<p class="select-help" hidden>Or hold Shift and click a key on the grid to start with it ticked.</p>
+{{end}}</div>
+</details>
+<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
 <div id="brick-list" class="drawer-panel" data-chars="{{.DrawerChars}}" hidden>
 <label for="brick-search">Search bricks</label>

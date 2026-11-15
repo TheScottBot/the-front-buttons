@@ -76,15 +76,17 @@ function replaceRegion(incoming: Document, selector: string): void {
 }
 
 // updateInPlace puts the answer's grid on show without loading the page,
-// reporting false where it cannot and the page must be loaded instead.
-export async function updateInPlace(page: string, address: string): Promise<boolean> {
+// reporting false where it cannot and the page must be loaded instead. It
+// switches select mode on or off too, with the Select keys drawer's contents,
+// opening the drawer as select mode opens. A switch alone changes no key, so
+// it asks for no picture afresh; the page draws them from those it holds.
+export async function updateInPlace(page: string, address: string, refresh = true): Promise<boolean> {
   const incoming = new DOMParser().parseFromString(page, "text/html");
   const nextGrid = incoming.querySelector<HTMLTableElement>("table.grid");
   const grid = shownGrid();
 
   if (grid === null || nextGrid === null || document.querySelector(".grid-left-behind") !== null ||
     pageOf(grid) !== pageOf(nextGrid) || pageNames(document) !== pageNames(incoming) ||
-    (grid.querySelector(".select-key") === null) !== (nextGrid.querySelector(".select-key") === null) ||
     document.querySelector("dialog[open]") !== null) {
     return false;
   }
@@ -102,7 +104,9 @@ export async function updateInPlace(page: string, address: string): Promise<bool
     }
   }
 
-  await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+  if (refresh) {
+    await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+  }
 
   // Focus on a tile replaced stays on that tile.
   const focused = document.activeElement?.closest(`td[${tileAttribute}]`)?.getAttribute(tileAttribute) ?? null;
@@ -124,8 +128,16 @@ export async function updateInPlace(page: string, address: string): Promise<bool
 
   replaceRegion(incoming, ".announcement");
   replaceRegion(incoming, ".history");
+  replaceRegion(incoming, "#select-drawer > .maintenance-body");
+
+  const drawer = document.querySelector<HTMLDetailsElement>("#select-drawer");
+  if (drawer !== null && incoming.querySelector("#select-drawer")?.hasAttribute("open") === true) {
+    drawer.open = true;
+  }
+
   replaceRegion(incoming, ".problems");
   window.history.replaceState(null, "", address);
+  document.dispatchEvent(new CustomEvent("front-buttons:updated"));
 
   return true;
 }

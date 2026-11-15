@@ -249,16 +249,21 @@ func TestEditor_RefusesACopyWithNothingTicked(t *testing.T) {
 	requireUnchanged(t, harness, before)
 }
 
-// TestEditor_SelectModeTicksKeysAndPages: the grid has a link into select
-// mode, where each key is a check box rather than a link to its form, beside
-// a check box for every other page and app screen to copy onto.
+// TestEditor_SelectModeTicksKeysAndPages: the Select keys drawer has an edit
+// mode check box, which, sent, opens select mode, where each key is a check
+// box rather than a link to its form, beside a check box for every other page
+// and app screen to copy onto. The drawer is open in select mode.
 func TestEditor_SelectModeTicksKeysAndPages(t *testing.T) {
 	t.Parallel()
 
 	harness := newCopyKeysHarness(t)
 
 	normal := harness.get(t, "/page?page=0").Body.String()
-	requireBody(t, normal, `<a href="/page?page=0&amp;select=1">Select keys to copy, move or remove</a>`)
+	requireBody(t, normal,
+		`<details class="maintenance select-drawer" id="select-drawer">`,
+		`<form method="get" action="/page" class="select-mode">`,
+		`<input type="checkbox" id="select-mode-box" name="select" value="1">`,
+		`<button type="submit" class="select-apply">Apply</button>`)
 	refuseBody(t, normal, `name="tile"`)
 
 	selecting := harness.get(t, "/page?page=0&select=1").Body.String()
@@ -268,7 +273,8 @@ func TestEditor_SelectModeTicksKeysAndPages(t *testing.T) {
 		`<form method="post" action="/keys/copy" id="copy-keys"`,
 		`<input type="checkbox" id="copy-to-1" name="to" value="1"> <label for="copy-to-1">GoLand screen</label>`,
 		`<label for="copy-to-3">Page 2: Play</label>`,
-		`<a href="/page?page=0" class="select-done">Done selecting</a>`,
+		`<details class="maintenance select-drawer" id="select-drawer" open>`,
+		`<input type="checkbox" id="select-mode-box" name="select" value="1" checked>`,
 		// A fixed click area over the key, which moves when ticked.
 		`<label class="select-hit" for="tile-0-1" aria-hidden="true" draggable="true"></label>`,
 	)
@@ -298,12 +304,10 @@ func TestEditor_ShiftClickHintsWaitForTheScript(t *testing.T) {
 	harness := newCopyKeysHarness(t)
 
 	requireBody(t, harness.get(t, "/page?page=0").Body.String(),
-		`<p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>`)
+		`<p class="select-help" hidden>Or hold Shift and click a key on the grid to start with it ticked.</p>`)
 
-	// Escape leaves select mode by the same link as Done selecting.
 	requireBody(t, harness.get(t, "/page?page=0&select=1").Body.String(),
-		`<a href="/page?page=0" class="select-done">Done selecting</a>`,
-		`<span class="select-help" hidden>, or press Escape</span>`)
+		`<p class="select-help" hidden>Untick edit mode, or press Escape, to stop.</p>`)
 }
 
 // TestEditor_ShiftClickOnAGridLinkStaysInTheTab: a Shift-click on a paging
@@ -316,4 +320,26 @@ func TestEditor_ShiftClickOnAGridLinkStaysInTheTab(t *testing.T) {
 	if !strings.Contains(script, `closest("table.grid a[href]")`) || !strings.Contains(script, "link.click()") {
 		t.Error("script: want a Shift-click on a grid link taken as a plain click")
 	}
+}
+
+// TestEditor_ScriptSwitchesSelectModeInPlace: the script switches select
+// mode on the edit mode box, Shift and a click, and Escape without loading
+// the page, and sends select mode's buttons as changes made in place, each to
+// the address of the button pressed.
+func TestEditor_ScriptSwitchesSelectModeInPlace(t *testing.T) {
+	t.Parallel()
+
+	harness := newCopyKeysHarness(t)
+
+	script := harness.get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{
+		"select-mode-box", "front-buttons:updated", `getAttribute("formaction")`, "select-apply",
+	} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+
+	requireBody(t, harness.get(t, "/page?page=0&select=1").Body.String(),
+		`<form method="post" action="/keys/copy" id="copy-keys" class="copy-keys in-place">`)
 }

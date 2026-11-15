@@ -153,8 +153,8 @@ func TestEditor_SelectModeOffersCopyMoveAndRemove(t *testing.T) {
 	}
 
 	if !strings.Contains(newCopyKeysHarness(t).get(t, firstPagePath).Body.String(),
-		"Select keys to copy, move or remove") {
-		t.Error("want the link to select mode to name all three")
+		"Edit mode: tick keys on the grid to copy, move, remove or colour them") {
+		t.Error("want edit mode to name what it is for")
 	}
 }
 

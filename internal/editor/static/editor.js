@@ -48,11 +48,11 @@
       document.querySelector(".announcement")?.after(document.importNode(next, true));
     }
   }
-  async function updateInPlace(page, address) {
+  async function updateInPlace(page, address, refresh = true) {
     const incoming = new DOMParser().parseFromString(page, "text/html");
     const nextGrid = incoming.querySelector("table.grid");
     const grid2 = shownGrid();
-    if (grid2 === null || nextGrid === null || document.querySelector(".grid-left-behind") !== null || pageOf(grid2) !== pageOf(nextGrid) || pageNames(document) !== pageNames(incoming) || grid2.querySelector(".select-key") === null !== (nextGrid.querySelector(".select-key") === null) || document.querySelector("dialog[open]") !== null) {
+    if (grid2 === null || nextGrid === null || document.querySelector(".grid-left-behind") !== null || pageOf(grid2) !== pageOf(nextGrid) || pageNames(document) !== pageNames(incoming) || document.querySelector("dialog[open]") !== null) {
       return false;
     }
     const changed = [];
@@ -65,7 +65,9 @@
         changed.push([now, document.importNode(next, true)]);
       }
     }
-    await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+    if (refresh) {
+      await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+    }
     const focused = document.activeElement?.closest(`td[${tileAttribute}]`)?.getAttribute(tileAttribute) ?? null;
     for (const [now, next] of changed) {
       now.replaceWith(next);
@@ -80,8 +82,14 @@
     }
     replaceRegion(incoming, ".announcement");
     replaceRegion(incoming, ".history");
+    replaceRegion(incoming, "#select-drawer > .maintenance-body");
+    const drawer = document.querySelector("#select-drawer");
+    if (drawer !== null && incoming.querySelector("#select-drawer")?.hasAttribute("open") === true) {
+      drawer.open = true;
+    }
     replaceRegion(incoming, ".problems");
     window.history.replaceState(null, "", address);
+    document.dispatchEvent(new CustomEvent("front-buttons:updated"));
     return true;
   }
 
@@ -414,7 +422,7 @@
         swapping = null;
       }
     };
-    let shownPage = "";
+    let shownPage2 = "";
     let opened = false;
     let dropped = false;
     let armed = null;
@@ -435,12 +443,12 @@
       const page = link.getAttribute(pageAttribute) ?? "";
       armTimer = window.setTimeout(() => {
         disarm();
-        const before = shownPage;
-        shownPage = page;
+        const before = shownPage2;
+        shownPage2 = page;
         void openPageDuringDrag(page).then((done) => {
           opened || (opened = done);
           if (!done) {
-            shownPage = before;
+            shownPage2 = before;
           }
         });
       }, holdMilliseconds);
@@ -478,7 +486,7 @@
       }
       source = parseTile(cell.getAttribute(tileAttribute2));
       group = groupOf(cell, source);
-      shownPage = source?.page ?? "";
+      shownPage2 = source?.page ?? "";
       opened = false;
       dropped = false;
       event.dataTransfer.effectAllowed = "copyMove";
@@ -514,7 +522,7 @@
         hideBin(bin);
       }
       if (opened && !dropped) {
-        window.location.assign(`/page?page=${shownPage}`);
+        window.location.assign(`/page?page=${shownPage2}`);
       }
     });
     root.addEventListener("dragover", (event) => {
@@ -522,7 +530,7 @@
         return;
       }
       const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage2) {
         clearGhosts(root);
         ghostedAt = "";
         event.preventDefault();
@@ -578,7 +586,7 @@
         return;
       }
       const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage2) {
         event.preventDefault();
         disarm();
         dropped = true;
@@ -720,8 +728,8 @@
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
       const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
-      const selecting = (window.getSelection()?.toString() ?? "") !== "";
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || typing || selecting || document.querySelector("dialog[open]") !== null || !["c", "x", "v"].includes(key)) {
+      const selecting2 = (window.getSelection()?.toString() ?? "") !== "";
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || typing || selecting2 || document.querySelector("dialog[open]") !== null || !["c", "x", "v"].includes(key)) {
         return;
       }
       if (key === "v") {
@@ -1356,14 +1364,15 @@
   }
 
   // internal/editor/web/history.ts
-  function sendForm(form) {
+  function sendForm(form, submitter) {
     const fields = {};
-    for (const [name, value] of new FormData(form)) {
+    for (const [name, value] of new FormData(form, submitter)) {
       if (typeof value === "string" && name !== "token") {
-        fields[name] = value;
+        (fields[name] ?? (fields[name] = [])).push(value);
       }
     }
-    void send(form.getAttribute("action") ?? "/undo", fields);
+    const action = submitter?.getAttribute("formaction") ?? form.getAttribute("action") ?? "/undo";
+    void send(action, fields);
   }
   function showingPage() {
     return document.querySelector('.history input[name="showing"]')?.value ?? "0";
@@ -1372,7 +1381,7 @@
     document.addEventListener("submit", (event) => {
       if (event.target instanceof HTMLFormElement && event.target.matches("form.in-place")) {
         event.preventDefault();
-        sendForm(event.target);
+        sendForm(event.target, event.submitter);
       }
     });
     document.addEventListener("keydown", (event) => {
@@ -1642,17 +1651,50 @@
   function cellOf4(target) {
     return target instanceof Element ? target.closest(`td[${tileAttribute5}]`) : null;
   }
+  function selecting() {
+    return document.querySelector("table.grid:not(.grid-left-behind) .select-key") !== null;
+  }
+  function shownPage() {
+    return document.querySelector(`table.grid:not(.grid-left-behind) td[${tileAttribute5}]`)?.getAttribute(tileAttribute5)?.split(".")[0] ?? "0";
+  }
   function showHints() {
     for (const hint of document.querySelectorAll(".select-help")) {
       hint.hidden = false;
     }
+    for (const apply of document.querySelectorAll(".select-apply")) {
+      apply.hidden = true;
+    }
   }
-  function openSelecting(place) {
-    const address = new URLSearchParams({ page: place.page, select: "1", tile: `${place.row}.${place.column}` });
-    window.location.assign(`/page?${address.toString()}`);
+  async function switchMode(address) {
+    try {
+      const response = await fetch(address, { credentials: "same-origin" });
+      if (response.ok && await updateInPlace(await response.text(), address, false)) {
+        showHints();
+        return;
+      }
+    } catch {
+    }
+    window.location.assign(address);
   }
-  function enableShiftTicking(grid2) {
-    grid2.addEventListener("click", (event) => {
+  function modeAddress(on, tile = null) {
+    const address = new URLSearchParams({ page: shownPage() });
+    if (on) {
+      address.set("select", "1");
+    }
+    if (tile !== null) {
+      address.set("tile", tile);
+    }
+    return `/page?${address.toString()}`;
+  }
+  function enableEditMode() {
+    document.addEventListener("change", (event) => {
+      if (event.target instanceof HTMLInputElement && event.target.id === "select-mode-box") {
+        void switchMode(modeAddress(event.target.checked));
+      }
+    });
+  }
+  function enableShiftTicking() {
+    document.addEventListener("click", (event) => {
       const box = cellOf4(event.target)?.querySelector('.select-key input[type="checkbox"]');
       if (!event.shiftKey || box === null || box === void 0 || event.target === box) {
         return;
@@ -1662,17 +1704,13 @@
     });
   }
   function enableEscapeToLeave() {
-    const done = document.querySelector("a.select-done");
-    if (done === null) {
-      return;
-    }
     document.addEventListener("keydown", (event) => {
       const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
-      if (event.key !== "Escape" || event.defaultPrevented || typing || document.querySelector("dialog[open]") !== null) {
+      if (event.key !== "Escape" || event.defaultPrevented || typing || !selecting() || document.querySelector("dialog[open]") !== null) {
         return;
       }
       event.preventDefault();
-      window.location.assign(done.href);
+      void switchMode(modeAddress(false));
     });
   }
   function enablePlainShiftClicks() {
@@ -1688,18 +1726,17 @@
   function enableSelecting(grid2) {
     showHints();
     enablePlainShiftClicks();
-    if (grid2.querySelector(".select-key") !== null) {
-      enableShiftTicking(grid2);
-      enableEscapeToLeave();
-      return;
-    }
-    grid2.addEventListener("click", (event) => {
+    enableEditMode();
+    enableShiftTicking();
+    enableEscapeToLeave();
+    document.addEventListener("front-buttons:updated", showHints);
+    grid2.closest("main")?.addEventListener("click", (event) => {
       const cell = cellOf4(event.target);
       const place = placeOf3(cell);
-      if (cell !== null && place !== null && event.shiftKey && event.button === 0 && cell.getAttribute("data-state") === keyState) {
+      if (cell !== null && place !== null && event.shiftKey && event.button === 0 && !selecting() && cell.getAttribute("data-state") === keyState) {
         event.preventDefault();
         event.stopPropagation();
-        openSelecting(place);
+        void switchMode(modeAddress(true, `${place.row}.${place.column}`));
       }
     }, true);
   }

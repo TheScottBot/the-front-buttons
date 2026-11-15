@@ -840,6 +840,19 @@ input[type="search"] {
   border-left: 3px solid var(--rule);
 }
 
+/* The edit mode box and its words on one line. */
+.select-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+.select-mode label {
+  margin: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .maintenance > summary::before {
     transition: none;

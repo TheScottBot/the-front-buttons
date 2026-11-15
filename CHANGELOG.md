@@ -236,6 +236,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The editor's select mode sits in a Select keys drawer under the grid, its
+  Edit mode box switching the grid in and out of select mode in place, as do
+  Shift and a click, Escape and select mode's own buttons, without loading the
+  page.
 - The editor's page forms, renaming, moving, copying and deleting the page and
   adding one, sit in a Page maintenance drawer under the grid, which opens in
   place to show them grouped on a darker ground.
@@ -284,7 +288,7 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 ### Fixed
 
 - Links in the editor are underlined unbroken, under letters that drop below
-  the line too, such as the g of Done selecting.
+  the line too, such as a g.
 - Shift and a click on a paging tile or an empty tile in the editor's grid
   opened it in a new window, as browsers do for links; it now acts as a plain
   click, while Shift and a click on a key still opens select mode.

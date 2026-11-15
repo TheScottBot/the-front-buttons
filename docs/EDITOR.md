@@ -135,8 +135,9 @@ which a marker made before the box existed has, and keeps, until it is ticked.
 ## Copying, moving and removing keys
 
 To put the same keys on several pages, such as cut, copy, paste and Spotify on
-every app screen, choose **Select keys to copy, move or remove** under the
-grid. Each key becomes a check box: tick the keys, tick every page and app
+every app screen, open **Select keys** under the grid and tick **Edit mode**.
+The grid switches in place, without loading the page, and each key becomes a
+check box: tick the keys, tick every page and app
 screen to put them on, and choose **Copy the ticked keys**. Each key lands on
 the same tile it is on, on every page ticked. **Move the ticked keys** does the
 same and takes them off the page they came from. **Remove the ticked keys**
@@ -155,8 +156,9 @@ would fall off the deck. Only a drop where every key fits is taken.
 
 Or hold Shift and click a key on the grid to open select mode with that key
 ticked. In select mode a click ticks or unticks one key, with Shift held or not,
-so you can keep holding Shift as you go. **Done selecting**, or Escape, leaves
-select mode without changing anything.
+so you can keep holding Shift as you go. Unticking edit mode, or Escape, leaves
+select mode without changing anything, and copying, moving, removing or
+colouring leaves it once done, all without loading the page.
 
 If any key would land on a key already there, on a tile kept for paging or for
 an app screen's icon, or on a page that cannot hold it, such as a JetBrains key
