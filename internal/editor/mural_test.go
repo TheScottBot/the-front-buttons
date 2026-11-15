@@ -20,7 +20,7 @@ func TestEditor_PagesScreenZoomsOutToItsNeighbours(t *testing.T) {
 	for _, want := range []string{
 		`<button type="button" class="zoom-out" aria-keyshortcuts="-" hidden>Zoom out</button>`,
 		`<tr><th scope="row">Zoom out to the pages around this one</th><td>-, then the arrows to move along; ` +
-			`Escape or + to come back</td></tr>`,
+			`+ zooms into the page in the middle, Escape back to this one</td></tr>`,
 	} {
 		if !strings.Contains(page, want) {
 			t.Errorf("page: want %s", want)
@@ -38,7 +38,7 @@ func TestEditor_PagesScreenZoomsOutToItsNeighbours(t *testing.T) {
 	}
 
 	script := harness.get(t, "/static/editor.js").Body.String()
-	for _, want := range []string{"zoomOut", "mural-strip", `event.key === "-"`} {
+	for _, want := range []string{"zoomOut", "mural-strip", `event.key === "-"`, "zoomIn(middlePage(mural))"} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script: want %s", want)
 		}

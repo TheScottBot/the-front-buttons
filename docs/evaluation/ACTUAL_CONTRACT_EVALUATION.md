@@ -4578,6 +4578,13 @@ in place now passes over. In a browser against the harness, from the top of
 the page, zooming out and in left it at the top, and choosing Three from the
 mural opened it with its grid where Two's had been, at 390 pixels.
 
+The author asked for + to zoom into the page in the middle of those shown,
+having moved along, rather than back to the page zoomed out from, which
+Escape still does. With an even number shown, the left of the middle two is
+taken, as the page zoomed out from first sits. In a browser against the
+harness, from Two, moving along twice to four and One and pressing + opened
+four; + at once zoomed back into the same page in place.
+
 ### Keys shifting as select mode opens
 
 The author found that turning on edit mode moved every key's icon and words up a few

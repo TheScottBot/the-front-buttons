@@ -47,7 +47,9 @@ yours in the middle, outlined, with as many either side as the window holds,
 in the order the deck pages through, or on an app screen, its application's
 screens. The arrows, or the buttons beside **Zoom in**, move along a page at a
 time, wrapping round. Drag keys between the pages shown, as on All pages.
-Choose a page's name to zoom into it; Escape or + zooms back into yours.
+Choose a page's name to zoom into it, or press + to zoom into the page in the
+middle, the left of the two when an even number show; Escape zooms back into
+yours.
 
 ## All pages
 

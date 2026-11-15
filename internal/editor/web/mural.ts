@@ -5,8 +5,8 @@
 // the order the deck pages through, an app screen's among its application's
 // screens. The arrows, or the buttons either side, move along a page at a
 // time, wrapping round as the deck does. Keys drag between the pages shown,
-// as on All pages. A page's name zooms into it; Escape or + zooms back into
-// the page zoomed out from. Either way the page comes back scrolled as it was
+// as on All pages. A page's name zooms into it, and + into the page in the
+// middle of those shown; Escape zooms back into the page zoomed out from. Either way the page comes back scrolled as it was
 // before zooming out.
 
 import { updateInPlace } from "./inplace";
@@ -72,6 +72,14 @@ function centre(shown: Mural): void {
   const count = shown.pages.filter((section) => !section.hidden).length;
   shown.start = (index - Math.floor((count - 1) / 2) + shown.pages.length * 2) % shown.pages.length;
   fit(shown);
+}
+
+// middlePage is the page in the middle of those shown, the left of the two
+// when an even number are, as the page zoomed out from first sits.
+function middlePage(shown: Mural): string {
+  const visible = [...shown.element.querySelectorAll<HTMLElement>(".mural-strip .overview-page:not([hidden])")];
+
+  return pageOf(visible[Math.floor((visible.length - 1) / 2)] ?? visible[0]) || shown.from;
 }
 
 function move(step: number): void {
@@ -216,9 +224,12 @@ export function enableMural(grid: HTMLTableElement): void {
     if (event.key === "-" && mural === null) {
       event.preventDefault();
       void zoomOut(grid);
-    } else if (mural !== null && (event.key === "Escape" || event.key === "+" || event.key === "=")) {
+    } else if (mural !== null && event.key === "Escape") {
       event.preventDefault();
       void zoomIn(mural.from);
+    } else if (mural !== null && (event.key === "+" || event.key === "=")) {
+      event.preventDefault();
+      void zoomIn(middlePage(mural));
     } else if (mural !== null && !inTile && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
       move(event.key === "ArrowLeft" ? -1 : 1);

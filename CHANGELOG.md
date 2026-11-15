@@ -307,7 +307,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   vanish; it now stays, reading Zoom in while zoomed out. The zoomed out pages
   and All pages reach across a wide window rather than the editor's column.
   Zooming out no longer scrolls the page, and zooming into a page comes back
-  scrolled as it was before zooming out.
+  scrolled as it was before zooming out. + zooms into the page in the middle
+  of those shown, and Escape back into the page zoomed out from.
 - Turning on edit mode in the editor lifted every key's picture and words a
   few pixels, from the margin under labels; keys now stay where they were.
 - Links in the editor are underlined unbroken, under letters that drop below

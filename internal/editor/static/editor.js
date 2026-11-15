@@ -1413,6 +1413,10 @@
     shown.start = (index - Math.floor((count - 1) / 2) + shown.pages.length * 2) % shown.pages.length;
     fit(shown);
   }
+  function middlePage(shown) {
+    const visible = [...shown.element.querySelectorAll(".mural-strip .overview-page:not([hidden])")];
+    return pageOf2(visible[Math.floor((visible.length - 1) / 2)] ?? visible[0]) || shown.from;
+  }
   function move(step) {
     if (mural === null) {
       return;
@@ -1518,9 +1522,12 @@
       if (event.key === "-" && mural === null) {
         event.preventDefault();
         void zoomOut(grid2);
-      } else if (mural !== null && (event.key === "Escape" || event.key === "+" || event.key === "=")) {
+      } else if (mural !== null && event.key === "Escape") {
         event.preventDefault();
         void zoomIn(mural.from);
+      } else if (mural !== null && (event.key === "+" || event.key === "=")) {
+        event.preventDefault();
+        void zoomIn(middlePage(mural));
       } else if (mural !== null && !inTile && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
         event.preventDefault();
         move(event.key === "ArrowLeft" ? -1 : 1);
