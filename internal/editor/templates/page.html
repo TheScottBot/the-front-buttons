@@ -78,7 +78,11 @@
 </details>
 {{end}}</div>
 </aside>
-{{if .ScreenTitle}}<form method="post" action="/page/screen/add" class="inline">
+{{end}}<aside id="page-drawer" class="page-drawer" aria-labelledby="page-drawer-title">
+<button type="button" class="drawer-toggle page-drawer-toggle" aria-expanded="true" aria-controls="page-tools" hidden>Page</button>
+<div id="page-tools" class="page-tools">
+<h2 id="page-drawer-title">{{if .HasPage}}This page{{else}}Pages{{end}}</h2>
+{{if .HasPage}}{{if .ScreenTitle}}<form method="post" action="/page/screen/add" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
 <button type="submit">Add another screen for {{.ScreenTitle}}</button>
@@ -134,8 +138,34 @@
 <input id="add-name" name="name" type="text" required minlength="1" maxlength="24">
 <button type="submit">Add page</button>
 </form>
-{{if .HasPage}}<p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you drop to copy it instead. Drop a key on a page's name to move it to the same tile there, or hold it over the name to open that page and place it. Drop a key on another key to swap the two. Drag a page's name along the list to move the page. The move form on each key's page does the same from the keyboard.</p>
-<p class="grid-keys-help" id="grid-keys-help" hidden>On the grid, the arrow keys move between tiles and Enter opens one; Delete removes the key on a tile, which Undo puts back. Command-C, Ctrl-C on Windows, copies the key on a tile, or the ticked keys, and Command-X cuts them; Command-V pastes them on the same tiles of the page open, or from a tile focused.</p>{{end}}
+</div>
+</aside>
+{{if .HasPage}}<p class="shortcuts-help" hidden>Press ? for every shortcut, or <button type="button" class="shortcuts-open">show them</button>.</p>
+<dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title">
+<div class="dialog-head"><h2 id="shortcuts-title">Shortcuts</h2><button type="button" class="dialog-close">Close</button></div>
+<table class="shortcuts">
+<caption>Command is Ctrl on Windows.</caption>
+<thead><tr><th scope="col">To</th><th scope="col">Do this</th></tr></thead>
+<tbody>
+<tr><th scope="row">Move a key</th><td>Drag it onto a free tile</td></tr>
+<tr><th scope="row">Copy a key</th><td>Hold Command as you drop it</td></tr>
+<tr><th scope="row">Swap two keys</th><td>Drop a key on another key</td></tr>
+<tr><th scope="row">Move a key to another page</th><td>Drop it on the page's name, or hold it there to open the page and place it</td></tr>
+<tr><th scope="row">Remove a key</th><td>Drop it in the bin, or press Delete on its tile</td></tr>
+<tr><th scope="row">Move around the grid</th><td>Arrow keys, and Enter to open a tile</td></tr>
+<tr><th scope="row">Select keys</th><td>Shift and click a key; click more; Escape to stop</td></tr>
+<tr><th scope="row">Carry the ticked keys</th><td>Drag any ticked key</td></tr>
+<tr><th scope="row">Copy, cut or paste keys</th><td>Command-C, Command-X, Command-V</td></tr>
+<tr><th scope="row">Undo or redo</th><td>Command-Z, Shift-Command-Z</td></tr>
+<tr><th scope="row">Reorder pages</th><td>Drag a page's name along the list</td></tr>
+<tr><th scope="row">Rename the page</th><td>Double-click its name in the list</td></tr>
+<tr><th scope="row">Add a key</th><td>Drag a brick from the Bricks drawer onto an empty tile</td></tr>
+<tr><th scope="row">Rename, move, copy or delete the page, or add one</th><td>Open the Page drawer</td></tr>
+<tr><th scope="row">Close a drawer or this sheet</th><td>Escape</td></tr>
+<tr><th scope="row">See these</th><td>?</td></tr>
+</tbody>
+</table>
+</dialog>{{end}}
 <div id="key-bin" class="key-bin" hidden><img src="/icon.png?name=trash" alt="" width="64" height="64"><span>Drop here to remove</span></div>
 <dialog id="key-dialog" aria-labelledby="key-dialog-title">
 <div class="dialog-head"><h2 id="key-dialog-title">Key</h2><button type="button" class="dialog-close">Close</button></div>

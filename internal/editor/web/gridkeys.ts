@@ -81,5 +81,4 @@ export function enableGridKeys(grid: HTMLTableElement): void {
     }
   });
 
-  document.getElementById("grid-keys-help")?.removeAttribute("hidden");
 }

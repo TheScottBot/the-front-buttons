@@ -4410,6 +4410,26 @@ tab. Driven in a browser against the harness: a real Shift-click on the forward
 tile paged to the next page with one tab still open, and one on a key opened
 select mode with it ticked.
 
+### The page drawer and the shortcuts sheet
+
+The author asked for the page's forms, rename, move, delete and new, to go in
+a drawer, and for a sheet of the shortcuts. The forms for adding a screen,
+renaming, moving, copying and deleting the page, and adding a new one, now sit
+in one aside; without the script it stays on the page, open, as before, and the
+script gathers it behind a Page tab on the window's right edge, mirroring the
+brick drawer on the left, closed until the tab is pressed, focusing the first
+field when opened and closing on Escape. With no page to show, it is not
+gathered, so adding the first page stays in view. The two long paragraphs of
+hints at the foot of the page became a sheet of every shortcut, a table in a
+dialog opened with ? or the button in the line that now points to it.
+
+Tests first, failing before the change: every page form inside the drawer, the
+drawer offering a new page when there are none, the script and styles for the
+drawer, and the sheet's rows and its opening; the earlier tests of the hints
+now read the sheet. Driven in a browser against the harness: the Page tab sat
+on the right edge, opened the drawer with focus in the rename field and every
+form in it, and closed on Escape back to the tab; ? opened the sheet.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

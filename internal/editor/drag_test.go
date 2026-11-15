@@ -34,8 +34,8 @@ func TestEditor_GridMarksEveryTileForDragAndDrop(t *testing.T) {
 		t.Errorf("want only the stored key draggable, got %q", draggable)
 	}
 
-	if !regexp.MustCompile(`<p class="drag-help"[^>]* hidden>`).MatchString(body) {
-		t.Error("want the drag hint hidden until the script shows it")
+	if !regexp.MustCompile(`<p class="shortcuts-help"[^>]* hidden>`).MatchString(body) {
+		t.Error("want the shortcuts hint hidden until the script shows it")
 	}
 }
 
@@ -102,8 +102,8 @@ func TestEditor_KeyPageWrapsEveryFormInItsEditor(t *testing.T) {
 
 // TestEditor_PageNamesAreDropTargets: every page and app screen in the page
 // list names its page for the drag script, so a key dropped on one moves to
-// the same tile there, and the drag hint, hidden until the script runs, says
-// so and that holding over a name opens that page.
+// the same tile there, and the shortcuts sheet says so and that holding over
+// a name opens that page.
 func TestEditor_PageNamesAreDropTargets(t *testing.T) {
 	t.Parallel()
 
@@ -114,9 +114,9 @@ func TestEditor_PageNamesAreDropTargets(t *testing.T) {
 		`<a href="/page?page=0" data-page="0" aria-current="page">Work</a>`,
 		`<a href="/page?page=2" data-page="2">Play</a>`,
 		`<a href="/page?page=1" data-page="1">GoLand</a>`,
-		"hold Command (Ctrl on Windows) as you drop to copy it instead.",
-		"Drop a key on a page's name to move it to the same tile there, " +
-			"or hold it over the name to open that page and place it.",
+		`<tr><th scope="row">Copy a key</th><td>Hold Command as you drop it</td></tr>`,
+		`<tr><th scope="row">Move a key to another page</th><td>Drop it on the page's name, ` +
+			`or hold it there to open the page and place it</td></tr>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("want %s in the page", want)
@@ -126,26 +126,28 @@ func TestEditor_PageNamesAreDropTargets(t *testing.T) {
 
 // TestEditor_ArrowKeysMoveAroundTheGrid: the script moves focus between
 // tiles with the arrow keys and removes a key with Delete, through the same
-// removal as its Remove button, and its hint, hidden without the script, says
-// so.
+// removal as its Remove button, and the shortcuts sheet says so.
 func TestEditor_ArrowKeysMoveAroundTheGrid(t *testing.T) {
 	t.Parallel()
 
 	harness := newHarness(t, nil)
 
 	script := harness.get(t, "/static/editor.js").Body.String()
-	for _, want := range []string{"ArrowUp", "ArrowRight", "grid-keys-help", "/key/delete"} {
+	for _, want := range []string{"ArrowUp", "ArrowRight", "/key/delete"} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script: want %s", want)
 		}
 	}
 
-	if !regexp.MustCompile(`<p class="grid-keys-help" id="grid-keys-help" hidden>On the grid, the arrow keys move ` +
-		`between tiles and Enter opens one; Delete removes the key on a tile, which Undo puts back. ` +
-		`Command-C, Ctrl-C on Windows, copies the key on a tile, or the ticked keys, and Command-X cuts them; ` +
-		`Command-V pastes them on the same tiles of the page open, or from a tile focused.</p>`).
-		MatchString(harness.get(t, firstPagePath).Body.String()) {
-		t.Error("want the arrow key hint hidden until the script shows it")
+	body := harness.get(t, firstPagePath).Body.String()
+	for _, want := range []string{
+		`<tr><th scope="row">Move around the grid</th><td>Arrow keys, and Enter to open a tile</td></tr>`,
+		`<tr><th scope="row">Remove a key</th><td>Drop it in the bin, or press Delete on its tile</td></tr>`,
+		`<tr><th scope="row">Copy, cut or paste keys</th><td>Command-C, Command-X, Command-V</td></tr>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("shortcuts: want %s", want)
+		}
 	}
 }
 
@@ -172,8 +174,8 @@ func TestEditor_KeepsTheGridInPlaceAcrossReloads(t *testing.T) {
 }
 
 // TestEditor_HintsSitBelowEverythingElse: the page lists lead straight into
-// the caption and the grid; the script's hints on dragging and keys sit at
-// the bottom, under the new page form, out of the way.
+// the caption and the grid; the page's forms and the pointer to the shortcuts
+// sit below it, out of the way.
 func TestEditor_HintsSitBelowEverythingElse(t *testing.T) {
 	t.Parallel()
 
@@ -182,10 +184,8 @@ func TestEditor_HintsSitBelowEverythingElse(t *testing.T) {
 	grid := strings.Index(body, `<table class="grid">`)
 	addPage := strings.Index(body, `<button type="submit">Add page</button>`)
 
-	for _, hint := range []string{`id="drag-help"`, `id="grid-keys-help"`} {
-		if at := strings.Index(body, hint); at < addPage || at < grid {
-			t.Errorf("want %s after the grid and the new page form", hint)
-		}
+	if at := strings.Index(body, `class="shortcuts-help"`); at < addPage || at < grid {
+		t.Error("want the shortcuts pointer after the grid and the new page form")
 	}
 
 	if between := body[strings.Index(body, `aria-label="Pages"`):grid]; strings.Contains(between, `<p class=`) {

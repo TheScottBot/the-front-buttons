@@ -138,8 +138,9 @@ func TestEditor_ScriptSwapsAndPastesKeys(t *testing.T) {
 		t.Error("stylesheet: want the keys of a swap drawn sliding into each other's tiles")
 	}
 
-	if !strings.Contains(harness.get(t, firstPagePath).Body.String(), "Drop a key on another key to swap the two.") {
-		t.Error("want the drag hint to say a key can be swapped")
+	if !strings.Contains(harness.get(t, firstPagePath).Body.String(),
+		`<tr><th scope="row">Swap two keys</th><td>Drop a key on another key</td></tr>`) {
+		t.Error("want the shortcuts to say a key can be swapped")
 	}
 }
 

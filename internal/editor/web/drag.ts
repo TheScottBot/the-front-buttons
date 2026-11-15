@@ -774,5 +774,4 @@ export function enableDrag(grid: HTMLTableElement): void {
     void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination as string, copying(event)));
   });
 
-  document.getElementById("drag-help")?.removeAttribute("hidden");
 }

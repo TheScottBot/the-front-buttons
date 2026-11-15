@@ -236,6 +236,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The editor's page forms, renaming, moving, copying and deleting the page and
+  adding one, sit in a Page drawer on the right, mirroring the Bricks drawer;
+  without the script they stay on the page.
+- Pressing ? in the editor opens a sheet of every shortcut, which replaces the
+  long hints at the foot of the pages screen.
 - The editor's select mode colours the ticked keys' background, or clears it,
   at once; a preset key keeps the colour in its preset's fields.
 - Double-clicking the name of the page on show in the editor's page list

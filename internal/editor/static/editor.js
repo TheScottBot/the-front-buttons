@@ -619,7 +619,6 @@
       dropped = true;
       void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination, copying(event)));
     });
-    document.getElementById("drag-help")?.removeAttribute("hidden");
   }
 
   // internal/editor/web/clipboard.ts
@@ -1354,7 +1353,6 @@
         event.preventDefault();
       }
     });
-    document.getElementById("grid-keys-help")?.removeAttribute("hidden");
   }
 
   // internal/editor/web/history.ts
@@ -1385,6 +1383,41 @@
       event.preventDefault();
       void send(event.shiftKey ? "/redo" : "/undo", { showing: showingPage() });
     });
+  }
+
+  // internal/editor/web/pagedrawer.ts
+  var readyClass = "drawer-ready";
+  function enablePageDrawer() {
+    const drawer = document.getElementById("page-drawer");
+    const toggle = drawer?.querySelector(".page-drawer-toggle") ?? null;
+    const tools = document.getElementById("page-tools");
+    if (drawer === null || toggle === null || tools === null) {
+      return;
+    }
+    const setOpen2 = (open) => {
+      toggle.setAttribute("aria-expanded", String(open));
+      tools.hidden = !open;
+    };
+    drawer.classList.add(readyClass);
+    toggle.hidden = false;
+    setOpen2(false);
+    toggle.addEventListener("click", () => {
+      setOpen2(tools.hidden);
+      if (!tools.hidden) {
+        tools.querySelector('input:not([type="hidden"]), select, button')?.focus();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const typingElsewhere = target !== null && !tools.contains(target) && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key !== "Escape" || event.defaultPrevented || tools.hidden || typingElsewhere || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen2(false);
+      toggle.focus();
+    }, true);
   }
 
   // internal/editor/web/pagedrag.ts
@@ -1706,6 +1739,32 @@
     }, true);
   }
 
+  // internal/editor/web/shortcuts.ts
+  function enableShortcuts() {
+    const sheet = document.getElementById("shortcuts-dialog");
+    if (!(sheet instanceof HTMLDialogElement)) {
+      return;
+    }
+    const open = () => {
+      if (!sheet.open) {
+        sheet.showModal();
+      }
+    };
+    document.querySelector(".shortcuts-open")?.addEventListener("click", open);
+    sheet.querySelector(".dialog-close")?.addEventListener("click", () => sheet.close());
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key !== "?" || typing || event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      open();
+    });
+    for (const hint of document.querySelectorAll(".shortcuts-help")) {
+      hint.hidden = false;
+    }
+  }
+
   // internal/editor/web/theme.ts
   var oneYearSeconds2 = 60 * 60 * 24 * 365;
   var systemDark = "(prefers-color-scheme: dark)";
@@ -1749,6 +1808,8 @@
     enableGridKeys(grid);
     enableClipboard();
     enableHistory();
+    enablePageDrawer();
+    enableShortcuts();
     enableKeyDialog(grid);
     enableDrawer(grid);
     enableKeepPlace(grid);
