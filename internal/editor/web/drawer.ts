@@ -228,6 +228,23 @@ export function enableDrawer(grid: HTMLTableElement): void {
     }
   });
 
+  // B anywhere but a field opens the drawer with its search ready, as / opens
+  // In use.
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
+    const typing = event.target instanceof HTMLElement &&
+      event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+
+    if (event.key.toLowerCase() !== "b" || typing || event.metaKey || event.ctrlKey || event.altKey ||
+      document.querySelector("dialog[open]") !== null) {
+      return;
+    }
+
+    event.preventDefault();
+    setOpen(toggle, panel, true);
+    search?.box.focus();
+    search?.box.select();
+  });
+
   panel.addEventListener("dragstart", (event: DragEvent) => {
     const item = event.target instanceof Element ? event.target.closest<HTMLElement>("li[draggable]") : null;
     const picked = item === null ? null : carriedFrom(item);

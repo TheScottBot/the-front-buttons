@@ -1195,6 +1195,16 @@
         search?.box.focus();
       }
     });
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key.toLowerCase() !== "b" || typing || event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      setOpen(toggle, panel, true);
+      search?.box.focus();
+      search?.box.select();
+    });
     panel.addEventListener("dragstart", (event) => {
       const item = event.target instanceof Element ? event.target.closest("li[draggable]") : null;
       const picked = item === null ? null : carriedFrom(item);

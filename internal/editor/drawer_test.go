@@ -140,3 +140,24 @@ func TestEditor_DrawerIsSizedForItsLongestName(t *testing.T) {
 		}
 	}
 }
+
+// TestEditor_BOpensTheBrickDrawer: B, as / does for In use, opens the brick
+// drawer with its search ready, and the shortcuts sheet names both.
+func TestEditor_BOpensTheBrickDrawer(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	if !strings.Contains(harness.get(t, "/static/editor.js").Body.String(), `event.key.toLowerCase() !== "b"`) {
+		t.Error("script: want B to open the brick drawer")
+	}
+
+	body := harness.get(t, firstPagePath).Body.String()
+	for _, want := range []string{
+		`<tr><th scope="row">Open Bricks</th><td>B</td></tr>`, `<tr><th scope="row">Open In use</th><td>/</td></tr>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("shortcuts: want %s", want)
+		}
+	}
+}

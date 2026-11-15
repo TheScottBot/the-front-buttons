@@ -4529,6 +4529,12 @@ either drawer, by its tab or by /, closes the other. Driven in a browser
 against the harness: each drawer closed the other every time, / among them,
 and the focused tab showed the dotted line without the halo.
 
+With / opening In use, the author asked for a key to open Bricks too. B,
+anywhere but a field and with no dialog open, opens the brick drawer with its
+search ready, closing In use, and the shortcuts sheet names both. Driven in a
+browser against the harness: B opened Bricks over In use with the search
+focused, and B typed in the search stayed in the box.
+
 ### The deck's page across restarts
 
 The author found every restart and install put the deck back on the first

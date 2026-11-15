@@ -75,8 +75,8 @@ page; Escape closes it.
 
 ## The brick drawer
 
-The **Bricks** tab on the left opens the drawer of bricks to drag onto an empty
-tile. Its search box takes focus as it opens and narrows the drawer as you
+The **Bricks** tab on the left, or B anywhere but a field, opens the drawer of
+bricks to drag onto an empty tile, closing In use. Its search box takes focus as it opens and narrows the drawer as you
 type, to the bricks whose names hold every word typed; a section's name and a
 brick's kind count too, so "spotify" or "goland" finds a whole section and
 "session" finds Claude's session keys. An application's own bricks are named by
