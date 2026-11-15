@@ -74,3 +74,20 @@ func TestEditor_ZoomedOutPagesReachAcrossTheWindow(t *testing.T) {
 		t.Error("want the zoom button outside the Undo and Redo group")
 	}
 }
+
+// TestEditor_ZoomingInComesBackToWhereThePageWas: zooming out leaves the page
+// scrolled where it was, and zooming into a page from the mural comes back to
+// where the grid sat before zooming out, rather than where the mural's first
+// small grid sat.
+func TestEditor_ZoomingInComesBackToWhereThePageWas(t *testing.T) {
+	t.Parallel()
+
+	script := newCopyKeysHarness(t).get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{
+		"keepPlace(shown.top)", "window.scrollTo(0, shown.scroll)", `:not(.mini)`, "element.focus({ preventScroll: true })",
+	} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+}

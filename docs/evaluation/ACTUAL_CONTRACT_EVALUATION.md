@@ -4568,6 +4568,16 @@ tabs, while the rest of the editor keeps its column. In a browser at 2000 by
 900 against the harness, zooming out showed all four pages across the window
 with no sideways scroll, and the button zoomed in and out again three times.
 
+The author then found zooming out from the top of the page scrolled part way
+down, and zooming into a page left it scrolled there. The mural took focus as
+it was drawn, and the browser scrolls what takes focus into view; it now takes
+focus without scrolling, as the grid does coming back. Leaving for another
+page, the place the grid had before zooming out is kept for the next page,
+rather than the place of the mural's first small grid, which keeping the grid
+in place now passes over. In a browser against the harness, from the top of
+the page, zooming out and in left it at the top, and choosing Three from the
+mural opened it with its grid where Two's had been, at 390 pixels.
+
 ### Keys shifting as select mode opens
 
 The author found that turning on edit mode moved every key's icon and words up a few

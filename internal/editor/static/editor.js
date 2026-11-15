@@ -1271,9 +1271,9 @@
   // internal/editor/web/keepplace.ts
   var placeKey = "front-buttons-grid-place";
   var freshMilliseconds = 1e4;
-  function keep(grid2) {
+  function keepPlace(top) {
     try {
-      const kept = { top: grid2.getBoundingClientRect().top, at: Date.now() };
+      const kept = { top, at: Date.now() };
       window.sessionStorage.setItem(placeKey, JSON.stringify(kept));
     } catch {
     }
@@ -1305,7 +1305,10 @@
       restore(grid2, kept);
     }
     window.addEventListener("pagehide", () => {
-      keep(document.querySelector("table.grid:not(.grid-left-behind)") ?? grid2);
+      const shown = document.querySelector("table.grid:not(.grid-left-behind):not(.mini)");
+      if (shown !== null) {
+        keepPlace(shown.getBoundingClientRect().top);
+      }
     });
   }
 
@@ -1431,12 +1434,14 @@
     }
     const shown = mural;
     if (page !== shown.from) {
+      keepPlace(shown.top);
       window.location.assign(`/page?page=${page}`);
       return;
     }
     mural = null;
     shown.element.replaceWith(shown.grid);
     document.body.classList.remove("zoomed-out");
+    window.scrollTo(0, shown.scroll);
     try {
       const response = await fetch(window.location.href, { credentials: "same-origin" });
       if (response.ok) {
@@ -1444,7 +1449,7 @@
       }
     } catch {
     }
-    shown.grid.querySelector("td a, td input")?.focus();
+    shown.grid.querySelector("td a, td input")?.focus({ preventScroll: true });
   }
   async function zoomOut(grid2) {
     if (mural !== null || grid2.querySelector(".select-key") !== null || !grid2.isConnected) {
@@ -1484,11 +1489,13 @@
     }
     element.append(head, strip);
     strip.append(...pages);
+    const top = grid2.getBoundingClientRect().top;
+    const scroll = window.scrollY;
     grid2.replaceWith(element);
     document.body.classList.add("zoomed-out");
-    mural = { element, grid: grid2, pages, from, start: 0 };
+    mural = { element, grid: grid2, pages, from, top, scroll, start: 0 };
     centre(mural);
-    element.focus();
+    element.focus({ preventScroll: true });
   }
   function enableMural(grid2) {
     const zoom = document.querySelector(".zoom-out");

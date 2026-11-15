@@ -6,9 +6,11 @@
 // screens. The arrows, or the buttons either side, move along a page at a
 // time, wrapping round as the deck does. Keys drag between the pages shown,
 // as on All pages. A page's name zooms into it; Escape or + zooms back into
-// the page zoomed out from.
+// the page zoomed out from. Either way the page comes back scrolled as it was
+// before zooming out.
 
 import { updateInPlace } from "./inplace";
+import { keepPlace } from "./keepplace";
 
 const currentClass = "mural-current";
 
@@ -17,6 +19,10 @@ interface Mural {
   readonly grid: HTMLTableElement;
   readonly pages: readonly HTMLElement[];
   readonly from: string;
+  // Where the grid sat in the window, and how far the page was scrolled,
+  // when it was zoomed out of, to come back to.
+  readonly top: number;
+  readonly scroll: number;
   start: number;
 }
 
@@ -96,6 +102,8 @@ async function zoomIn(page: string): Promise<void> {
 
   const shown = mural;
   if (page !== shown.from) {
+    // The page opened puts its grid where this one sat before zooming out.
+    keepPlace(shown.top);
     window.location.assign(`/page?page=${page}`);
 
     return;
@@ -104,6 +112,7 @@ async function zoomIn(page: string): Promise<void> {
   mural = null;
   shown.element.replaceWith(shown.grid);
   document.body.classList.remove("zoomed-out");
+  window.scrollTo(0, shown.scroll);
 
   try {
     const response = await fetch(window.location.href, { credentials: "same-origin" });
@@ -114,7 +123,7 @@ async function zoomIn(page: string): Promise<void> {
     // The grid stays as it was put aside.
   }
 
-  shown.grid.querySelector<HTMLElement>("td a, td input")?.focus();
+  shown.grid.querySelector<HTMLElement>("td a, td input")?.focus({ preventScroll: true });
 }
 
 async function zoomOut(grid: HTMLTableElement): Promise<void> {
@@ -166,12 +175,17 @@ async function zoomOut(grid: HTMLTableElement): Promise<void> {
 
   element.append(head, strip);
   strip.append(...pages);
+
+  const top = grid.getBoundingClientRect().top;
+  const scroll = window.scrollY;
   grid.replaceWith(element);
   document.body.classList.add("zoomed-out");
 
-  mural = { element, grid, pages, from, start: 0 };
+  mural = { element, grid, pages, from, top, scroll, start: 0 };
   centre(mural);
-  element.focus();
+
+  // Taking focus, the zoomed out pages leave the page scrolled where it was.
+  element.focus({ preventScroll: true });
 }
 
 export function enableMural(grid: HTMLTableElement): void {

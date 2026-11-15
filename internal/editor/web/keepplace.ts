@@ -20,9 +20,10 @@ interface Kept {
   readonly at: number;
 }
 
-function keep(grid: HTMLElement): void {
+// keepPlace keeps where the grid sat in the window, for the next page.
+export function keepPlace(top: number): void {
   try {
-    const kept: Kept = { top: grid.getBoundingClientRect().top, at: Date.now() };
+    const kept: Kept = { top, at: Date.now() };
     window.sessionStorage.setItem(placeKey, JSON.stringify(kept));
   } catch {
     // Without storage the next page opens at the top.
@@ -62,8 +63,13 @@ export function enableKeepPlace(grid: HTMLElement): void {
     restore(grid, kept);
   }
 
-  // The grid on show may be another page's, brought in by a held drag.
+  // The grid on show may be another page's, brought in by a held drag. The
+  // small grids of a zoomed out page are not it: zoomed out, the page's own
+  // grid is put aside, and the zoom keeps the place it had instead.
   window.addEventListener("pagehide", () => {
-    keep(document.querySelector<HTMLElement>("table.grid:not(.grid-left-behind)") ?? grid);
+    const shown = document.querySelector<HTMLElement>("table.grid:not(.grid-left-behind):not(.mini)");
+    if (shown !== null) {
+      keepPlace(shown.getBoundingClientRect().top);
+    }
   });
 }
