@@ -79,6 +79,7 @@
       caption.textContent = nextCaption.textContent;
     }
     replaceRegion(incoming, ".announcement");
+    replaceRegion(incoming, ".history");
     replaceRegion(incoming, ".problems");
     window.history.replaceState(null, "", address);
     return true;
@@ -617,12 +618,6 @@
       clearGhosts(root);
       dropped = true;
       void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination, copying(event)));
-    });
-    document.addEventListener("submit", (event) => {
-      if (event.target instanceof HTMLFormElement && event.target.matches("form.undo-form")) {
-        event.preventDefault();
-        void send(event.target.getAttribute("action") ?? "/key/undo", {});
-      }
     });
     document.getElementById("drag-help")?.removeAttribute("hidden");
   }
@@ -1362,6 +1357,36 @@
     document.getElementById("grid-keys-help")?.removeAttribute("hidden");
   }
 
+  // internal/editor/web/history.ts
+  function sendForm(form) {
+    const fields = {};
+    for (const [name, value] of new FormData(form)) {
+      if (typeof value === "string" && name !== "token") {
+        fields[name] = value;
+      }
+    }
+    void send(form.getAttribute("action") ?? "/undo", fields);
+  }
+  function showingPage() {
+    return document.querySelector('.history input[name="showing"]')?.value ?? "0";
+  }
+  function enableHistory() {
+    document.addEventListener("submit", (event) => {
+      if (event.target instanceof HTMLFormElement && event.target.matches("form.in-place")) {
+        event.preventDefault();
+        sendForm(event.target);
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== "z" || typing || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      void send(event.shiftKey ? "/redo" : "/undo", { showing: showingPage() });
+    });
+  }
+
   // internal/editor/web/pagedrag.ts
   var pageType = "application/x-front-buttons-page";
   var pageAttribute2 = "data-page";
@@ -1378,7 +1403,7 @@
   function pageOf2(item) {
     return item.querySelector(`a[${pageAttribute2}]`)?.getAttribute(pageAttribute2) ?? "";
   }
-  function showingPage() {
+  function showingPage2() {
     return document.querySelector(`nav a[${pageAttribute2}][aria-current="page"]`)?.getAttribute(pageAttribute2) ?? "";
   }
   function reducedMotion2() {
@@ -1497,7 +1522,7 @@
       const from = pageOf2(carried.item);
       const to = carried.order[itemsOf(carried.list).indexOf(carried.item)] ?? from;
       if (to !== from) {
-        void send("/page/reorder", { page: from, to, showing: showingPage() });
+        void send("/page/reorder", { page: from, to, showing: showingPage2() });
       }
     });
     root.addEventListener("dragend", () => {
@@ -1649,6 +1674,7 @@
     enableDrag(grid);
     enableGridKeys(grid);
     enableClipboard();
+    enableHistory();
     enableKeyDialog(grid);
     enableDrawer(grid);
     enableKeepPlace(grid);

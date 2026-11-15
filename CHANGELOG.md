@@ -236,6 +236,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- Undo and Redo in the editor, beside the Render like deck switch, and
+  Command-Z and Shift-Command-Z, Ctrl on Windows, undo and redo any of the last
+  20 changes made in the editor, refusing if the file has since been changed
+  by hand. Undo after a removal now steps back through every change in turn,
+  rather than only putting back the keys removed.
 - A key dropped on another in the editor swaps the two, on one page or across
   pages, the two sliding into each other's tiles while it is carried; a key's
   form offers the same swap from the keyboard.

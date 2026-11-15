@@ -135,9 +135,9 @@ type PresetSource struct {
 	Fields any
 }
 
-// clone returns a deep copy of the configuration, including each key's
+// Clone returns a deep copy of the configuration, including each key's
 // parameters and preset fields, which are pointers to structs of plain values.
-func (configuration Configuration) clone() Configuration {
+func (configuration Configuration) Clone() Configuration {
 	pages := make([]Page, 0, len(configuration.Pages))
 
 	for _, page := range configuration.Pages {

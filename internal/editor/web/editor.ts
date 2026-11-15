@@ -10,6 +10,7 @@ import { enableKeepPlace } from "./keepplace";
 import { enableLive } from "./live";
 import { enableGridKeys } from "./gridkeys";
 import { enableGroupOrder } from "./group";
+import { enableHistory } from "./history";
 import { enablePlatformSwitch } from "./platform";
 import { enablePageReorder } from "./pagedrag";
 import { enablePickers } from "./picker";
@@ -36,6 +37,7 @@ if (grid !== null) {
   enableDrag(grid);
   enableGridKeys(grid);
   enableClipboard();
+  enableHistory();
   enableKeyDialog(grid);
   enableDrawer(grid);
 

@@ -774,14 +774,5 @@ export function enableDrag(grid: HTMLTableElement): void {
     void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination as string, copying(event)));
   });
 
-  // Undo after a change made here puts the keys back the same way, without
-  // loading the page; without the script it is a plain form.
-  document.addEventListener("submit", (event: SubmitEvent) => {
-    if (event.target instanceof HTMLFormElement && event.target.matches("form.undo-form")) {
-      event.preventDefault();
-      void send(event.target.getAttribute("action") ?? "/key/undo", {});
-    }
-  });
-
   document.getElementById("drag-help")?.removeAttribute("hidden");
 }

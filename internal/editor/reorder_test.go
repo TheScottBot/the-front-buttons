@@ -90,23 +90,26 @@ func TestEditor_RefusesToReorderAcrossTheTwoSortsOfPage(t *testing.T) {
 	}
 }
 
-// TestEditor_UndoFollowsAPageThatWasReordered: a removal undone after its
-// page moved puts the keys back on that page, not on whichever took its place.
-func TestEditor_UndoFollowsAPageThatWasReordered(t *testing.T) {
+// TestEditor_UndoStepsBackThroughAReorder: a removal and then a reorder are
+// undone in turn: first the pages go back to their order, then the key comes
+// back on its page.
+func TestEditor_UndoStepsBackThroughAReorder(t *testing.T) {
 	t.Parallel()
 
 	harness := newCopyKeysHarness(t)
+	before := harness.onDisk(t)
+
 	harness.post(t, removeKeysPath, url.Values{pageField: {workPage}, tileField: {cutTile}})
 	harness.post(t, reorderPath, url.Values{pageField: {playPage}, toField: {workPage}, showingField: {workPage}})
 
-	if response := harness.post(t, undoPath, url.Values{}); response.Code != http.StatusSeeOther {
-		t.Fatalf("want the undo saved, got %d: %s", response.Code, response.Body.String())
+	harness.post(t, undoPath, url.Values{})
+
+	if got := strings.Join(pageNames(t, harness), ","); got != "Work,GoLand,PyCharm,Play" {
+		t.Fatalf("want the order undone first, got %s", got)
 	}
 
-	saved := harness.onDisk(t)
-	if saved.Pages[1].Name != "Work" || len(saved.Pages[1].Keys) != 4 || len(saved.Pages[0].Keys) != 0 {
-		t.Fatalf("want the key back on Work, got %+v", saved.Pages)
-	}
+	harness.post(t, undoPath, url.Values{})
+	requireUnchanged(t, harness, before)
 }
 
 // TestEditor_PageOffersAMoveToEveryPlaceOfItsSort: the keyboard's way to

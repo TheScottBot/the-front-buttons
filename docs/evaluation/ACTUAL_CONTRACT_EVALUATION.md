@@ -4341,6 +4341,30 @@ watcher, which reloads the file at once through the same path as a hand edit,
 the poll staying for hand edits. A test, with an hour between polls, has the
 save delivered with no time passing, which failed before the change.
 
+### Undo and redo for every change
+
+Undo only put back keys removed. The author asked for undo and redo of every
+change, as a safety net now that a whole block of keys or a page moves in one
+drag. Every save the editor makes goes through one function, which now keeps
+the configuration before the change and as the file decodes after it, the last
+twenty changes, in memory. POST /undo and /redo, behind the editor's guard,
+write the one or the other back through the same save, provided the file still
+decodes as that change left it; changed by hand since, they refuse rather than
+discard the edit. A new change clears what could be redone. The removal's own
+memory, and its following of reordered pages, are gone: Undo after a removal is
+this undo. The pages screen has Undo and Redo buttons, off while there is
+nothing to do, and Command-Z and Shift-Command-Z send the same; with the
+script, all of them update the grid in place.
+
+Tests first, failing before the change: a rename undone and redone, returning
+to the page on show; a new change clearing redo; undo refused after a hand
+edit, leaving the file alone; twenty changes kept and no more; the buttons on
+and off; undo stepping back through a removal and a later key, and through a
+removal and a reorder. Planted violations, no check for a hand edit and redo
+kept after a new change, each failed a test. Driven in a browser against the
+harness: a swap, Command-Z and Shift-Command-Z each updated the grid in place,
+the buttons turning on and off, and the Undo button did the same.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

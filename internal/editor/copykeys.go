@@ -163,8 +163,6 @@ func (pages *pageHandlers) removeTickedKeys(writer http.ResponseWriter, request 
 func (pages *pageHandlers) actOnTicked(writer http.ResponseWriter, request *http.Request, action tickedAction) {
 	selection := selectionFrom(request)
 
-	var taken []config.Key
-
 	saveError := pages.changeConfiguration(func(configuration *config.Configuration) error {
 		keys, checkError := pages.checkTicked(*configuration, selection, action)
 		if checkError != nil {
@@ -178,7 +176,6 @@ func (pages *pageHandlers) actOnTicked(writer http.ResponseWriter, request *http
 			source.Keys = slices.DeleteFunc(source.Keys, func(key config.Key) bool {
 				return slices.Contains(selection.tiles, key.Position)
 			})
-			taken = keys
 		}
 
 		for _, target := range selection.targets {
@@ -193,10 +190,6 @@ func (pages *pageHandlers) actOnTicked(writer http.ResponseWriter, request *http
 	})
 	if saveError == nil {
 		saved := map[tickedAction]string{copyTicked: copiedQuery, moveTicked: movedQuery, removeTicked: removedQuery}
-		if action == removeTicked {
-			pages.removals.remember(selection.source, taken)
-		}
-
 		// Keys pasted onto the page open return there; anything else returns to
 		// the page the keys came from. The redirect's only variable parts are a
 		// formatted integer and a constant.

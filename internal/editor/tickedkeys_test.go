@@ -100,7 +100,7 @@ func TestEditor_RemovesTickedKeys_AndUndoPutsThemAllBack(t *testing.T) {
 		t.Fatalf("want two keys removed, got %+v", saved.Pages[0].Keys)
 	}
 
-	if !strings.Contains(harness.get(t, removedPage).Body.String(), `action="/key/undo"`) {
+	if !strings.Contains(harness.get(t, removedPage).Body.String(), `action="/undo"`) {
 		t.Fatal("want Undo offered")
 	}
 

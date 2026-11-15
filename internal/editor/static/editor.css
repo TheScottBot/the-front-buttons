@@ -1291,6 +1291,25 @@ label[for$="-picker"] {
   margin: 0;
 }
 
+/* Undo and Redo sit beside the Render like deck switch, faded and still while
+   there is nothing to undo or redo. */
+.page-heading .history {
+  display: flex;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.page-heading .history form {
+  margin: 0;
+}
+
+.page-heading .history button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 header .theme-switch {
   justify-self: end;
 }

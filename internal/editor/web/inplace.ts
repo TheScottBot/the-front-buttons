@@ -123,6 +123,7 @@ export async function updateInPlace(page: string, address: string): Promise<bool
   }
 
   replaceRegion(incoming, ".announcement");
+  replaceRegion(incoming, ".history");
   replaceRegion(incoming, ".problems");
   window.history.replaceState(null, "", address);
 

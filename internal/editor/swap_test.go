@@ -152,7 +152,7 @@ func TestEditor_ScriptUpdatesTheGridInPlace(t *testing.T) {
 
 	script := newCopyKeysHarness(t).get(t, "/static/editor.js").Body.String()
 	for _, want := range []string{
-		"updateInPlace", "replaceState", `searchParams.set("drawn"`, "new Image()", "form.undo-form",
+		"updateInPlace", "replaceState", `searchParams.set("drawn"`, "new Image()", "form.in-place",
 	} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script: want %s", want)

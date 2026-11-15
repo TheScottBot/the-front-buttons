@@ -65,8 +65,6 @@ func (pages *pageHandlers) reorderPage(writer http.ResponseWriter, request *http
 		return
 	}
 
-	pages.removals.follow(func(pageIndex int) int { return placeAfterMove(pageIndex, from, destination) })
-
 	// The redirect's only variable parts are a formatted integer and a
 	// constant, so it can only ever name one of the editor's own pages.
 	address := fmt.Sprintf("/page?page=%d&saved=%s", placeAfterMove(showing, from, destination), reorderedQuery)

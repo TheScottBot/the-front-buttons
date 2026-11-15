@@ -43,7 +43,7 @@ type pageHandlers struct {
 	templates *template.Template
 	icons     iconIndex
 	apps      *applicationCache
-	removals  *removalMemory
+	history   *changeHistory
 }
 
 func newPageHandlers(options Options) *pageHandlers {
@@ -53,7 +53,7 @@ func newPageHandlers(options Options) *pageHandlers {
 
 	return &pageHandlers{
 		options: options, templates: templates, icons: newIconIndex(options.Icons),
-		apps: newApplicationCache(options.Apps), removals: newRemovalMemory(),
+		apps: newApplicationCache(options.Apps), history: newChangeHistory(),
 	}
 }
 
@@ -65,8 +65,11 @@ type baseView struct {
 	Token    string
 	Message  string
 	Problems []string
-	// Undo offers to put back the key just removed.
+	// Undo offers to undo the removal just made.
 	Undo bool
+	// ShowingPage is the index of the page on show, for Undo to return to,
+	// or empty on a page that shows none.
+	ShowingPage string
 	// Theme is the palette chosen with the switch, light or dark, or empty to
 	// follow the system's setting.
 	Theme string
@@ -102,7 +105,8 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 	case "key":
 		message = savedMessage
 	case removedQuery:
-		message, undo = removedMessage, pages.removals.holding()
+		message = removedMessage
+		undo, _ = pages.history.can()
 	case "credential":
 		message = credentialMessage
 	case copiedQuery:
@@ -111,6 +115,10 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		message = movedMessage
 	case reorderedQuery:
 		message = reorderedMessage
+	case undoneQuery:
+		message = undoneMessage
+	case redoneQuery:
+		message = redoneMessage
 	}
 
 	return baseView{
@@ -120,7 +128,9 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		Message:  message,
 		Problems: problems,
 		Undo:     undo,
-		Theme:    chosenTheme(request),
+
+		ShowingPage: "",
+		Theme:       chosenTheme(request),
 
 		DeckRender: rendersLikeDeck(request),
 	}
@@ -264,6 +274,9 @@ type pageView struct {
 	SelectTargets []selectTarget
 	// ReorderPlaces are where the page can move among the pages of its sort.
 	ReorderPlaces []reorderPlace
+	// CanUndo and CanRedo turn the Undo and Redo buttons on.
+	CanUndo bool
+	CanRedo bool
 	// Types are the bricks and presets the drawer offers to drag onto an
 	// empty tile, the same list the key form chooses from.
 	Types []typeOption
@@ -373,23 +386,18 @@ func (pages *pageHandlers) pageViewFor(
 		AppGroups:   pages.appGroupViews(page),
 
 		Selecting: false, SelectTargets: nil, ReorderPlaces: reorderPlaces(configuration.Pages, pageIndex),
-		FixedGroups: fixedGroupViews(), DrawerChars: 0,
+		FixedGroups: fixedGroupViews(), DrawerChars: 0, CanUndo: false, CanRedo: false,
 	}
+
+	view.CanUndo, view.CanRedo = pages.history.can()
 
 	view.DrawerChars = drawerChars(view)
 
-	for index, listed := range configuration.Pages {
-		link := pageLink{Index: index, Name: listed.Name, Current: index == pageIndex}
-		if listed.IsAppScreen() {
-			view.AppScreens = append(view.AppScreens, link)
-		} else {
-			view.Pages = append(view.Pages, link)
-		}
-	}
+	view.Pages, view.AppScreens = pageLinks(configuration.Pages, pageIndex)
 
 	if pageIndex >= 0 && pageIndex < len(configuration.Pages) {
 		view.HasPage = true
-		view.PageIndex = pageIndex
+		view.PageIndex, view.ShowingPage = pageIndex, strconv.Itoa(pageIndex)
 		view.PageNumber = slices.Index(regular, pageIndex) + 1
 		view.PageName = page.Name
 		view.Rows = pages.gridRows(configuration.Pages, pageIndex)
@@ -401,6 +409,23 @@ func (pages *pageHandlers) pageViewFor(
 	}
 
 	return view
+}
+
+// pageLinks lists the regular pages and the app screens apart, for the page
+// list, marking the page on show.
+func pageLinks(allPages []config.Page, pageIndex int) ([]pageLink, []pageLink) {
+	var regular, screens []pageLink
+
+	for index, listed := range allPages {
+		link := pageLink{Index: index, Name: listed.Name, Current: index == pageIndex}
+		if listed.IsAppScreen() {
+			screens = append(screens, link)
+		} else {
+			regular = append(regular, link)
+		}
+	}
+
+	return regular, screens
 }
 
 func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]cellView {
@@ -868,12 +893,26 @@ func (pages *pageHandlers) changeConfiguration(change func(configuration *config
 		return editableError
 	}
 
+	before := configuration.Clone()
+
 	changeError := change(&configuration)
 	if changeError != nil {
 		return changeError
 	}
 
-	return pages.options.Store.Save(configuration) //nolint:wrapcheck // the store's rejection is shown field by field
+	saveError := pages.options.Store.Save(configuration)
+	if saveError != nil {
+		return saveError //nolint:wrapcheck // the store's rejection is shown field by field
+	}
+
+	// Kept as the file now decodes, so undo can tell whether it has changed
+	// since.
+	after, readError := pages.options.Store.OnDisk()
+	if readError == nil {
+		pages.history.record(before, after)
+	}
+
+	return nil
 }
 
 func (pages *pageHandlers) addPage(writer http.ResponseWriter, request *http.Request) {

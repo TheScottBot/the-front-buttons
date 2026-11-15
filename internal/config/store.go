@@ -135,7 +135,7 @@ func (store *Store) Current() (Configuration, bool) {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
-	return store.current.clone(), store.hasCurrent
+	return store.current.Clone(), store.hasCurrent
 }
 
 // LastRejection returns why the most recent file was rejected, or nil if the

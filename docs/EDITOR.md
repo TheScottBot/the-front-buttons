@@ -67,6 +67,16 @@ and that page opens in place, the name filling as it counts down, so you can
 drop the key on any free tile of it. Let go anywhere else and you stay on that
 page with nothing moved. Each key's form does the same from the keyboard.
 
+## Undo and redo
+
+**Undo** and **Redo**, beside the Render like deck switch, undo and redo any
+change made in the editor: a key saved, moved, copied, swapped or removed, a
+page added, renamed, reordered or deleted. Command-Z undoes and Shift-Command-Z
+redoes, Ctrl on Windows, unless you are typing. The last 20 changes are kept,
+until the daemon restarts, and a new change after an undo means what was
+undone can no longer be redone. If the file has been changed by hand since,
+undo and redo refuse rather than throw that change away.
+
 ## Moving around the grid
 
 Command-C, Ctrl-C on Windows, copies the key on the tile focused, or in select

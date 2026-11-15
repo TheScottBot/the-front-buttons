@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"slices"
 	"sync"
 
@@ -14,74 +15,158 @@ import (
 // removedMessage announces a removal; the page offers Undo beside it.
 const removedMessage = "Removed. The deck shows the change within a second."
 
-// The reasons an undo is refused, shown after the save error's prefix.
-var (
-	errNothingToUndo = errors.New("there is nothing to undo")
-	errUndoTileTaken = errors.New("a tile a key came from now holds another key; move that one first")
-	errUndoPageGone  = errors.New("the page the key came from no longer exists")
+// Undo and redo: every change the editor saves is kept, the configuration
+// before it and as it was written, so it can be undone and then redone, the
+// last historyDepth changes at a time, in memory, until the daemon stops (the
+// author's request). A new change after an undo starts a new line, so what was
+// undone can no longer be redone. Undoing writes over the file, so if the file
+// is no longer as the editor left it, changed by hand, undo and redo refuse
+// rather than throw that change away.
+const historyDepth = 20
+
+// The fields and messages of undo and redo.
+const (
+	undoneQuery   = "undone"
+	redoneQuery   = "redone"
+	undoneMessage = "Undone. The deck shows the change within a second."
+	redoneMessage = "Redone. The deck shows the change within a second."
 )
 
-// removalMemory is the last removal's keys and the page they came from, so a
-// key dropped in the bin by mistake, or keys ticked and removed, can be put
-// back (the author's request for a bin that cannot easily be used by
-// accident, evaluation, deck testing). Only the last removal is kept, in
-// memory, until it is undone or replaced.
-type removalMemory struct {
-	mutex     sync.Mutex
-	held      bool
-	pageIndex int
-	keys      []config.Key
+// The reasons an undo or redo is refused, shown after the save error's prefix.
+var (
+	errNothingToUndo = errors.New("there is nothing to undo")
+	errNothingToRedo = errors.New("there is nothing to redo")
+	errHistoryStale  = errors.New("the configuration file has changed outside the editor since; " +
+		"undoing or redoing now would throw that change away")
+)
+
+// historyStep is one change: the configuration before it and after it, each
+// as decoded from the file.
+type historyStep struct {
+	before config.Configuration
+	after  config.Configuration
 }
 
-func newRemovalMemory() *removalMemory {
-	return &removalMemory{mutex: sync.Mutex{}, held: false, pageIndex: 0, keys: nil}
+// changeHistory is the changes that can be undone, and those undone that can
+// be redone, newest last.
+type changeHistory struct {
+	mutex sync.Mutex
+	undo  []historyStep
+	redo  []historyStep
 }
 
-func (memory *removalMemory) remember(pageIndex int, keys []config.Key) {
-	memory.mutex.Lock()
-	defer memory.mutex.Unlock()
-
-	memory.held, memory.pageIndex, memory.keys = true, pageIndex, clonedAll(keys)
+func newChangeHistory() *changeHistory {
+	return &changeHistory{mutex: sync.Mutex{}, undo: nil, redo: nil}
 }
 
-// clonedAll deep copies keys, page markers among them.
-func clonedAll(keys []config.Key) []config.Key {
-	cloned := make([]config.Key, 0, len(keys))
-	for _, key := range keys {
-		cloned = append(cloned, key.Clone())
+// record keeps a change, forgetting the oldest past the depth and anything
+// that could be redone.
+func (history *changeHistory) record(before config.Configuration, after config.Configuration) {
+	history.mutex.Lock()
+	defer history.mutex.Unlock()
+
+	history.undo = append(history.undo, historyStep{before: before.Clone(), after: after.Clone()})
+	if len(history.undo) > historyDepth {
+		history.undo = history.undo[len(history.undo)-historyDepth:]
 	}
 
-	return cloned
+	history.redo = nil
 }
 
-func (memory *removalMemory) holding() bool {
-	memory.mutex.Lock()
-	defer memory.mutex.Unlock()
+// can reports whether there is a change to undo and one to redo.
+func (history *changeHistory) can() (bool, bool) {
+	history.mutex.Lock()
+	defer history.mutex.Unlock()
 
-	return memory.held
+	return len(history.undo) > 0, len(history.redo) > 0
 }
 
-func (memory *removalMemory) last() (int, []config.Key, bool) {
-	memory.mutex.Lock()
-	defer memory.mutex.Unlock()
+// step undoes the newest change, or redoes the newest undone, writing the
+// configuration it returns to through save, provided the file is as that
+// change left it.
+func (history *changeHistory) step(
+	undoing bool, onDisk config.Configuration, save func(config.Configuration) error,
+) error {
+	history.mutex.Lock()
+	defer history.mutex.Unlock()
 
-	return memory.pageIndex, clonedAll(memory.keys), memory.held
+	from, onto, nothing := &history.undo, &history.redo, errNothingToUndo
+	if !undoing {
+		from, onto, nothing = &history.redo, &history.undo, errNothingToRedo
+	}
+
+	if len(*from) == 0 {
+		return nothing
+	}
+
+	change := (*from)[len(*from)-1]
+	expected, target := change.after, change.before
+
+	if !undoing {
+		expected, target = change.before, change.after
+	}
+
+	// Compared as copies, as the history keeps them, so an empty page reads
+	// the same either way.
+	if !reflect.DeepEqual(onDisk.Clone(), expected) {
+		return errHistoryStale
+	}
+
+	saveError := save(target.Clone())
+	if saveError != nil {
+		return saveError
+	}
+
+	*from = (*from)[:len(*from)-1]
+
+	*onto = append(*onto, change)
+
+	return nil
 }
 
-// follow keeps the removal's page as pages move, so Undo puts keys back on
-// the page they came from.
-func (memory *removalMemory) follow(placeOf func(pageIndex int) int) {
-	memory.mutex.Lock()
-	defer memory.mutex.Unlock()
-
-	memory.pageIndex = placeOf(memory.pageIndex)
+// undoChange undoes the newest change.
+func (pages *pageHandlers) undoChange(writer http.ResponseWriter, request *http.Request) {
+	pages.stepHistory(writer, request, true)
 }
 
-func (memory *removalMemory) forget() {
-	memory.mutex.Lock()
-	defer memory.mutex.Unlock()
+// redoChange redoes the newest change undone.
+func (pages *pageHandlers) redoChange(writer http.ResponseWriter, request *http.Request) {
+	pages.stepHistory(writer, request, false)
+}
 
-	memory.held = false
+// stepHistory undoes or redoes a change and returns to the page on show, or
+// the first page if that page is gone.
+func (pages *pageHandlers) stepHistory(writer http.ResponseWriter, request *http.Request, undoing bool) {
+	showing := max(integerParameter(request.PostForm, showingField), 0)
+
+	onDisk, editableError := pages.editable()
+
+	stepError := editableError
+	if stepError == nil {
+		stepError = pages.history.step(undoing, onDisk, pages.options.Store.Save)
+	}
+
+	configuration, _ := pages.configuration()
+	if !pageExists(configuration, showing) {
+		showing = 0
+	}
+
+	if stepError != nil {
+		pages.renderPage(writer, request, http.StatusUnprocessableEntity, configuration, showing,
+			[]string{errorPrefix + stepError.Error()})
+
+		return
+	}
+
+	saved := undoneQuery
+	if !undoing {
+		saved = redoneQuery
+	}
+
+	// The redirect's only variable parts are a formatted integer and a
+	// constant, so it can only ever name one of the editor's own pages.
+	address := fmt.Sprintf("/page?page=%d&saved=%s", showing, saved)
+	http.Redirect(writer, request, address, http.StatusSeeOther) //nolint:gosec // see above
 }
 
 func (pages *pageHandlers) deleteKey(writer http.ResponseWriter, request *http.Request) {
@@ -108,43 +193,8 @@ func (pages *pageHandlers) deleteKey(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	pages.removals.remember(pageIndex, removed)
-
 	// The redirect's only variable part is a formatted integer, so it can only
 	// ever name one of the editor's own pages.
 	http.Redirect(writer, request, fmt.Sprintf("/page?page=%d&saved=removed", pageIndex), //nolint:gosec // see above
 		http.StatusSeeOther)
-}
-
-// undoRemoval puts the last removed keys back where they were, if their page
-// still exists and every one of their tiles is still free.
-func (pages *pageHandlers) undoRemoval(writer http.ResponseWriter, request *http.Request) {
-	pageIndex, keys, held := pages.removals.last()
-	if !held {
-		pages.afterPageChange(writer, request, 0, errNothingToUndo)
-
-		return
-	}
-
-	saveError := pages.changeConfiguration(func(configuration *config.Configuration) error {
-		if pageIndex >= len(configuration.Pages) {
-			return errUndoPageGone
-		}
-
-		page := &configuration.Pages[pageIndex]
-		for _, key := range keys {
-			if _, taken := keyAt(*page, key.Position); taken {
-				return errUndoTileTaken
-			}
-		}
-
-		page.Keys = append(page.Keys, keys...)
-
-		return nil
-	})
-	if saveError == nil {
-		pages.removals.forget()
-	}
-
-	pages.afterPageChange(writer, request, pageIndex, saveError)
 }

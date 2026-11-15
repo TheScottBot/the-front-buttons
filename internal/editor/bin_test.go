@@ -7,14 +7,12 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/TheScottBot/the-front-buttons/internal/layout"
 )
 
 // The removal and undo routes, and the page a removal returns to.
 const (
 	removePath     = "/key/delete"
-	undoPath       = "/key/undo"
+	undoPath       = "/undo"
 	removedPage    = "/page?page=0&saved=removed"
 	startingRow    = "0"
 	startingColumn = "0"
@@ -57,7 +55,7 @@ func TestEditor_RemovingAKeyOffersUndo(t *testing.T) {
 	body := harness.get(t, removedPage).Body.String()
 
 	announcement := regexp.MustCompile(`(?s)<div class="announcement"[^>]*>.*?</div>`).FindString(body)
-	if !strings.Contains(announcement, "Removed") || !strings.Contains(announcement, `action="/key/undo"`) ||
+	if !strings.Contains(announcement, "Removed") || !strings.Contains(announcement, `action="/undo"`) ||
 		!strings.Contains(announcement, `name="token" value="`+testToken+`"`) {
 		t.Fatalf("want a removed message with an undo form carrying the token, got %q", announcement)
 	}
@@ -91,25 +89,32 @@ func TestEditor_UndoPutsTheRemovedKeyBack(t *testing.T) {
 	}
 }
 
-func TestEditor_UndoRefusesWhenTheTileIsTaken(t *testing.T) {
+// TestEditor_UndoStepsBackThroughEachChange: a key removed and its tile then
+// filled is undone a change at a time: first the new key goes, then the
+// removed one comes back.
+func TestEditor_UndoStepsBackThroughEachChange(t *testing.T) {
 	t.Parallel()
 
 	harness := newHarness(t, nil)
-	removeStartingKey(t, harness)
+	original := harness.onDisk(t).Pages[0].Keys[0]
 
+	removeStartingKey(t, harness)
 	harness.post(t, "/key", url.Values{
 		pageField: {"0"}, rowField: {startingRow}, columnField: {startingColumn}, typeField: {openURLType},
 		urlField: {"https://example.test/new"},
 	})
 
-	recorder := harness.post(t, undoPath, url.Values{})
-	if recorder.Code != http.StatusUnprocessableEntity || !strings.Contains(recorder.Body.String(), "now holds") {
-		t.Fatalf("want undo refused while the tile is taken, got %d", recorder.Code)
+	harness.post(t, undoPath, url.Values{})
+
+	if keys := harness.onDisk(t).Pages[0].Keys; len(keys) != 0 {
+		t.Fatalf("want the new key undone first, got %+v", keys)
 	}
 
+	harness.post(t, undoPath, url.Values{})
+
 	keys := harness.onDisk(t).Pages[0].Keys
-	if len(keys) != 1 || keys[0].Position != (layout.Position{Row: 0, Column: 0}) {
-		t.Fatalf("want the new key left alone, got %+v", keys)
+	if len(keys) != 1 || !reflect.DeepEqual(keys[0], original) {
+		t.Fatalf("want the removed key back, got %+v", keys)
 	}
 }
 
