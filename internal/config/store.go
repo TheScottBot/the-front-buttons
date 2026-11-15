@@ -70,7 +70,7 @@ func NewStore(path string, decoder Decoder, fileSystem StoreFileSystem) *Store {
 		decoder:       decoder,
 		fileSystem:    fileSystem,
 		mutex:         sync.Mutex{},
-		current:       Configuration{SchemaVersion: 0, Pages: nil},
+		current:       Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil},
 		hasCurrent:    false,
 		lastDigest:    [sha256.Size]byte{},
 		hasDigest:     false,
@@ -222,7 +222,9 @@ func (store *Store) Watch(
 func (store *Store) OnDisk() (Configuration, error) {
 	fileContent, readError := store.fileSystem.ReadBounded(store.path, MaximumFileBytes)
 	if readError != nil {
-		return Configuration{SchemaVersion: 0, Pages: nil}, fmt.Errorf("reading the configuration file: %w", readError)
+		empty := Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}
+
+		return empty, fmt.Errorf("reading the configuration file: %w", readError)
 	}
 
 	return store.decoder.Decode(fileContent)

@@ -236,6 +236,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The world clocks can be set in the configuration file, `world_clocks`: one
+  to four, each a label of up to four letters or digits and a zone from the
+  zone database, checked as the file loads. Left out, they are UTC, London,
+  Berlin and Sao Paulo as before. The editor has no form for them but keeps
+  them when it saves. With fewer than four, the rows past them are blank and
+  the date stays down the right column.
 - An `open_application` key with Triple press to close ticked quits its
   application outright on three quick presses, each within half a second of
   the last; the first still opens it. After the quit the key ignores presses

@@ -50,7 +50,7 @@ func dashboardConfiguration(screens int) config.Configuration {
 		})
 	}
 
-	return config.Configuration{SchemaVersion: config.CurrentSchemaVersion, Pages: pages}
+	return config.Configuration{SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, Pages: pages}
 }
 
 func startDashboardHarness(t *testing.T, screens int) (*harness, *testsupport.DeckDeviceTestDouble) {

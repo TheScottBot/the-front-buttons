@@ -6,14 +6,12 @@ import (
 	"log/slog"
 	"time"
 
-	// Embedded so the world clocks' zones load on a machine without the
-	// zone files, as Windows has none, as Thyme does.
-	_ "time/tzdata"
+	"github.com/TheScottBot/the-front-buttons/internal/config"
 )
 
 // The clocks: the dashboard's top row shows the local time as HHMMSS, a figure
-// to a key, and the world icon in its corner shows the world clocks, Thyme's
-// four zones a row each, its label and then its HHMMSS, the world icon kept in
+// to a key, and the world icon in its corner shows the world clocks, the
+// configuration's or Thyme's four zones, a row each, its label and then its HHMMSS, the world icon kept in
 // the top right to come back. Both tick on each second, and only the figures
 // that change are drawn again.
 
@@ -29,28 +27,22 @@ type worldZone struct {
 	location *time.Location
 }
 
-// worldZoneNames are Thyme's own four zones, by its labels, from its
-// settings' defaults.
-func worldZoneNames() [][2]string {
-	return [][2]string{
-		{"UTC", "UTC"}, {"LDN", "Europe/London"}, {"BER", "Europe/Berlin"}, {"SAO", "America/Sao_Paulo"},
-	}
-}
-
 // loadWorldZones loads the world clocks, leaving out, and logging, any zone
-// that will not load, so a wrong time is never shown under a right label.
-func loadWorldZones(logger *slog.Logger) []worldZone {
-	zones := make([]worldZone, 0, len(worldZoneNames()))
+// that will not load, so a wrong time is never shown under a right label. The
+// configuration's zones are checked as the file loads, and the zone database
+// is embedded with it, so this is only a guard.
+func loadWorldZones(clocks []config.WorldClock, logger *slog.Logger) []worldZone {
+	zones := make([]worldZone, 0, len(clocks))
 
-	for _, named := range worldZoneNames() {
-		location, loadError := time.LoadLocation(named[1])
+	for _, clock := range clocks {
+		location, loadError := time.LoadLocation(clock.Zone)
 		if loadError != nil {
-			logger.Warn("world clock not loaded", slog.String("zone", named[0]))
+			logger.Warn("world clock not loaded", slog.String("zone", clock.Label))
 
 			continue
 		}
 
-		zones = append(zones, worldZone{label: named[0], location: location})
+		zones = append(zones, worldZone{label: clock.Label, location: location})
 	}
 
 	return zones

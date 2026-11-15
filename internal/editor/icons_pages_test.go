@@ -49,11 +49,11 @@ func (manyIcons) Names() []string {
 type validFile struct{}
 
 func (validFile) OnDisk() (config.Configuration, error) {
-	return config.Configuration{SchemaVersion: config.CurrentSchemaVersion, Pages: nil}, nil
+	return config.Configuration{SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, Pages: nil}, nil
 }
 
 func (validFile) Current() (config.Configuration, bool) {
-	return config.Configuration{SchemaVersion: config.CurrentSchemaVersion, Pages: nil}, true
+	return config.Configuration{SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, Pages: nil}, true
 }
 
 func (validFile) Save(config.Configuration) error { return nil }

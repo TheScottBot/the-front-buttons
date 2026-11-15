@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
@@ -28,6 +29,15 @@ const (
 	// MaximumApplicationCharacters bounds an app screen's application, as an
 	// application key's own field is bounded.
 	MaximumApplicationCharacters = 512
+	// MaximumWorldClocks bounds the world view's clocks: a row each, and the
+	// XL has four rows.
+	MaximumWorldClocks = 4
+	// MaximumClockLabelCharacters bounds a world clock's label, which is drawn
+	// on one key in the clock's face, four of its widest letters fitting.
+	MaximumClockLabelCharacters = 4
+	// MaximumZoneCharacters bounds a world clock's zone name; the longest in
+	// the zone database is about thirty.
+	MaximumZoneCharacters = 64
 )
 
 // The names used in the file. Each appears once here and is used by both the
@@ -44,6 +54,9 @@ const (
 	parametersName    = "parameters"
 	presetName        = "preset"
 	fieldsName        = "fields"
+	worldClocksName   = "world_clocks"
+	clockLabelName    = "label"
+	clockZoneName     = "zone"
 )
 
 // Reason categorises why a configuration was rejected, so rejections are counted
@@ -71,6 +84,11 @@ const (
 	// ReasonWrongApplication is an application's own brick on a page that is
 	// not that application's screen.
 	ReasonWrongApplication Reason = "wrong_application"
+	// ReasonUnknownZone is a world clock's zone the zone database does not
+	// know.
+	ReasonUnknownZone Reason = "unknown_zone"
+	// ReasonDuplicateLabel is a world clock's label another clock has.
+	ReasonDuplicateLabel Reason = "duplicate_label"
 )
 
 // Problem is one thing wrong with a configuration file: where, why, and a
@@ -102,7 +120,39 @@ func (rejection *RejectionError) Error() string {
 // Configuration is a decoded, validated configuration file.
 type Configuration struct {
 	SchemaVersion int
-	Pages         []Page
+	// WorldClocks are the page dashboard's world clocks, in order, or nil
+	// when the file names none, meaning DefaultWorldClocks. The decoder never
+	// fills the defaults in, so saving a file never writes them into it.
+	WorldClocks []WorldClock
+	Pages       []Page
+}
+
+// WorldClock is one of the world view's clocks: the label on its first key,
+// and its zone, a name in the zone database such as Europe/Berlin.
+type WorldClock struct {
+	Label string
+	Zone  string
+}
+
+// DefaultWorldClocks are the world clocks of a file that names none: Thyme's
+// own, UTC, London, Berlin and Sao Paulo.
+func DefaultWorldClocks() []WorldClock {
+	return []WorldClock{
+		{Label: "UTC", Zone: "UTC"},
+		{Label: "LDN", Zone: "Europe/London"},
+		{Label: "BER", Zone: "Europe/Berlin"},
+		{Label: "SAO", Zone: "America/Sao_Paulo"},
+	}
+}
+
+// WorldClocksOrDefault is the world clocks the dashboard shows: the file's,
+// or the defaults when it names none.
+func (configuration Configuration) WorldClocksOrDefault() []WorldClock {
+	if configuration.WorldClocks == nil {
+		return DefaultWorldClocks()
+	}
+
+	return configuration.WorldClocks
 }
 
 // Page is one page of keys.
@@ -150,7 +200,9 @@ func (configuration Configuration) Clone() Configuration {
 		pages = append(pages, Page{Name: page.Name, Application: page.Application, Keys: keys})
 	}
 
-	return Configuration{SchemaVersion: configuration.SchemaVersion, Pages: pages}
+	return Configuration{
+		SchemaVersion: configuration.SchemaVersion, WorldClocks: slices.Clone(configuration.WorldClocks), Pages: pages,
+	}
 }
 
 // Clone returns a deep copy of the key, so a copy made in the editor shares no

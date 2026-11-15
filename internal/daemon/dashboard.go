@@ -207,9 +207,10 @@ func (state *loopState) clockRowTile(position layout.Position) dashboardTile {
 	}
 }
 
-// worldTiles is the world clocks: a row each, its label and then its HHMMSS,
-// the world icon in the top right and the local date, YY, MM and DD, down the
-// right column beneath it.
+// worldTiles is the world clocks: a row each from the top, its label and then
+// its HHMMSS, the rows past them blank, with the world icon in the top right
+// and the local date, YY, MM and DD, down the right column beneath it, however
+// many clocks there are.
 func (state *loopState) worldTiles() []dashboardTile {
 	tiles := make([]dashboardTile, state.grid.KeyCount())
 	last := state.grid.Columns() - 1
@@ -218,10 +219,10 @@ func (state *loopState) worldTiles() []dashboardTile {
 		tiles[keyIndex] = tile(dashboardEmpty)
 	}
 
-	for row := range min(state.grid.Rows(), len(state.zones)) {
+	for row := range state.grid.Rows() {
 		for column := range state.grid.Columns() {
 			if keyIndex, onGrid := state.grid.KeyIndex(layout.Position{Row: row, Column: column}); onGrid {
-				tiles[keyIndex] = worldTileAt(row, column, last)
+				tiles[keyIndex] = worldTileAt(row, column, last, row < len(state.zones))
 			}
 		}
 	}
@@ -229,20 +230,34 @@ func (state *loopState) worldTiles() []dashboardTile {
 	return tiles
 }
 
-// worldTileAt is what a key of the world clocks holds: its row's label, a
-// figure of its time, the world icon, or a part of the date.
-func worldTileAt(row int, column int, last int) dashboardTile {
+// worldTileAt is what a key of the world clocks holds: its row's label or a
+// figure of its time, when the row has a clock, the world icon, or a part of
+// the date.
+func worldTileAt(row int, column int, last int, hasClock bool) dashboardTile {
+	if column <= clockFigures {
+		return clockRowTileAt(row, column, hasClock)
+	}
+
 	switch {
-	case column == 0:
-		return dashboardTile{role: dashboardZoneLabel, pageIndex: 0, zone: row, figure: 0}
-	case column <= clockFigures:
-		return dashboardTile{role: dashboardDigit, pageIndex: 0, zone: row, figure: column - 1}
 	case row == 0 && column == last:
 		return tile(dashboardWorld)
 	case column == last && row <= len(dateParts()):
 		return dashboardTile{role: dashboardDate, pageIndex: 0, zone: localZone, figure: row - 1}
 	default:
 		return tile(dashboardEmpty)
+	}
+}
+
+// clockRowTileAt is a key of a world clock's row: its label, or a figure of
+// its time, or blank in a row without a clock.
+func clockRowTileAt(row int, column int, hasClock bool) dashboardTile {
+	switch {
+	case !hasClock:
+		return tile(dashboardEmpty)
+	case column == 0:
+		return dashboardTile{role: dashboardZoneLabel, pageIndex: 0, zone: row, figure: 0}
+	default:
+		return dashboardTile{role: dashboardDigit, pageIndex: 0, zone: row, figure: column - 1}
 	}
 }
 

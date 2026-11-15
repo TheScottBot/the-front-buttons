@@ -1108,13 +1108,16 @@ The file shape, as decoded and encoded:
 
 | Level | Fields |
 |---|---|
-| Top | `schema_version` (required integer), `pages` (required list) |
+| Top | `schema_version` (required integer), `world_clocks` (optional list), `pages` (required list) |
+| World clock | `label` (required text, 1 to 4 letters or digits, unique), `zone` (required text, a zone database name, 1 to 64 characters) |
 | Page | `name` (required text, 1 to 24 characters), `keys` (required list) |
 | Key | `row`, `column` (required integers); exactly one of `kind` with optional `parameters`, or `preset` with `fields` |
 | Parameters and fields | the brick kind's or preset's derived schema |
 
 Bounds, in `internal/config/contract.go`: file 1,048,576 bytes; 64 pages; page
-name 24 characters; keys per page at most the grid's positions. The appearance
+name 24 characters; keys per page at most the grid's positions; 1 to 4 world
+clocks. `world_clocks` was added without a version bump: it is optional, and
+every version 1 file means what it did. The appearance
 label bound of 24 characters is provisional pending TE4's legibility gate.
 
 ### Design choices made in TE2, for the author to see
@@ -4734,6 +4737,52 @@ construct without the port. Planting each of no quiet period, no limit on the
 gap between presses, and a second press that opens failed those tests. On
 this MacBook the real quitter quit Calculator by bundle identifier and by
 name, and quietly did nothing when it was not running.
+
+### World clocks in the configuration
+
+The author asked for the world clocks to be set in the configuration file,
+with no editor form, to change on the rare occasion the author's partner
+travels somewhere other than Berlin or Araraquara. A plan was drawn up
+first, and its recommended choices taken.
+
+The file gained an optional top level `world_clocks` list, each clock a
+`label` and a `zone`, written before `pages`. Left out, it decodes as none
+and the dashboard takes Thyme's four defaults, UTC, LDN, BER and SAO; the
+decoder never fills them in, so saving a file never writes them into it. No
+schema version bump: the field is optional and additive, as `application`
+was. Every clock is checked as the file loads, every problem collected: one
+to four clocks, the XL's rows (`out_of_bounds` for an empty list, which would
+leave nothing to show, `too_many` past four); a label of one to four letters
+or digits, every one drawn by the clock's face; no label repeated
+(`duplicate_label`); a zone the embedded zone database knows, not `Local`,
+which is the machine's own (`unknown_zone`). A bad clock refuses the whole
+file, the last good configuration running on. The zone database moved from
+the daemon to the configuration package, so a zone is checked the same on
+every machine. Four letters is the bound because four of the widest, WWWW,
+leave 14 pixels either side of a 96 pixel key, and five leave 5.
+
+The daemon loads the clocks with each configuration. The world view had
+laid out only as many rows as there were clocks, which with fewer than four
+would have lost the date keys beneath, and with none the world icon, the way
+back; it now lays out every row, the rows without a clock blank, the icon
+and date kept. The editor keeps the field through `Clone` and `Encode`, and
+undo, which compares copies, notices a hand edit to the clocks alone.
+
+Tests first, each failing before its change: the decoder reads clocks in
+order and leaves them absent as none, with the defaults; refuses an empty
+list, five clocks, a long or punctuated label, a missing label or zone, an
+unknown zone, `Local`, a path, a number, an unknown field, a repeated label
+and a mapping for the list, each by path, reason and line; reports two bad
+clocks both; encodes them only when present, before the pages, round
+tripping, with a fuzz seed; and clones them independently. The daemon shows
+two configured clocks with the rows past them blank and the icon and date
+kept, and a reloaded list the next time the view opens. The editor keeps
+hand written clocks through a rename, and writes none into a file without
+them, and undo refuses after the clocks alone are changed by hand. WWWW and
+MMMM fit a key with eight pixels to spare. Planting each of no zone check, a
+clone sharing the list, an encoder without the clocks, the old row loop, a
+reload keeping the old zones, a clone dropping the clocks, and a five letter
+label failed the matching test.
 
 ### Still owed
 

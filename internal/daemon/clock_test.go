@@ -7,6 +7,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
@@ -155,4 +156,71 @@ func TestDaemon_WorldClocksShowTheDateDownTheRightColumn(t *testing.T) {
 
 		running.stop(t)
 	})
+}
+
+// TestDaemon_WorldClocksComeFromTheConfiguration: the file's world clocks
+// replace the defaults, a row each from the top, the rows past them blank
+// and the world icon and the date kept; a new file's clocks show the next
+// time the world view opens.
+func TestDaemon_WorldClocksComeFromTheConfiguration(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running := startHarness(t)
+		configuration := dashboardConfiguration(2)
+		configuration.WorldClocks = []config.WorldClock{
+			{Label: "BER", Zone: "Europe/Berlin"}, {Label: "ARQ", Zone: "America/Sao_Paulo"},
+		}
+
+		running.configurations <- configuration
+
+		device := deckAttached(t, running)
+
+		holdMarker(device)
+		tap(device, worldKeyIndex)
+		requireClock(t, running, device, 0, "BER", "Europe/Berlin")
+		requireClock(t, running, device, 1, "ARQ", "America/Sao_Paulo")
+
+		blank := running.renderer.RenderBlank()
+		for _, keyIndex := range []int{2 * keysPerRow, 2*keysPerRow + 1, 3 * keysPerRow, 3*keysPerRow + 6} {
+			if difference := distance(drawnImage(t, device, keyIndex), blank); difference > blankDifference {
+				t.Errorf("key %d: want it blank past the clocks, differing by %.1f", keyIndex, difference)
+			}
+		}
+
+		day := time.Now().Format("02")
+
+		requireCloser(t, device, worldKeyIndex,
+			running.renderer.RenderClockIcon("world"), running.renderer.RenderBlank())
+		requireCloser(t, device, 3*keysPerRow+worldKeyIndex,
+			running.renderer.RenderClockDate(day, "day"), running.renderer.RenderBlank())
+
+		configuration.WorldClocks = []config.WorldClock{{Label: "TYO", Zone: "Asia/Tokyo"}}
+		running.configurations <- configuration
+
+		time.Sleep(settle)
+		synctest.Wait()
+		holdMarker(device)
+		tap(device, worldKeyIndex)
+		requireClock(t, running, device, 0, "TYO", "Asia/Tokyo")
+
+		running.stop(t)
+	})
+}
+
+// requireClock checks a world clock's row shows its label and its zone's
+// time.
+func requireClock(
+	t *testing.T, running *harness, device *testsupport.DeckDeviceTestDouble, row int, label, zone string,
+) {
+	t.Helper()
+
+	location, loadError := time.LoadLocation(zone)
+	if loadError != nil {
+		t.Fatal(loadError)
+	}
+
+	requireCloser(t, device, row*keysPerRow,
+		running.renderer.RenderClockLabel(label), running.renderer.RenderClockLabel("XXX"))
+	requireTime(t, running, device, row*keysPerRow+1, time.Now().In(location))
 }

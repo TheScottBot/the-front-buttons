@@ -124,6 +124,20 @@ func TestRenderClock_DrawsALabelAndAnIcon(t *testing.T) {
 	}
 }
 
+// TestRenderClock_FitsTheLongestLabelAWorldClockMayHave: a world clock's
+// label may have four letters, and four of the widest are drawn whole within
+// the key, clear of its edges.
+func TestRenderClock_FitsTheLongestLabelAWorldClockMayHave(t *testing.T) {
+	t.Parallel()
+
+	for _, label := range []string{"WWWW", "MMMM"} {
+		ink := inkBounds(newTestRenderer(t).RenderClockLabel(label), clockNavy())
+		if ink.Min.X < 8 || ink.Max.X > testKeyPixels-8 {
+			t.Errorf("%s: want it drawn clear of the key's sides, got %v", label, ink)
+		}
+	}
+}
+
 // distanceBetween counts the pixels two images differ at.
 func distanceBetween(first image.Image, second image.Image) int {
 	differing := 0

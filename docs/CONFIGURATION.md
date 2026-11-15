@@ -65,8 +65,9 @@ local time as HHMMSS, a figure to a key, in the look of Thyme, the author's
 clock: its pink JetBrains Mono figures on its navy. Each pair is drawn towards
 each other, with a small colon after the hours and the minutes, so the six keys
 read as 15:31:42. The top right key is a
-world icon, which shows the world clocks: UTC, London (LDN), Berlin (BER) and
-Sao Paulo (SAO), a row each, its label and then its HHMMSS, with the world icon
+world icon, which shows the world clocks: unless the file names its own, see
+[World clocks](#world-clocks), UTC, London (LDN), Berlin (BER) and Sao Paulo
+(SAO), a row each, its label and then its HHMMSS, with the world icon
 kept in the top right to go back to the dashboard, and the local date, YY, MM
 and DD, down the right column beneath it, small in each key's top right corner
 in Thyme's date colour, with its word, year, month or day, a little smaller in
@@ -128,6 +129,35 @@ before. After the quit the key does nothing until it has been left alone for
 a second and a half, so a fourth press does not open the application again.
 An application with unsaved work may still ask about it before it quits. Not
 available on Windows yet.
+
+## World clocks
+
+The world clocks are set in the file only; the editor has no form for them,
+but keeps them as written when it saves. Add `world_clocks` beside `pages`,
+in `~/Library/Application Support/the-front-buttons/config.yaml` on macOS,
+listing each clock's label and zone:
+
+```yaml
+schema_version: 1
+world_clocks:
+  - label: UTC
+    zone: UTC
+  - label: LDN
+    zone: Europe/London
+  - label: ARQ
+    zone: America/Sao_Paulo
+pages:
+  # ...
+```
+
+There may be one to four clocks, a row each from the top, in the order
+written; rows past the last are blank, and the world icon and the date stay
+where they are. A label is one to four letters or digits, and no two clocks
+share one. A zone is a name from the zone database, such as Europe/Berlin or
+Asia/Tokyo, checked as the file loads; a city without a zone of its own takes
+its region's, as Araraquara takes America/Sao_Paulo. Any clock that breaks
+these refuses the file, as any other problem does. Leave `world_clocks` out
+for the four above. A change shows the next time the world view opens.
 
 ## Icons
 

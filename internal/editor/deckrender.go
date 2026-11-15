@@ -97,7 +97,7 @@ func (pages *pageHandlers) deckFallbacks(
 		return pages.options.Registry.Title(kindName), ""
 	}
 
-	page := pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex)
+	page := pageAt(config.Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: allPages}, pageIndex)
 	pageNumber := slices.Index(regularPages(allPages), pageIndex) + 1
 
 	return brick.FallbackLabel(instance, page.Name, pageNumber), brick.FallbackIcon(instance, pageNumber)
@@ -107,7 +107,7 @@ func (pages *pageHandlers) deckFallbacks(
 // application has more than one: which screen it is and the names either
 // side, as the deck shows them. A lone screen shows none.
 func screenIndication(allPages []config.Page, pageIndex int) (layout.PageIndication, bool) {
-	page := pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex)
+	page := pageAt(config.Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: allPages}, pageIndex)
 	screens := screensOf(allPages, page.Application)
 	showing := slices.Index(screens, pageIndex)
 

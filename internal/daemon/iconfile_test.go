@@ -63,6 +63,7 @@ func TestDaemon_DrawsAKeysOwnIconFile_OrTheMissingMarker(t *testing.T) {
 		running := startHarness(t)
 		running.configurations <- config.Configuration{
 			SchemaVersion: config.CurrentSchemaVersion,
+			WorldClocks:   nil,
 			Pages: []config.Page{{Name: "Icons", Application: "", Keys: []config.Key{
 				iconFileKey(0, redIconFile), iconFileKey(1, "gone.png"),
 			}}},

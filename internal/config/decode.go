@@ -41,21 +41,21 @@ func (decoder Decoder) Decode(fileContent []byte) (Configuration, error) {
 	if len(fileContent) > MaximumFileBytes {
 		list.addf(nil, "", ReasonTooLarge, "file is %d bytes; the limit is %d", len(fileContent), MaximumFileBytes)
 
-		return Configuration{SchemaVersion: 0, Pages: nil}, &RejectionError{Problems: list.problems}
+		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
 	}
 
 	root, rootFound := parseRoot(fileContent, &list)
 	if !rootFound {
-		return Configuration{SchemaVersion: 0, Pages: nil}, &RejectionError{Problems: list.problems}
+		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
 	}
 
 	if !decoder.bringToCurrentVersion(root, &list) {
-		return Configuration{SchemaVersion: 0, Pages: nil}, &RejectionError{Problems: list.problems}
+		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
 	}
 
 	configuration := decoder.decodeRoot(root, &list)
 	if len(list.problems) > 0 {
-		return Configuration{SchemaVersion: 0, Pages: nil}, &RejectionError{Problems: list.problems}
+		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
 	}
 
 	return configuration, nil
@@ -177,11 +177,15 @@ func mappingValue(mapping *yaml.Node, entryName string) *yaml.Node {
 }
 
 func (decoder Decoder) decodeRoot(root *yaml.Node, list *problemList) Configuration {
-	configuration := Configuration{SchemaVersion: CurrentSchemaVersion, Pages: nil}
+	configuration := Configuration{SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, Pages: nil}
 
-	entries, isMapping := list.mappingEntries(root, "", schemaVersionName, pagesName)
+	entries, isMapping := list.mappingEntries(root, "", schemaVersionName, worldClocksName, pagesName)
 	if !isMapping {
 		return configuration
+	}
+
+	if clocksNode, present := entries[worldClocksName]; present {
+		configuration.WorldClocks = decodeWorldClocks(clocksNode, list)
 	}
 
 	pagesNode, pagesPresent := entries[pagesName]

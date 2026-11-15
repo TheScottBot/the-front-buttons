@@ -19,6 +19,7 @@ const secondScreenName = "Blue 2"
 func twoScreenConfiguration() config.Configuration {
 	return config.Configuration{
 		SchemaVersion: config.CurrentSchemaVersion,
+		WorldClocks:   nil,
 		Pages: []config.Page{
 			{Name: appIconTestLabel, Application: knownApplication, Keys: []config.Key{button("screen one", 1, false)}},
 			{Name: firstPageName, Application: "", Keys: []config.Key{appScreenKey(true), button("first", 1, false)}},

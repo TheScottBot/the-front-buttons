@@ -12,6 +12,7 @@ import (
 func FuzzDecode(f *testing.F) {
 	seeds := []string{
 		validConfiguration,
+		withClocks(berlinAndAraraquara),
 		"",
 		"schema_version: 1\npages: []\n",
 		"schema_version: 1\npages:\n  - name: A\n    keys: []\n",

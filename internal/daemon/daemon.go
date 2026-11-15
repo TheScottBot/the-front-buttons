@@ -284,7 +284,7 @@ func newLoopState(options Options) *loopState {
 		appScreens:              map[string][]int{},
 		screenPages:             nil,
 		dashboard:               closedDashboard(),
-		zones:                   loadWorldZones(options.Logger),
+		zones:                   loadWorldZones(config.DefaultWorldClocks(), options.Logger),
 		allPageNames:            nil,
 		appScreen:               "",
 		appScreenAt:             0,
@@ -352,13 +352,13 @@ func (state *loopState) handle(runContext context.Context, received any) {
 func (state *loopState) applyConfiguration(runContext context.Context, configuration config.Configuration) {
 	state.configurationGeneration++
 	showingName := state.regularPageName()
-	state.iconFiles = map[string]image.Image{}
-	state.appIcons = map[string]image.Image{}
+	state.iconFiles, state.appIcons = map[string]image.Image{}, map[string]image.Image{}
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
 	state.pageNames = nil
 	state.regular = nil
 	state.appScreens, state.screenPages, state.allPageNames = map[string][]int{}, nil, nil
 	state.closeDashboard()
+	state.zones = loadWorldZones(configuration.WorldClocksOrDefault(), state.options.Logger)
 
 	for pageIndex, page := range configuration.Pages {
 		state.allPageNames = append(state.allPageNames, page.Name)

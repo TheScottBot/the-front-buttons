@@ -51,10 +51,19 @@ func (decoder Decoder) Encode(configuration Configuration) ([]byte, error) {
 		pagesNode.Content = append(pagesNode.Content, pageNode)
 	}
 
-	root := mappingNode(
-		textNode(schemaVersionName), integerNode(int64(configuration.SchemaVersion)),
-		textNode(pagesName), pagesNode,
-	)
+	root := mappingNode(textNode(schemaVersionName), integerNode(int64(configuration.SchemaVersion)))
+
+	if configuration.WorldClocks != nil {
+		clocksNode := sequenceNode()
+		for _, clock := range configuration.WorldClocks {
+			clocksNode.Content = append(clocksNode.Content, mappingNode(
+				textNode(clockLabelName), textNode(clock.Label), textNode(clockZoneName), textNode(clock.Zone)))
+		}
+
+		root.Content = append(root.Content, textNode(worldClocksName), clocksNode)
+	}
+
+	root.Content = append(root.Content, textNode(pagesName), pagesNode)
 
 	encoded, dumpError := yaml.Dump(root, yaml.WithIndent(encodingIndent))
 	if dumpError != nil {
