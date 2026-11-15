@@ -142,3 +142,20 @@ func TestEditor_ScriptSwapsAndPastesKeys(t *testing.T) {
 		t.Error("want the drag hint to say a key can be swapped")
 	}
 }
+
+// TestEditor_ScriptUpdatesTheGridInPlace: a change made from the grid that
+// lands on the page on show replaces only the tiles that changed, each
+// picture asked for afresh and loaded first, rather than loading the page,
+// which fetched every picture again and made the grid flash.
+func TestEditor_ScriptUpdatesTheGridInPlace(t *testing.T) {
+	t.Parallel()
+
+	script := newCopyKeysHarness(t).get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{
+		"updateInPlace", "replaceState", `searchParams.set("drawn"`, "new Image()", "form.undo-form",
+	} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+}

@@ -18,6 +18,9 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
+// savedPageName is the name a page is given before a save.
+const savedPageName = "Saved"
+
 // newStoreWithFile writes the content to a fresh config file and returns a
 // store over it.
 func newStoreWithFile(t *testing.T, fileContent string) (*config.Store, string) {
@@ -137,7 +140,7 @@ func TestStore_Save_WritesThroughTheOneReloadPath(t *testing.T) {
 	requireOutcome(t, store, config.ReloadAccepted)
 
 	edited, _ := store.Current()
-	edited.Pages[1].Name = "Saved"
+	edited.Pages[1].Name = savedPageName
 
 	saveError := store.Save(edited)
 	if saveError != nil {
@@ -154,7 +157,7 @@ func TestStore_Save_WritesThroughTheOneReloadPath(t *testing.T) {
 	requireOutcome(t, store, config.ReloadAccepted)
 
 	afterReload, _ := store.Current()
-	if afterReload.Pages[1].Name != "Saved" {
+	if afterReload.Pages[1].Name != savedPageName {
 		t.Fatalf("want the saved configuration after reload, got %q", afterReload.Pages[1].Name)
 	}
 }
@@ -243,6 +246,45 @@ func TestStore_Watch_DeliversEachAcceptedChange_AndStopsWhenCancelled(t *testing
 		if !strings.Contains(logBuffer.String(), `"result":"rejected"`) {
 			t.Fatalf("want the rejection logged, got:\n%s", logBuffer.String())
 		}
+	})
+}
+
+// TestStore_Watch_ReloadsASaveAtOnce: a save from the editor wakes the
+// watcher, which reloads the file at once through the same path as a hand
+// edit, rather than at its next poll, so the deck follows the editor without
+// the poll's delay.
+func TestStore_Watch_ReloadsASaveAtOnce(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		store, _ := newStoreWithFile(t, validConfiguration)
+		recorder := &acceptedRecorder{mutex: sync.Mutex{}, accepted: nil}
+		watchContext, cancelWatch := context.WithCancel(t.Context())
+		watchDone := make(chan struct{})
+
+		go func() {
+			store.Watch(watchContext, time.Hour, recorder.record, slog.New(slog.DiscardHandler))
+			close(watchDone)
+		}()
+
+		synctest.Wait()
+
+		edited, _ := store.Current()
+		edited.Pages[1].Name = savedPageName
+
+		saveError := store.Save(edited)
+		if saveError != nil {
+			t.Fatalf("saving: %v", saveError)
+		}
+
+		synctest.Wait()
+
+		if recorder.count() != 2 {
+			t.Fatalf("want the save reloaded at once, with no time passing, got %d deliveries", recorder.count())
+		}
+
+		cancelWatch()
+		<-watchDone
 	})
 }
 

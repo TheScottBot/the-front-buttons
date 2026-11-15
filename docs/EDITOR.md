@@ -77,8 +77,11 @@ pastes nothing and names the tiles; pasting a cut moves the keys, once. What
 is copied lasts while the tab is open and never reaches the system's
 clipboard, and text being typed or selected keeps its usual Command-C and V.
 
-Every change on the pages screen, from a drop, the key dialog, Undo, or going
-into select mode and out of it, keeps the grid where it was in the window.
+A change made from the grid that stays on the page on show, a drop, a swap, a
+paste, Delete or Undo, updates only the tiles it changed, without loading the
+page again, so nothing else on the grid flashes. Every other change, from the
+key dialog, or going into select mode and out of it, loads the page and keeps
+the grid where it was in the window.
 
 With a tile focused, the arrow keys move between tiles, passing over any that
 cannot take focus, and Enter opens one. Delete, or Backspace, removes the key

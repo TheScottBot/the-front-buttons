@@ -56,6 +56,10 @@ type Store struct {
 	lastDigest    [sha256.Size]byte
 	hasDigest     bool
 	lastRejection *RejectionError
+
+	// saved wakes the watcher when a save has written the file, so the
+	// change is reloaded at once rather than at the next poll.
+	saved chan struct{}
 }
 
 // NewStore returns a store for the configuration file at path. Nothing is read
@@ -71,6 +75,7 @@ func NewStore(path string, decoder Decoder, fileSystem StoreFileSystem) *Store {
 		lastDigest:    [sha256.Size]byte{},
 		hasDigest:     false,
 		lastRejection: nil,
+		saved:         make(chan struct{}, 1),
 	}
 }
 
@@ -148,7 +153,8 @@ func (store *Store) LastRejection() error {
 
 // Save validates a configuration by encoding and decoding it, then writes it
 // atomically. It does not change what is running: the next reload picks the file
-// up exactly as it would a hand edit.
+// up exactly as it would a hand edit, and a save wakes the watcher for that
+// reload at once.
 func (store *Store) Save(configuration Configuration) error {
 	encoded, encodeError := store.decoder.Encode(configuration)
 	if encodeError != nil {
@@ -160,11 +166,23 @@ func (store *Store) Save(configuration Configuration) error {
 		return fmt.Errorf("refusing to save: %w", decodeError)
 	}
 
-	return WriteAtomically(store.fileSystem, store.path, encoded)
+	writeError := WriteAtomically(store.fileSystem, store.path, encoded)
+	if writeError != nil {
+		return writeError
+	}
+
+	// A wake already waiting covers this save too.
+	select {
+	case store.saved <- struct{}{}:
+	default:
+	}
+
+	return nil
 }
 
 // Watch reloads the file now and then once per interval until the context ends,
-// calling onAccepted with each newly accepted configuration. It polls rather than
+// and at once after each save, calling onAccepted with each newly accepted
+// configuration. It polls rather than
 // subscribing to filesystem events: polling needs no dependency, behaves the same
 // on both operating systems, and copes with editors that replace a file rather
 // than write to it. Each change of result is logged once, by reason category and
@@ -192,6 +210,7 @@ func (store *Store) Watch(
 		case <-watchContext.Done():
 			return
 		case <-ticker.C:
+		case <-store.saved:
 		}
 	}
 }

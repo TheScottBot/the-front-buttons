@@ -9,6 +9,8 @@
 // data-state ("key", "empty" or "reserved"); only a key can be picked up and
 // only an empty tile accepts a drop, so a paging or occupied tile never does.
 
+import { updateInPlace } from "./inplace";
+
 const tileAttribute = "data-tile";
 const stateAttribute = "data-state";
 const draggingClass = "dragging";
@@ -83,7 +85,9 @@ export async function send(path: string, fields: Record<string, string | readonl
   try {
     const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
     if (response.ok && response.redirected) {
-      window.location.assign(response.url);
+      if (!(await updateInPlace(await response.text(), response.url))) {
+        window.location.assign(response.url);
+      }
 
       return true;
     }
@@ -738,10 +742,22 @@ export function enableDrag(grid: HTMLTableElement): void {
       clearDropTargets(root);
       dropped = true;
 
+      // The keys stay where they slid while the swap is saved, and slide
+      // back only if it is refused.
+      const shown = swapping;
+      swapping = null;
+
       if (copying(event)) {
         announce("Error: a copy needs a free tile; let go of Command to swap the two keys instead.");
+        if (shown !== null) {
+          hideSwap(shown);
+        }
       } else {
-        void swap(source, destination);
+        void swap(source, destination).then((accepted) => {
+          if (!accepted && shown !== null) {
+            hideSwap(shown);
+          }
+        });
       }
 
       return;
@@ -756,6 +772,15 @@ export function enableDrag(grid: HTMLTableElement): void {
     clearGhosts(root);
     dropped = true;
     void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination as string, copying(event)));
+  });
+
+  // Undo after a change made here puts the keys back the same way, without
+  // loading the page; without the script it is a plain form.
+  document.addEventListener("submit", (event: SubmitEvent) => {
+    if (event.target instanceof HTMLFormElement && event.target.matches("form.undo-form")) {
+      event.preventDefault();
+      void send(event.target.getAttribute("action") ?? "/key/undo", {});
+    }
   });
 
   document.getElementById("drag-help")?.removeAttribute("hidden");

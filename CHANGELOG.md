@@ -239,6 +239,13 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - A key dropped on another in the editor swaps the two, on one page or across
   pages, the two sliding into each other's tiles while it is carried; a key's
   form offers the same swap from the keyboard.
+- A save from the editor wakes the configuration watcher, so the deck reloads
+  it at once rather than at the next of its once a second polls; hand edits
+  are still picked up within a second.
+- A change made from the editor's grid that stays on the page on show, a drop,
+  a swap, a paste, Delete or Undo, replaces only the tiles it changed instead
+  of loading the page, which fetched every key's picture again and made the
+  grid flash.
 - The editor's hints on dragging and the keyboard sit at the bottom of the
   pages screen, so the page lists lead straight into the grid.
 - Command-C and Command-X, Ctrl on Windows, copy or cut the key focused or the

@@ -1,6 +1,91 @@
 (() => {
-  // internal/editor/web/drag.ts
+  // internal/editor/web/inplace.ts
   var tileAttribute = "data-tile";
+  var decodeMilliseconds = 2e3;
+  function shownGrid() {
+    return document.querySelector("table.grid:not(.grid-left-behind)");
+  }
+  function pageOf(grid2) {
+    return grid2?.querySelector(`td[${tileAttribute}]`)?.getAttribute(tileAttribute)?.split(".")[0] ?? null;
+  }
+  function pageNames(root) {
+    return [...root.querySelectorAll('nav[aria-label="Pages"] a')].map((link) => link.textContent ?? "").join("|");
+  }
+  function preload(address) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      const timer = window.setTimeout(resolve, decodeMilliseconds);
+      const done = () => {
+        window.clearTimeout(timer);
+        resolve();
+      };
+      image.addEventListener("load", done);
+      image.addEventListener("error", done);
+      image.src = address;
+    });
+  }
+  function fresh(cell) {
+    return [...cell.querySelectorAll("img.deck-face")].map((picture) => {
+      const address = new URL(picture.getAttribute("src") ?? "", window.location.href);
+      address.searchParams.set("drawn", String(Date.now()));
+      const source = address.pathname + address.search;
+      return preload(source).then(() => {
+        picture.src = source;
+      });
+    });
+  }
+  function sameTile(now, next) {
+    return now.getAttribute("data-state") === next.getAttribute("data-state") && now.innerHTML === next.innerHTML;
+  }
+  function replaceRegion(incoming, selector) {
+    const now = document.querySelector(selector);
+    const next = incoming.querySelector(selector);
+    if (now !== null && next !== null) {
+      now.replaceChildren(...[...next.childNodes].map((node) => document.importNode(node, true)));
+    } else if (now !== null) {
+      now.remove();
+    } else if (next !== null) {
+      document.querySelector(".announcement")?.after(document.importNode(next, true));
+    }
+  }
+  async function updateInPlace(page, address) {
+    const incoming = new DOMParser().parseFromString(page, "text/html");
+    const nextGrid = incoming.querySelector("table.grid");
+    const grid2 = shownGrid();
+    if (grid2 === null || nextGrid === null || document.querySelector(".grid-left-behind") !== null || pageOf(grid2) !== pageOf(nextGrid) || pageNames(document) !== pageNames(incoming) || grid2.querySelector(".select-key") === null !== (nextGrid.querySelector(".select-key") === null) || document.querySelector("dialog[open]") !== null) {
+      return false;
+    }
+    const changed = [];
+    for (const next of nextGrid.querySelectorAll(`td[${tileAttribute}]`)) {
+      const now = grid2.querySelector(`td[${tileAttribute}="${next.getAttribute(tileAttribute)}"]`);
+      if (now === null) {
+        return false;
+      }
+      if (!sameTile(now, next)) {
+        changed.push([now, document.importNode(next, true)]);
+      }
+    }
+    await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+    const focused = document.activeElement?.closest(`td[${tileAttribute}]`)?.getAttribute(tileAttribute) ?? null;
+    for (const [now, next] of changed) {
+      now.replaceWith(next);
+    }
+    if (focused !== null && document.activeElement === document.body) {
+      grid2.querySelector(`td[${tileAttribute}="${focused}"] a, td[${tileAttribute}="${focused}"] input`)?.focus();
+    }
+    const caption = grid2.querySelector("caption");
+    const nextCaption = nextGrid.querySelector("caption");
+    if (caption !== null && nextCaption !== null) {
+      caption.textContent = nextCaption.textContent;
+    }
+    replaceRegion(incoming, ".announcement");
+    replaceRegion(incoming, ".problems");
+    window.history.replaceState(null, "", address);
+    return true;
+  }
+
+  // internal/editor/web/drag.ts
+  var tileAttribute2 = "data-tile";
   var stateAttribute = "data-state";
   var draggingClass = "dragging";
   var dropTargetClass = "drop-target";
@@ -13,7 +98,7 @@
     return { page: parts[0], row: parts[1], column: parts[2] };
   }
   function cellOf(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute}]`) : null;
+    return target instanceof Element ? target.closest(`td[${tileAttribute2}]`) : null;
   }
   function stateOf(cell) {
     const state = cell.getAttribute(stateAttribute);
@@ -46,7 +131,9 @@
     try {
       const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
       if (response.ok && response.redirected) {
-        window.location.assign(response.url);
+        if (!await updateInPlace(await response.text(), response.url)) {
+          window.location.assign(response.url);
+        }
         return true;
       }
       announce(refusalFrom(await response.text()));
@@ -188,7 +275,7 @@
     for (const tile of group.tiles) {
       const [row, column] = tile.split(".").map(Number);
       const landing = `${destination.page}.${row + rowShift}.${column + columnShift}`;
-      const cell = grid2.querySelector(`td[${tileAttribute}="${landing}"]`);
+      const cell = grid2.querySelector(`td[${tileAttribute2}="${landing}"]`);
       if (cell === null) {
         fits = false;
         offDeck = true;
@@ -211,7 +298,7 @@
     return fits;
   }
   function groupDragImage(group, event) {
-    const cells = group.tiles.map((tile) => document.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)).filter((cell) => cell !== null);
+    const cells = group.tiles.map((tile) => document.querySelector(`td[${tileAttribute2}="${group.source.page}.${tile}"]`)).filter((cell) => cell !== null);
     if (cells.length === 0 || event.dataTransfer === null) {
       return;
     }
@@ -241,7 +328,7 @@
   }
   function markGroup(group, root, marked) {
     for (const tile of group.tiles) {
-      root.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)?.classList.toggle(draggingClass, marked);
+      root.querySelector(`td[${tileAttribute2}="${group.source.page}.${tile}"]`)?.classList.toggle(draggingClass, marked);
     }
   }
   var binArmedClass = "armed";
@@ -282,7 +369,7 @@
     const link = target instanceof Element ? target.closest(`a[${pageAttribute}]`) : null;
     return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute) ?? "") ? link : null;
   }
-  function shownGrid() {
+  function shownGrid2() {
     return document.querySelector(`table.grid:not(.${leftBehindClass})`);
   }
   async function openPageDuringDrag(page) {
@@ -294,7 +381,7 @@
       const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
       const incoming = parsed.querySelector("table.grid");
       const incomingPages = parsed.querySelector('nav[aria-label="Pages"]');
-      const current = shownGrid();
+      const current = shownGrid2();
       if (incoming === null || current === null) {
         return false;
       }
@@ -357,9 +444,9 @@
         });
       }, holdMilliseconds);
     };
-    const accepts = (cell) => stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute)));
+    const accepts = (cell) => stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute2)));
     const swapsWith = (cell) => {
-      const tile = parseTile(cell.getAttribute(tileAttribute));
+      const tile = parseTile(cell.getAttribute(tileAttribute2));
       return group === null && source !== null && stateOf(cell) === "key" && tile !== null && !(tile.page === source.page && tile.row === source.row && tile.column === source.column);
     };
     if (bin !== null) {
@@ -388,24 +475,24 @@
       if (cell === null || stateOf(cell) !== "key" || event.dataTransfer === null) {
         return;
       }
-      source = parseTile(cell.getAttribute(tileAttribute));
+      source = parseTile(cell.getAttribute(tileAttribute2));
       group = groupOf(cell, source);
       shownPage = source?.page ?? "";
       opened = false;
       dropped = false;
       event.dataTransfer.effectAllowed = "copyMove";
-      event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
+      event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute2) ?? "");
       cell.classList.add(draggingClass);
       if (group !== null) {
         const carried = group;
         groupDragImage(carried, event);
         markGroup(carried, root, true);
         pictures = new Map(carried.tiles.flatMap((tile) => {
-          const ticked = root.querySelector(`td[${tileAttribute}="${carried.source.page}.${tile}"]`);
+          const ticked = root.querySelector(`td[${tileAttribute2}="${carried.source.page}.${tile}"]`);
           return ticked === null ? [] : [[tile, ghostPicture(ticked)]];
         }));
       }
-      const shown = shownGrid();
+      const shown = shownGrid2();
       if (bin !== null && shown !== null) {
         showBin(bin, shown);
       }
@@ -444,7 +531,7 @@
       }
       const cell = cellOf(event.target);
       if (group !== null) {
-        const tile = cell?.getAttribute(tileAttribute) ?? "";
+        const tile = cell?.getAttribute(tileAttribute2) ?? "";
         const destination = parseTile(tile);
         const shown = cell?.closest("table.grid") ?? null;
         if (tile !== ghostedAt) {
@@ -460,8 +547,8 @@
       }
       if (cell !== null && swapsWith(cell)) {
         event.preventDefault();
-        const home = source === null ? null : shownGrid()?.querySelector(
-          `td[${tileAttribute}="${source.page}.${source.row}.${source.column}"]`
+        const home = source === null ? null : shownGrid2()?.querySelector(
+          `td[${tileAttribute2}="${source.page}.${source.row}.${source.column}"]`
         ) ?? null;
         if (home === null) {
           cell.classList.add(swapClass);
@@ -494,22 +581,31 @@
         event.preventDefault();
         disarm();
         dropped = true;
-        const sameTile = `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`;
-        const target2 = parseTile(sameTile);
-        void (group !== null && target2 !== null ? relocateGroup(group, target2, copying(event)) : relocate(source, sameTile, copying(event)));
+        const sameTile2 = `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`;
+        const target2 = parseTile(sameTile2);
+        void (group !== null && target2 !== null ? relocateGroup(group, target2, copying(event)) : relocate(source, sameTile2, copying(event)));
         return;
       }
       const cell = cellOf(event.target);
-      const destination = cell?.getAttribute(tileAttribute) ?? null;
+      const destination = cell?.getAttribute(tileAttribute2) ?? null;
       const target = parseTile(destination);
       if (cell !== null && destination !== null && swapsWith(cell)) {
         event.preventDefault();
         clearDropTargets(root);
         dropped = true;
+        const shown = swapping;
+        swapping = null;
         if (copying(event)) {
           announce("Error: a copy needs a free tile; let go of Command to swap the two keys instead.");
+          if (shown !== null) {
+            hideSwap(shown);
+          }
         } else {
-          void swap(source, destination);
+          void swap(source, destination).then((accepted) => {
+            if (!accepted && shown !== null) {
+              hideSwap(shown);
+            }
+          });
         }
         return;
       }
@@ -522,12 +618,18 @@
       dropped = true;
       void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination, copying(event)));
     });
+    document.addEventListener("submit", (event) => {
+      if (event.target instanceof HTMLFormElement && event.target.matches("form.undo-form")) {
+        event.preventDefault();
+        void send(event.target.getAttribute("action") ?? "/key/undo", {});
+      }
+    });
     document.getElementById("drag-help")?.removeAttribute("hidden");
   }
 
   // internal/editor/web/clipboard.ts
   var clipboardKey = "front-buttons-keys";
-  var tileAttribute2 = "data-tile";
+  var tileAttribute3 = "data-tile";
   function save(copied) {
     try {
       window.sessionStorage.setItem(clipboardKey, JSON.stringify(copied));
@@ -553,22 +655,22 @@
     } catch {
     }
   }
-  function shownGrid2() {
+  function shownGrid3() {
     return document.querySelector("table.grid:not(.grid-left-behind)");
   }
   function focusedTile() {
-    const cell = document.activeElement?.closest(`table.grid td[${tileAttribute2}]`);
-    const parts = (cell?.getAttribute(tileAttribute2) ?? "").split(".");
+    const cell = document.activeElement?.closest(`table.grid td[${tileAttribute3}]`);
+    const parts = (cell?.getAttribute(tileAttribute3) ?? "").split(".");
     return parts.length === 3 ? parts : null;
   }
   function toCopy(cut) {
     const ticked = [...document.querySelectorAll('.select-key input[name="tile"]:checked')];
-    const page = shownGrid2()?.querySelector(`td[${tileAttribute2}]`)?.getAttribute(tileAttribute2)?.split(".")[0];
+    const page = shownGrid3()?.querySelector(`td[${tileAttribute3}]`)?.getAttribute(tileAttribute3)?.split(".")[0];
     if (ticked.length > 0 && page !== void 0) {
       return { page, tiles: ticked.map((box) => box.value), cut };
     }
     const focused = focusedTile();
-    const cell = document.activeElement?.closest(`td[${tileAttribute2}]`);
+    const cell = document.activeElement?.closest(`td[${tileAttribute3}]`);
     if (focused === null || cell?.getAttribute("data-state") !== "key" || cell.querySelector(".select-key") !== null) {
       return null;
     }
@@ -588,7 +690,7 @@
   }
   async function paste() {
     const copied = load();
-    const page = shownGrid2()?.querySelector(`td[${tileAttribute2}]`)?.getAttribute(tileAttribute2)?.split(".")[0];
+    const page = shownGrid3()?.querySelector(`td[${tileAttribute3}]`)?.getAttribute(tileAttribute3)?.split(".")[0];
     if (copied === null || copied.tiles.length === 0 || page === void 0) {
       announce("Error: no keys are copied; press Command-C, Ctrl-C on Windows, on a key or the ticked keys first.");
       return;
@@ -1206,7 +1308,7 @@
   }
 
   // internal/editor/web/gridkeys.ts
-  var tileAttribute3 = "data-tile";
+  var tileAttribute4 = "data-tile";
   var focusableSelector = 'a[href], input[type="checkbox"]';
   var steps = {
     ArrowUp: [-1, 0],
@@ -1215,7 +1317,7 @@
     ArrowRight: [0, 1]
   };
   function cellOf3(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute3}]`) : null;
+    return target instanceof Element ? target.closest(`td[${tileAttribute4}]`) : null;
   }
   function focusable(cell) {
     return cell?.querySelector(focusableSelector) ?? null;
@@ -1232,7 +1334,7 @@
     return null;
   }
   function removeKey(cell) {
-    const parts = (cell.getAttribute(tileAttribute3) ?? "").split(".");
+    const parts = (cell.getAttribute(tileAttribute4) ?? "").split(".");
     if (cell.getAttribute("data-state") !== "key" || cell.querySelector(".select-key") !== null || parts.length !== 3) {
       return false;
     }
@@ -1273,7 +1375,7 @@
   function itemsOf(list) {
     return [...list.children].filter((child) => child instanceof HTMLLIElement);
   }
-  function pageOf(item) {
+  function pageOf2(item) {
     return item.querySelector(`a[${pageAttribute2}]`)?.getAttribute(pageAttribute2) ?? "";
   }
   function showingPage() {
@@ -1349,7 +1451,7 @@
     slide(carried.list, () => carried.list.insertBefore(carried.item, spot));
   }
   function putBack(carried) {
-    const byPage = new Map(itemsOf(carried.list).map((item) => [pageOf(item), item]));
+    const byPage = new Map(itemsOf(carried.list).map((item) => [pageOf2(item), item]));
     slide(carried.list, () => {
       for (const page of carried.order) {
         const item = byPage.get(page);
@@ -1369,10 +1471,10 @@
       if (link === null || !(item instanceof HTMLLIElement) || !(list instanceof HTMLElement) || event.dataTransfer === null) {
         return;
       }
-      carried = { item, list, order: itemsOf(list).map(pageOf) };
+      carried = { item, list, order: itemsOf(list).map(pageOf2) };
       dropped = false;
       event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData(pageType, pageOf(item));
+      event.dataTransfer.setData(pageType, pageOf2(item));
       window.setTimeout(() => item.classList.add(movingClass), 0);
     });
     root.addEventListener("dragover", (event) => {
@@ -1392,7 +1494,7 @@
       }
       event.preventDefault();
       dropped = true;
-      const from = pageOf(carried.item);
+      const from = pageOf2(carried.item);
       const to = carried.order[itemsOf(carried.list).indexOf(carried.item)] ?? from;
       if (to !== from) {
         void send("/page/reorder", { page: from, to, showing: showingPage() });
@@ -1443,17 +1545,17 @@
   }
 
   // internal/editor/web/select.ts
-  var tileAttribute4 = "data-tile";
+  var tileAttribute5 = "data-tile";
   var keyState = "key";
   function placeOf3(cell) {
-    const parts = (cell?.getAttribute(tileAttribute4) ?? "").split(".");
+    const parts = (cell?.getAttribute(tileAttribute5) ?? "").split(".");
     if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
       return null;
     }
     return { page: parts[0], row: Number(parts[1]), column: Number(parts[2]) };
   }
   function cellOf4(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute4}]`) : null;
+    return target instanceof Element ? target.closest(`td[${tileAttribute5}]`) : null;
   }
   function showHints() {
     for (const hint of document.querySelectorAll(".select-help")) {

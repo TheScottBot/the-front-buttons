@@ -4319,6 +4319,28 @@ into Main's, moving on to an empty tile slid them back, and a drop while they
 showed swapped the two; the pages screen read pages, app screens, caption and
 grid, with the hints at the bottom.
 
+The author then found swapping strobed the grid's icons. Every change loaded
+the page again, and as the editor lets the browser keep nothing, every key's
+picture was fetched afresh and popped in one by one; the drag's end also slid
+the swapped keys back just before. A change made from the grid now reads the
+page it lands on and, where that is the page on show in the same mode,
+replaces only the tiles that changed, each picture loaded in an image of its
+own first, so the page's own is drawn at once; anything else loads the page as
+before. A swap's slid keys stay put while it saves and slide back only if it is
+refused, and Undo goes the same way. A first version waited on decoding an
+image not yet in the page, which never finished, and held each change two
+seconds. Driven in a browser against the harness: a swap took 29 milliseconds,
+replaced only its two tiles, left the other 22 pictures untouched and never
+loaded the page; Delete and Undo did the same, focus staying on the tile.
+
+With the editor now updating at once, the author found the deck slow to
+follow. The daemon's log showed every reload landing on a whole second from
+its start: the store polls the file once a second, so a save waited up to a
+second, a delay the editor's own reload had hidden. A save now wakes the
+watcher, which reloads the file at once through the same path as a hand edit,
+the poll staying for hand edits. A test, with an hour between polls, has the
+save delivered with no time passing, which failed before the change.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
