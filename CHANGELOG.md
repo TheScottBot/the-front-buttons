@@ -236,6 +236,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- A `mural_share_link` key pastes a mural's link, after a message saying what
+  it is for, wherever you are typing: it puts both on the clipboard and pastes
+  them. Links are Mural's own, on app.mural.co. The clipboard writer is new for
+  macOS, and for Windows, not yet tried there.
 - Triple press to close works on Windows, not yet tried there: the third press
   closes the application's windows, each as its close button does, which
   leaves running an application that keeps going in the notification area.

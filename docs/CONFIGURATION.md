@@ -173,6 +173,27 @@ its region's, as Araraquara takes America/Sao_Paulo. Any clock that breaks
 these refuses the file, as any other problem does. Leave `world_clocks` out
 for the four above. A change shows the next time the world view opens.
 
+## Mural
+
+A `mural_share_link` key pastes a mural's link where you are typing, such as a
+meeting's chat: a press puts its message, a space and the link on the
+clipboard and pastes them, as Command V does on a Mac and Ctrl V on Windows.
+Leave the message out to paste the link alone. The link must be one of Mural's
+own, on `app.mural.co`, as the board's address bar or Mural's Share gives it.
+The text is left on the clipboard, so you can paste it again. The paste is a
+key press, so on macOS it needs the Accessibility permission key presses
+already need.
+
+```yaml
+      - row: 1
+        column: 0
+        kind: mural_share_link
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          message: "Today's retro board:"
+          label: Retro
+```
+
 ## Icons
 
 `icon` names one of the 5,000 or so bundled Tabler icons; the editor's **Icons**

@@ -61,6 +61,9 @@ const (
 	// FormatShortcutKey is the key of a shortcut: a letter, a digit, F1 to
 	// F20, or a named key both macOS and Windows have.
 	FormatShortcutKey Format = "shortcut_key"
+	// FormatMuralLink is a link to Mural itself, such as a board or an
+	// invitation: https, on app.mural.co, with a path.
+	FormatMuralLink Format = "mural_link"
 )
 
 // Bounds limits a value: the length in characters for text, the value for an
@@ -180,6 +183,7 @@ func formatCheckers() map[Format]func(textValue string) bool {
 		FormatPNGFile:     pngFilePattern.MatchString,
 		FormatFunctionKey: functionKeyRule.MatchString,
 		FormatShortcutKey: func(textValue string) bool { return slices.Contains(ShortcutKeys(), textValue) },
+		FormatMuralLink:   isMuralLink,
 	}
 }
 
@@ -258,6 +262,16 @@ func isHTTPSURL(textValue string) bool {
 	parsedURL, parseError := url.Parse(textValue)
 
 	return parseError == nil && parsedURL.Scheme == "https" && parsedURL.Host != "" && parsedURL.User == nil
+}
+
+// muralHost is the one host a Mural link may name.
+const muralHost = "app.mural.co"
+
+func isMuralLink(textValue string) bool {
+	parsedURL, parseError := url.Parse(textValue)
+
+	return isHTTPSURL(textValue) && parseError == nil && parsedURL.Host == muralHost &&
+		strings.Trim(parsedURL.Path, "/") != ""
 }
 
 // discordAppScheme and discordAppHost are the one app link a key may open

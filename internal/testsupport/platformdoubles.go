@@ -149,3 +149,49 @@ func (double *BadgesTestDouble) Badges(context.Context) (map[string]string, erro
 
 	return maps.Clone(double.badges), nil
 }
+
+// ClipboardTestDouble is a fake ClipboardWriter: it records each text written,
+// or fails once when told to.
+type ClipboardTestDouble struct {
+	mutex    sync.Mutex
+	written  []string
+	failNext error
+}
+
+// NewClipboardTestDouble returns a clipboard nothing has been written to.
+func NewClipboardTestDouble() *ClipboardTestDouble {
+	return &ClipboardTestDouble{mutex: sync.Mutex{}, written: nil, failNext: nil}
+}
+
+// FailNext makes the next write fail with the error given.
+func (clipboard *ClipboardTestDouble) FailNext(failure error) {
+	clipboard.mutex.Lock()
+	defer clipboard.mutex.Unlock()
+
+	clipboard.failNext = failure
+}
+
+// WriteClipboard records the text, or fails when told to.
+func (clipboard *ClipboardTestDouble) WriteClipboard(_ context.Context, text string) error {
+	clipboard.mutex.Lock()
+	defer clipboard.mutex.Unlock()
+
+	failure := clipboard.failNext
+	if failure != nil {
+		clipboard.failNext = nil
+
+		return failure
+	}
+
+	clipboard.written = append(clipboard.written, text)
+
+	return nil
+}
+
+// Written returns every text written, in order.
+func (clipboard *ClipboardTestDouble) Written() []string {
+	clipboard.mutex.Lock()
+	defer clipboard.mutex.Unlock()
+
+	return append([]string(nil), clipboard.written...)
+}

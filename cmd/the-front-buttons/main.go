@@ -564,6 +564,7 @@ func daemonOptions(
 			URLOpener:           systemadapter.NewURLOpener(),
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
 			ApplicationQuitter:  systemadapter.NewApplicationQuitter(),
+			ClipboardWriter:     systemadapter.NewClipboardWriter(),
 			PipelineProvider:    pipelineProvider,
 			EditorAddress:       editorLogin,
 			KeyPresser:          keyPresser,

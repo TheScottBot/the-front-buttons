@@ -11,6 +11,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/jetbrains"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/apps/vscode"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/deckcontrol"
+	"github.com/TheScottBot/the-front-buttons/internal/bricks/mural"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openeditor"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openurl"
@@ -40,6 +41,7 @@ func Register(registry *brick.Registry) error {
 		claude.Register,
 		chatgpt.Register,
 		vscode.Register,
+		mural.Register,
 	} {
 		registerError := register(registry)
 		if registerError != nil {

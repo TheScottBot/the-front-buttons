@@ -4986,6 +4986,43 @@ Planting each of keeping the Apps folder prefix, minding case in paths and
 Update.exe, matching any folder or a sibling folder, keeping the quotes,
 closing owned or hidden windows, and taking an empty entry failed a test.
 
+### Mural: pasting a board's link
+
+The author asked for Mural keys for running sessions: summoning participants,
+pasting a mural's link with what it is for, and adding a minute, adding thirty
+seconds and starting the timer, each its own key. Looking first at what Mural
+allows: it has no keyboard shortcut for the timer or for summoning; its public
+API can start a mural's timer and add time to it, signed in with OAuth; and
+nothing but a click on the avatar summons. Asked, the author chose the API for
+the timer, with each key naming its mural by link, as the author's delivery
+manager runs about eight boards and a key must act on one; summoning left out
+until Mural offers a way; and the link key pasting where the person is typing.
+The timer keys come separately, with the sign in.
+
+`mural_share_link` takes a link and an optional message. A press puts the
+message, a space and the link on the clipboard, or the link alone, and sends
+the paste shortcut through the shortcut presser, Command V or Ctrl V as the
+platform takes it, so it pastes into whatever has the keyboard focus; on an app
+screen it brings the application forward first, as any key that sends key
+presses does. The text stays on the clipboard. A new field format,
+`mural_link`, takes https links on app.mural.co with a path, so a key can only
+paste a Mural address. The clipboard is a new port: on macOS AppKit's general
+pasteboard, on Windows the clipboard's Unicode text in memory Windows takes
+over, opened with a few tries as another program may hold it, built, vetted
+and linted for Windows but not yet run there.
+
+Tests first, failing to build before the change: the format takes a board and
+an invitation and refuses http, another host, a host that only starts with
+Mural's, a user in the address and a bare host; a press pastes the message and
+link, or the link alone, with Command V; a refused clipboard shows
+clipboard_failed and pastes nothing, and a refused paste shows the key press's
+reason; the key needs both ports and is marked as sending key presses.
+Planting each of no space after the message, a space before a lone link,
+pasting after a refused clipboard, no Command on the Mac, not marking the key,
+any host and a bare host failed a test. On this MacBook the writer put text
+with a tick on the clipboard, read back intact, and the clipboard was then put
+back as it was.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

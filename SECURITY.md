@@ -70,7 +70,8 @@ directly; it never ends a process. A Squirrel install's program is found by the
 
 - **Accessibility (macOS)**, granted by the person, for five things only:
   posting the key presses keys are configured to send (`press_key`,
-  `press_shortcut` and an application's own keys, such as GoLand's); reading
+  `press_shortcut`, the paste a `mural_share_link` key sends, and an
+  application's own keys, such as GoLand's); reading
   and raising the windows of JetBrains IDEs when a window key is pressed, and
   no other application's (`windows_darwin.go`); bringing an app screen's
   application to the front before one of its keys sends key presses, and
@@ -84,6 +85,9 @@ directly; it never ends a process. A Squirrel install's program is found by the
 - **USB**: opens Elgato devices only, vendor ID 0x0FD9
   (`internal/deck/hidtransport/hidtransport.go`).
 - **AppKit**: reads applications' icons and the running applications.
+- **The clipboard**: a `mural_share_link` key writes its configured message
+  and link to the clipboard, in place of what was there, and pastes it; the
+  daemon never reads the clipboard (`clipboard_darwin.go`, `clipboard_windows.go`).
 
 Installs signed with the person's own code signing certificate keep the
 Accessibility grant across reinstalls; ad hoc signed ones need it granted again

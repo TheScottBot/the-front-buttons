@@ -31,6 +31,8 @@ type Ports struct {
 	WindowCycler platform.WindowCycler
 	// ShortcutPresser sends shortcuts, for press_shortcut.
 	ShortcutPresser platform.ShortcutPresser
+	// ClipboardWriter puts text on the clipboard, for a key that pastes it.
+	ClipboardWriter platform.ClipboardWriter
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

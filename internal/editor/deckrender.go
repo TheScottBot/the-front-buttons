@@ -91,7 +91,7 @@ func (pages *pageHandlers) deckFallbacks(
 	instance, constructError := kind.Construct(parameters, brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, ApplicationQuitter: nil, PipelineProvider: nil,
 		EditorAddress: nil, KeyPresser: nil,
-		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil,
+		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil, ClipboardWriter: nil,
 	})
 	if constructError != nil {
 		return pages.options.Registry.Title(kindName), ""

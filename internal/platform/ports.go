@@ -54,6 +54,12 @@ type ApplicationActivator interface {
 	ActivateApplication(activateContext context.Context, identifier string) error
 }
 
+// ClipboardWriter puts text on the system's clipboard, in place of what was
+// there, for a key that pastes it.
+type ClipboardWriter interface {
+	WriteClipboard(writeContext context.Context, text string) error
+}
+
 // URLOpener opens a URL or deep link with the system's handler for it.
 type URLOpener interface {
 	OpenURL(openContext context.Context, address string) error
