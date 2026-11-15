@@ -3,6 +3,7 @@ package editor_test
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -179,7 +180,14 @@ func TestEditor_ScriptRenamesAPageInTheList(t *testing.T) {
 		t.Error("want the rename hint hidden until the script shows it")
 	}
 
-	if !strings.Contains(harness.get(t, "/static/editor.css").Body.String(), ".pages input.rename-input {") {
+	stylesheet := harness.get(t, "/static/editor.css").Body.String()
+	if !strings.Contains(stylesheet, ".pages input.rename-input {") {
 		t.Error("stylesheet: want the rename box styled as a page's tag")
+	}
+
+	// Focused, it is marked as a pressed key is, not with the halo.
+	if !regexp.MustCompile(`\.pages input\.rename-input:focus-visible \{\s*outline: 3px dotted var\(--accent\);` +
+		`\s*outline-offset: 3px;\s*box-shadow: none;`).MatchString(stylesheet) {
+		t.Error("stylesheet: want the rename box's focus dotted, as a pressed key is marked")
 	}
 }

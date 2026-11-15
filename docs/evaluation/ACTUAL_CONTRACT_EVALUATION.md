@@ -4390,6 +4390,17 @@ double-click on One gave a text box in place of its tag, and typing Main and
 Enter renamed it; Escape left it as it was. A first version left the name
 showing beside the box, as the page list's own style overrode hiding it.
 
+On the deck build the author found the rename box shorter than the tag and
+ringed in the browser's own blue. A text box does not take the page's line
+height, so it now does, with the tag's padding and border, and measures the
+tag's height exactly. The blue ring showed a fault from the change that kept
+the grid in place: its room below the page had been written into the middle of
+the focus rule's list of links, buttons, fields and the main part, taking the
+editor's outline from all but the last. The rule is whole again, and a test,
+failing on the stylesheet as it was committed, holds the list together. The
+halo swamped a box that small, so the rename box alone, focused, takes the
+dotted line a pressed key has on the grid instead.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

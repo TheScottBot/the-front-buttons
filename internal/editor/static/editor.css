@@ -161,6 +161,12 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+main:focus-visible {
+  outline: 4px solid var(--rule);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 8px var(--accent);
+}
+
 /* Room the script adds below the page, so a grid kept in place across a
    reload stays put on a page too short to scroll that far. */
 
@@ -168,12 +174,6 @@ body::after {
   content: "";
   display: block;
   height: var(--keep-room, 0);
-}
-
-main:focus-visible {
-  outline: 4px solid var(--rule);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 8px var(--accent);
 }
 
 /* Messages: the saved message on cyan, problems and errors on ink with yellow
@@ -1428,12 +1428,24 @@ header .theme-switch {
 .pages input.rename-input {
   box-sizing: border-box;
   width: 14ch;
+  max-width: none;
+  margin: 0;
   padding: 0.3rem 0.8rem;
   font: inherit;
   font-weight: 700;
+  line-height: inherit;
+  vertical-align: top;
   color: var(--text);
-  background: var(--field);
+  background: var(--highlight);
   border: 3px solid var(--rule);
+}
+
+/* Focused, it is marked as a pressed key is on the grid, a dotted line, not
+   the halo other controls have, which swamps a box this small. */
+.pages input.rename-input:focus-visible {
+  outline: 3px dotted var(--accent);
+  outline-offset: 3px;
+  box-shadow: none;
 }
 
 /* A page's name carried to reorder the pages moves along the list as it is

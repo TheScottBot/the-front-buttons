@@ -300,3 +300,18 @@ func luminance(t *testing.T, hex string) float64 {
 
 	return total
 }
+
+// TestEditor_EveryControlHasTheFocusOutline: links, buttons, fields and the
+// main part share one focus rule, the thick ink outline and yellow halo, so a
+// rule slipped into the middle of that list cannot take it from them.
+func TestEditor_EveryControlHasTheFocusOutline(t *testing.T) {
+	t.Parallel()
+
+	stylesheet := newHarness(t, nil).get(t, "/static/editor.css").Body.String()
+
+	focus := regexp.MustCompile(`a:focus-visible,\s*button:focus-visible,\s*input:focus-visible,\s*` +
+		`select:focus-visible,\s*main:focus-visible \{\s*outline: 4px solid var\(--rule\);`)
+	if !focus.MatchString(stylesheet) {
+		t.Error("stylesheet: want one focus rule for links, buttons, fields and the main part")
+	}
+}

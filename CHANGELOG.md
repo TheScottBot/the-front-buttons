@@ -278,6 +278,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- The editor's focus outline, the thick ink line and yellow halo, was lost from
+  links, buttons and fields when a rule was added in the middle of its list;
+  they now have it again. The box for renaming a page in the page list is the
+  height of the page's tag, and focused shows the dotted line a pressed key
+  has on the grid rather than the halo.
 - Window keys took about a second a press and landed a quick burst all at
   once: raising a window also asked AppKit to activate its application, which
   took a second every time. Accessibility alone raises it, in milliseconds.
