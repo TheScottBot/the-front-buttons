@@ -86,6 +86,7 @@ type harness struct {
 	configurations chan config.Configuration
 	cancel         context.CancelFunc
 	done           chan error
+	memory         *pageMemoryTestDouble
 }
 
 func xlModel(t *testing.T) deck.Model {
@@ -152,6 +153,7 @@ func startHarness(t *testing.T) *harness {
 		configurations: make(chan config.Configuration, 1),
 		cancel:         cancel,
 		done:           make(chan error, 1),
+		memory:         &pageMemoryTestDouble{mutex: sync.Mutex{}, remembered: "", kept: nil},
 	}
 
 	runner := daemon.New(daemon.Options{
@@ -173,6 +175,7 @@ func startHarness(t *testing.T) *harness {
 		AppIcons:        applicationIconsTestDouble{},
 		Badges:          running.badges,
 		Mirror:          running.mirror,
+		PageMemory:      running.memory,
 		Activator: testsupport.ActivatorTestDouble{
 			Recorder: recorder, Running: []string{knownApplication, slowApplication}, Slow: []string{slowApplication},
 		},

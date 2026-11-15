@@ -151,6 +151,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("POST "+loginCodePath, options.Sessions.loginCode(options.Address))
 	mux.HandleFunc("GET /{$}", pages.redirectHome)
 	mux.HandleFunc("GET /page", pages.showPage)
+	mux.HandleFunc("GET /overview", pages.showOverview)
 	mux.HandleFunc("POST /page/add", pages.addPage)
 	mux.HandleFunc("POST /page/rename", pages.renamePage)
 	mux.HandleFunc("POST /page/delete", pages.deletePage)

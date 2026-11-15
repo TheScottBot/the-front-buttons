@@ -1,0 +1,15 @@
+{{template "head" .}}
+<h1>All pages</h1>
+<p class="help">Every page at once. Drag a key onto a free tile on any page to move it there; hold Command (Ctrl on Windows) as you drop to copy it instead, or drop it on another key to swap the two. Choose a key to open its page with it marked.</p>
+<input type="hidden" name="token" value="{{.Token}}">
+<div class="overview">
+{{range $page := .Pages}}<section class="overview-page" aria-labelledby="overview-{{.Index}}">
+<h2 id="overview-{{.Index}}"><a href="/page?page={{.Index}}">{{.Name}}</a></h2>
+<table class="grid mini" data-overview-page="{{.Index}}">
+<caption class="visually-hidden">{{.Caption}}</caption>
+{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else}}<span class="reserved" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{end}}{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else if eq .State "key"}}{{.Text}}{{end}}</a>{{end}}</td>{{end}}</tr>
+{{end}}</table>
+</section>
+{{end}}</div>
+<div id="key-bin" class="key-bin" hidden><img src="/icon.png?name=trash" alt="" width="64" height="64"><span>Drop here to remove</span></div>
+{{template "foot" .}}

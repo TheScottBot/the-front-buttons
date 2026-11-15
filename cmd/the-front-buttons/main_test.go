@@ -87,7 +87,7 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 		done <- daemon.New(daemonOptions(built, logger, counters, credentials,
 			githubactions.NewClient(fakeGitHub.Client(), credentials, counters),
 			testsupport.NewDeckWatcherTestDouble(), func() string { return "http://127.0.0.1:1/" },
-			systemadapter.NewKeyPresser(runContext, func() {}))).Run(runContext, configurations)
+			systemadapter.NewKeyPresser(runContext, func() {}), nil)).Run(runContext, configurations)
 	}()
 
 	waitForLog(logs, `"reason":"unauthorised"`)

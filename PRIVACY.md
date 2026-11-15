@@ -14,6 +14,9 @@ There is no telemetry, analytics or crash reporting.
   can hold colleagues' identifiers: a Teams chat link names its participants by
   their user principal names, usually email addresses.
 - Credentials, in the operating system's credential store only.
+- The name of the regular page the deck last showed, in the state folder, so a
+  restart or an install opens the deck there. It holds that name and nothing
+  else.
 - The log, in the state folder, rotated at a megabyte with three older files kept.
   It records kinds, pages, positions, reason categories and counts. It never
   records a URL (which can hold colleagues' addresses), a token or a request

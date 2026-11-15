@@ -36,7 +36,15 @@ enableRenamePage(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");
 
-if (grid !== null) {
+// All pages: every page's grid at once, with dragging between them, the
+// grid keys and undo; the rest belongs to the pages screen.
+const overview = document.querySelector("[data-overview-page]") !== null;
+
+if (grid !== null && overview) {
+  enableDrag(grid);
+  enableGridKeys(grid);
+  enableHistory();
+} else if (grid !== null) {
   enableSelecting(grid);
   enableDrag(grid);
   enableGridKeys(grid);

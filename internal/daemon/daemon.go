@@ -80,6 +80,16 @@ type Options struct {
 	// Mirror is given the pictures of keys whose look depends on live state,
 	// and word of presses, for the editor; nil keeps none.
 	Mirror *deckmirror.Mirror
+	// PageMemory keeps the regular page the deck shows across restarts, so a
+	// restart or an install opens where the deck was; nil keeps none.
+	PageMemory PageMemory
+}
+
+// PageMemory keeps the name of the regular page the deck last showed. The
+// daemon tells it from its loop, so Remember must never wait.
+type PageMemory interface {
+	Remembered() (string, bool)
+	Remember(name string)
 }
 
 // IconFileLoader reads a key's own icon file by its name.
@@ -374,9 +384,11 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 		state.paging = state.paging.Resize(len(state.regular))
 		state.paging = state.paging.To(foundOnce(state.pageNames, showingName, state.paging.Current()))
 	} else {
-		state.paging = layout.NewPaging(len(state.regular))
+		state.paging = state.startingPaging()
 		state.hasConfiguration = true
 	}
+
+	state.rememberPage()
 
 	// The off key may have moved or gone, so a new configuration turns the
 	// keys back on.
@@ -772,7 +784,30 @@ func (state *loopState) page(runContext context.Context, step int) {
 		state.paging = state.paging.Forward()
 	}
 
+	state.rememberPage()
 	state.repaintAll(runContext)
+}
+
+// startingPaging is the paging of the first configuration: on the page the
+// deck last showed, before a restart, where it is still there and alone in
+// its name, or else the first.
+func (state *loopState) startingPaging() layout.Paging {
+	paging := layout.NewPaging(len(state.regular))
+
+	if memory := state.options.PageMemory; memory != nil {
+		if remembered, kept := memory.Remembered(); kept {
+			paging = paging.To(foundOnce(state.pageNames, remembered, paging.Current()))
+		}
+	}
+
+	return paging
+}
+
+// rememberPage tells the page memory the regular page the deck is on.
+func (state *loopState) rememberPage() {
+	if name := state.regularPageName(); name != "" && state.options.PageMemory != nil {
+		state.options.PageMemory.Remember(name)
+	}
 }
 
 // screenIndication is what an app screen's paging tiles show when its

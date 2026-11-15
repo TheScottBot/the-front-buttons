@@ -874,6 +874,55 @@ input[type="search"] {
   outline-offset: 3px;
 }
 
+/* All pages: every page's grid, small, as many side by side as the window
+   holds, its tiles shrunk to a third, a key's words or picture shrunk with
+   them. */
+.overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
+  gap: 1.5rem 2rem;
+  margin-top: 1.5rem;
+}
+
+.overview-page h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.grid.mini {
+  --tile-width: 2.8rem;
+  --tile-height: 2.6rem;
+
+  table-layout: fixed;
+  border-spacing: 0.3rem;
+}
+
+.grid.mini td {
+  width: var(--tile-width);
+  height: var(--tile-height);
+  border-width: 2px;
+  box-shadow: 2px 2px 0 var(--lift);
+}
+
+.grid.mini a,
+.grid.mini .reserved {
+  min-height: 0;
+  height: 100%;
+  padding: 0.1rem;
+  overflow: hidden;
+  font-size: 0.55rem;
+  line-height: 1.1;
+}
+
+.grid.mini img,
+.grid.mini img.deck-face,
+.grid.mini .app-icon img {
+  display: block;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: 0 auto;
+}
+
 /* The edit mode box and its words on one line. */
 .select-mode {
   display: flex;

@@ -9,7 +9,7 @@
 // data-state ("key", "empty" or "reserved"); only a key can be picked up and
 // only an empty tile accepts a drop, so a paging or occupied tile never does.
 
-import { updateInPlace } from "./inplace";
+import { refreshOverview, updateInPlace } from "./inplace";
 
 const tileAttribute = "data-tile";
 const stateAttribute = "data-state";
@@ -85,7 +85,9 @@ export async function send(path: string, fields: Record<string, string | readonl
   try {
     const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
     if (response.ok && response.redirected) {
-      if (!(await updateInPlace(await response.text(), response.url))) {
+      const answer = await response.text();
+
+      if (!(await refreshOverview(answer)) && !(await updateInPlace(answer, response.url))) {
         window.location.assign(response.url);
       }
 
@@ -678,10 +680,11 @@ export function enableDrag(grid: HTMLTableElement): void {
     if (cell !== null && swapsWith(cell)) {
       event.preventDefault();
 
-      // The key carried slides only where its own tile is on show.
+      // The key carried slides only where its own tile is on show, on this
+      // grid or another of All pages.
       const home = source === null ? null :
-        shownGrid()?.querySelector<HTMLTableCellElement>(
-          `td[${tileAttribute}="${source.page}.${source.row}.${source.column}"]`) ?? null;
+        document.querySelector<HTMLTableCellElement>(
+          `table.grid:not(.${leftBehindClass}) td[${tileAttribute}="${source.page}.${source.row}.${source.column}"]`);
       if (home === null) {
         cell.classList.add(swapClass);
       } else if (swapping?.target !== cell) {

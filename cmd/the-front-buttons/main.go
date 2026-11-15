@@ -387,7 +387,7 @@ func start(
 
 	runner := daemon.New(daemonOptions(built, logger, counters, credentials,
 		githubactions.NewClient(newGitHubHTTPClient(), credentials, counters),
-		hidtransport.NewWatcher(), editorLogin, keyPresser))
+		hidtransport.NewWatcher(), editorLogin, keyPresser, newFilePageMemory(daemonContext, stateDirectory, logger)))
 
 	runError := runner.Run(daemonContext, configurations)
 
@@ -554,6 +554,7 @@ func daemonOptions(
 	watcher deck.DeckWatcher,
 	editorLogin func() string,
 	keyPresser askingKeyPresser,
+	pageMemory daemon.PageMemory,
 ) daemon.Options {
 	return daemon.Options{
 		Watcher:  watcher,
@@ -580,6 +581,7 @@ func daemonOptions(
 		Badges:          systemadapter.NewApplicationBadges(),
 		AppIcons:        built.appIcons,
 		Mirror:          built.mirror,
+		PageMemory:      pageMemory,
 	}
 }
 

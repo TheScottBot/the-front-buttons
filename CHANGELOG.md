@@ -236,6 +236,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The daemon remembers the regular page the deck last showed, in its state
+  folder, and opens on it after a restart or an install, rather than on the
+  first page.
+- All pages, in the editor's sections, draws every page's grid small, side by
+  side, to drag keys between any of them, moving, copying, swapping or
+  removing, each updating the grids in place.
 - Find a key, a drawer under the editor's grid, lists every key on any page or
   app screen matching the words typed, as you type, and opens a result's page
   with the key outlined; / opens it from anywhere but a field.

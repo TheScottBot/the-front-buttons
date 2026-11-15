@@ -4485,6 +4485,46 @@ the first's page with the key outlined. A first version left the key found
 scrolled away, as the page was put back where it was after the find ran; it is
 now brought into view once that is done.
 
+### All pages at once
+
+The author asked to see every page at once and drag keys between them. GET
+/overview, behind the editor's guard, draws every page's grid with the pages
+screen's own tiles, small and side by side, regular pages first and then app
+screens, each named and linked; a key links to its page with the key marked.
+As the tiles are the pages screen's, the drag script works on them unchanged,
+each drop the same POST /key/move, swap or removal; a change made there
+fetches the overview again and replaces only the tiles that changed, staying
+on it rather than going to the page the change landed on. A swap's sliding
+copies now find the carried key's tile on any grid on show. Undo and redo work
+there; select mode, the key dialog and the drawers stay on the pages screen.
+
+Tests first, failing before the change: every page drawn, in order, named and
+linked, a key linking to its page marked and picked up, the bin and the token
+there, All pages among the editor's sections, and the script and styles. Driven
+in a browser against the harness: the grids drew small, two across; Main
+dragged from One to an empty tile on Three moved with the overview updated in
+place, and Command-Z put it back. A first version drew the pictures at full
+size, as the grids' own tile size outranked a smaller one, and could not save a
+drop, the page carrying no token for the script to send.
+
+### The deck's page across restarts
+
+The author found every restart and install put the deck back on the first
+page. The daemon gains an optional page memory, told from its loop each time
+the deck lands on a regular page and asked, as the first configuration loads,
+for the page to open on, found by its name where only one page has it, as a
+reorder keeps it; app screens, opened by holding their key, are not kept. The
+composition root supplies one in the state folder, a file holding the page's
+name alone, written on a goroutine of its own so the loop never waits, the
+newest name replacing one not yet written, and a file it did not write, empty
+or overlong, is taken as nothing remembered.
+
+Tests first, failing before the change: a daemon opening on the page
+remembered, each page shown remembered in turn, the first page kept when the
+remembered one is gone, a page kept by the file across a restart, and a file
+not written by it ignored. A planted violation, the remembered page not
+opened, failed a test.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

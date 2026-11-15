@@ -39,6 +39,17 @@ not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
 
+## All pages
+
+**All pages**, in the editor's sections, draws every page's grid small, side
+by side, the regular pages first and then the app screens, each named and
+linked to its page. Drag a key onto a free tile on any of them to move it
+there, hold Command (Ctrl on Windows) as you drop to copy it, drop it on
+another key to swap the two, or drop it in the bin to remove it; each updates
+the grids in place. Command-Z and Shift-Command-Z undo and redo there too.
+Choose a key to open its page with it marked. With Render like deck on, the
+grids show the deck's pictures and live state, as the pages screen does.
+
 ## Finding a key
 
 **Find a key**, the first drawer under the grid, lists every key on any page

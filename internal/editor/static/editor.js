@@ -92,6 +92,43 @@
     document.dispatchEvent(new CustomEvent("front-buttons:updated"));
     return true;
   }
+  async function refreshOverview(answer) {
+    if (document.querySelector("[data-overview-page]") === null) {
+      return false;
+    }
+    try {
+      const response = await fetch("/overview", { credentials: "same-origin" });
+      const incoming = new DOMParser().parseFromString(await response.text(), "text/html");
+      const tiles = incoming.querySelectorAll(`td[${tileAttribute}]`);
+      if (!response.ok || tiles.length !== document.querySelectorAll(`td[${tileAttribute}]`).length) {
+        window.location.reload();
+        return true;
+      }
+      const changed = [];
+      for (const next of tiles) {
+        const now = document.querySelector(
+          `td[${tileAttribute}="${next.getAttribute(tileAttribute)}"]`
+        );
+        if (now === null) {
+          window.location.reload();
+          return true;
+        }
+        if (!sameTile(now, next)) {
+          changed.push([now, document.importNode(next, true)]);
+        }
+      }
+      await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+      for (const [now, next] of changed) {
+        now.replaceWith(next);
+      }
+      const answered = new DOMParser().parseFromString(answer, "text/html");
+      replaceRegion(answered, ".announcement");
+      replaceRegion(answered, ".problems");
+    } catch {
+      window.location.reload();
+    }
+    return true;
+  }
 
   // internal/editor/web/drag.ts
   var tileAttribute2 = "data-tile";
@@ -140,7 +177,8 @@
     try {
       const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
       if (response.ok && response.redirected) {
-        if (!await updateInPlace(await response.text(), response.url)) {
+        const answer = await response.text();
+        if (!await refreshOverview(answer) && !await updateInPlace(answer, response.url)) {
           window.location.assign(response.url);
         }
         return true;
@@ -556,9 +594,9 @@
       }
       if (cell !== null && swapsWith(cell)) {
         event.preventDefault();
-        const home = source === null ? null : shownGrid2()?.querySelector(
-          `td[${tileAttribute2}="${source.page}.${source.row}.${source.column}"]`
-        ) ?? null;
+        const home = source === null ? null : document.querySelector(
+          `table.grid:not(.${leftBehindClass}) td[${tileAttribute2}="${source.page}.${source.row}.${source.column}"]`
+        );
         if (home === null) {
           cell.classList.add(swapClass);
         } else if (swapping?.target !== cell) {
@@ -1875,7 +1913,12 @@
   enablePageReorder(document);
   enableRenamePage(document);
   var grid = document.querySelector("table.grid");
-  if (grid !== null) {
+  var overview = document.querySelector("[data-overview-page]") !== null;
+  if (grid !== null && overview) {
+    enableDrag(grid);
+    enableGridKeys(grid);
+    enableHistory();
+  } else if (grid !== null) {
     enableSelecting(grid);
     enableDrag(grid);
     enableGridKeys(grid);

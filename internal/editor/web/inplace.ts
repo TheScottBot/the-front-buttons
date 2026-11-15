@@ -141,3 +141,56 @@ export async function updateInPlace(page: string, address: string, refresh = tru
 
   return true;
 }
+
+// refreshOverview brings All pages up to date after a change made on it,
+// rather than going to the page the change landed on: it fetches the
+// overview, replaces only the tiles that changed, each picture loaded first,
+// and shows the change's message. It reports false off the overview, and
+// loads the overview again if its pages no longer match.
+export async function refreshOverview(answer: string): Promise<boolean> {
+  if (document.querySelector("[data-overview-page]") === null) {
+    return false;
+  }
+
+  try {
+    const response = await fetch("/overview", { credentials: "same-origin" });
+    const incoming = new DOMParser().parseFromString(await response.text(), "text/html");
+    const tiles = incoming.querySelectorAll<HTMLTableCellElement>(`td[${tileAttribute}]`);
+
+    if (!response.ok || tiles.length !== document.querySelectorAll(`td[${tileAttribute}]`).length) {
+      window.location.reload();
+
+      return true;
+    }
+
+    const changed: [HTMLTableCellElement, HTMLTableCellElement][] = [];
+
+    for (const next of tiles) {
+      const now = document.querySelector<HTMLTableCellElement>(
+        `td[${tileAttribute}="${next.getAttribute(tileAttribute)}"]`);
+      if (now === null) {
+        window.location.reload();
+
+        return true;
+      }
+
+      if (!sameTile(now, next)) {
+        changed.push([now, document.importNode(next, true)]);
+      }
+    }
+
+    await Promise.all(changed.flatMap(([, next]) => fresh(next)));
+
+    for (const [now, next] of changed) {
+      now.replaceWith(next);
+    }
+
+    const answered = new DOMParser().parseFromString(answer, "text/html");
+    replaceRegion(answered, ".announcement");
+    replaceRegion(answered, ".problems");
+  } catch {
+    window.location.reload();
+  }
+
+  return true;
+}
