@@ -29,6 +29,35 @@ To verify:
 shasum -a 256 internal/render/tablericons/tabler-icons.ttf internal/render/tablericons/tabler-icons.css internal/render/tablericons/LICENSE
 ```
 
+## JetBrains Mono
+
+Vendored on 15 November 2026 for the deck's clock, into
+`internal/render/jetbrainsmono/`. The clock takes Thyme's look, the author's
+clock, so it takes Thyme's typeface, from Thyme's own vendored copy.
+
+| Item | Value |
+|---|---|
+| Upstream | JetBrains Mono, from `https://github.com/JetBrains/JetBrainsMono` |
+| Version | 2.304, Regular, upstream commit `cd5227bd1f61dff3bbd6c814ceaf7ffd95e947d9`, as Thyme's own PROVENANCE.md records |
+| Fetched from | `https://github.com/TheScottBot/Thyme`, `third_party/jetbrainsmono/`, at commit `b2fc51cfb9a828d13aec3c747f624e75ee168cf5` |
+| Licence | SIL Open Font Licence 1.1; the licence file is vendored beside the font |
+
+| File | Upstream path | Bytes | SHA-256 |
+|---|---|---|---|
+| `JetBrainsMono-Regular.ttf` | `fonts/ttf/JetBrainsMono-Regular.ttf` | 273,900 | `a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f` |
+| `OFL.txt` | `OFL.txt` | 4,399 | `30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad` |
+
+Both digests match those Thyme records in its own `SHA256SUMS` for the same
+files, and `SHA256SUMS` beside the font records them for this repository's
+test. `OFL.txt` contains no CR characters, so the stored and upstream bytes are
+the same under `.gitattributes`' LF rule.
+
+To verify:
+
+```bash
+shasum -a 256 internal/render/jetbrainsmono/JetBrainsMono-Regular.ttf internal/render/jetbrainsmono/OFL.txt
+```
+
 ## htmx
 
 Vendored on 12 November 2026 for TD6, into `internal/editor/static/`.

@@ -60,8 +60,13 @@ screen it is, such as 1/2. With a single screen they leave it, as before.
 
 Holding a `page_marker` key for half a second opens the page dashboard on the
 deck, in place of the page. Its top left key is the marker you held, and
-pressing it goes back to the page. The rest of the top row is kept for a clock
-to come. The second row holds your regular pages, each by its number and name,
+pressing it goes back to the page. The next six keys of the top row show the
+local time as HHMMSS, a figure to a key, in the look of Thyme, the author's
+clock: its pink JetBrains Mono figures on its navy. The top right key is a
+world icon, which shows the world clocks: UTC, London (LDN), Berlin (BER) and
+Sao Paulo (SAO), a row each, its label and then its HHMMSS, with the world icon
+kept in the top right to go back to the dashboard. Both tick each second. The
+second row holds your regular pages, each by its number and name,
 the page you came from marked; the third holds the app screens, each by its
 application's icon and name. Pressing a page or screen shows it. With more app
 screens than a row holds, the paging tiles in the bottom corners move that row

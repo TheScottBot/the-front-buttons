@@ -4640,6 +4640,35 @@ the deck's pictures being compressed, and a reload closing it. Planted
 violations, a held marker not opening the dashboard and a reload leaving it
 open, each failed a test.
 
+### The clocks
+
+The second stage of the dashboard: its top row a clock in Thyme's look, its
+corner a world icon for four world clocks. The look is taken from Thyme's own
+code rather than matched by eye: its theme gives the panel's navy, #12131c,
+the time's pink, #f894f8, and the zone labels' dimmer pink, #d583d7, so the
+times read first; its settings give its four zones and labels; and its
+typeface, JetBrains Mono Regular v2.304, is vendored verbatim from Thyme's own
+copy, its digests matching those Thyme records, with PROVENANCE.md, the
+vendored paths the prose scan passes over, and a digest test, as the icon font
+has. The renderer draws a figure of a time large in the middle of its key, a
+label in the dimmer pink, and a bundled icon in the time's pink, all on the
+navy. The dashboard's top row shows the local time across six keys, the world
+icon in its corner; the icon shows a row per zone, its label and then its
+HHMMSS, the icon kept in the top right to go back. The zone data is embedded,
+as Thyme embeds it, so the zones load where the system has none. A clock runs
+while the dashboard is open, telling the loop of each second on the second,
+and only the figures that changed are drawn again; closing the dashboard stops
+it.
+
+Tests first, failing before the change: a figure drawn large and centred in
+Thyme's pink on its navy, each its own; a label in the dimmer pink and an icon
+in the time's pink, centred; the vendored files matching their digests; the
+dashboard's top row showing the time and the world icon, and ticking three
+seconds on; and the world icon showing each zone's label and time, and going
+back. A planted violation, a clock that never ticks, failed a test. A row of
+keys rendered with the real icon font, LDN 1 5 3 1 4 2 and the world icon,
+read as Thyme does.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

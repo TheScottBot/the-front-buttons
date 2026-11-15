@@ -11,6 +11,8 @@ import (
 	"golang.org/x/image/font/gofont/gomedium"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
+
+	"github.com/TheScottBot/the-front-buttons/internal/render/jetbrainsmono"
 )
 
 // ellipsis ends a label shortened to fit a key.
@@ -27,6 +29,11 @@ type textFaces struct {
 	wordSizes  []font.Face
 	pageNumber font.Face
 	question   font.Face
+	// clockDigit and clockLabel are the clock's: one figure of a time,
+	// large, and a short label such as a time zone's, in Thyme's typeface,
+	// JetBrains Mono Regular.
+	clockDigit font.Face
+	clockLabel font.Face
 }
 
 // faceSizes are the sizes, as fractions of the key's width in hundredths. They
@@ -49,6 +56,8 @@ const (
 	wordHundredths          = 15
 	pageNumberHundredths    = 26
 	questionHundredths      = 44
+	clockDigitHundredths    = 80
+	clockLabelHundredths    = 30
 )
 
 func provisionalFaceSizes() faceSizes {
@@ -67,7 +76,7 @@ func loadFaces(keyPixels int) (textFaces, error) {
 	bold, boldError := opentype.Parse(gobold.TTF)
 
 	if mediumError != nil || boldError != nil {
-		return textFaces{labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil},
+		return textFaces{labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil, clockDigit: nil, clockLabel: nil},
 			fmt.Errorf("parsing the compiled in Go fonts: %w %w", mediumError, boldError)
 	}
 
@@ -86,7 +95,7 @@ func loadFaces(keyPixels int) (textFaces, error) {
 		return face, nil
 	}
 
-	faces := textFaces{labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil}
+	faces := textFaces{labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil, clockDigit: nil, clockLabel: nil}
 
 	var sizeError error
 
@@ -109,7 +118,26 @@ func loadFaces(keyPixels int) (textFaces, error) {
 		return faces, fmt.Errorf("building faces: %w %w", pageError, questionError)
 	}
 
-	return faces, nil
+	return faces, loadClockFaces(makeFace, &faces)
+}
+
+// loadClockFaces builds the clock's faces, in Thyme's typeface.
+func loadClockFaces(makeFace func(parsed *opentype.Font, hundredths int) (font.Face, error), faces *textFaces) error {
+	mono, monoError := opentype.Parse(jetbrainsmono.Regular)
+	if monoError != nil {
+		return fmt.Errorf("parsing the vendored JetBrains Mono font: %w", monoError)
+	}
+
+	var digitError, labelError error
+
+	faces.clockDigit, digitError = makeFace(mono, clockDigitHundredths)
+	faces.clockLabel, labelError = makeFace(mono, clockLabelHundredths)
+
+	if digitError != nil || labelError != nil {
+		return fmt.Errorf("building the clock's faces: %w %w", digitError, labelError)
+	}
+
+	return nil
 }
 
 // makeFaceRange builds faces from the largest size down to the smallest, the

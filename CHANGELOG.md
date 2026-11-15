@@ -239,6 +239,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The daemon remembers the regular page the deck last showed, in its state
   folder, and opens on it after a restart or an install, rather than on the
   first page.
+- The page dashboard's top row shows the local time as HHMMSS, a figure to a
+  key, in the look of Thyme, the author's clock, from its own theme: its pink
+  JetBrains Mono figures on its navy. Its world icon shows Thyme's four world
+  clocks, UTC, LDN, BER and SAO, a row each, the world icon kept in the top
+  right to go back. Both tick each second.
 - Holding a page marker on the deck for half a second opens the page
   dashboard: the marker in the top left to come back, the rest of the top row
   kept for a clock to come, the regular pages on the second row and the app

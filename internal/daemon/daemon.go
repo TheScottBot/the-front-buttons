@@ -240,6 +240,8 @@ type loopState struct {
 	screenPages []int
 	// dashboard is the page dashboard, while a held page marker has it open.
 	dashboard dashboardState
+	// zones are the world clocks the dashboard's world icon shows.
+	zones []worldZone
 	// allPageNames names every page by its index in pages, for an app
 	// screen's paging tiles.
 	allPageNames []string
@@ -281,7 +283,8 @@ func newLoopState(options Options) *loopState {
 		regular:                 nil,
 		appScreens:              map[string][]int{},
 		screenPages:             nil,
-		dashboard:               dashboardState{open: false, fromPage: 0, markerBrick: 0, screenOffset: 0},
+		dashboard:               closedDashboard(),
+		zones:                   loadWorldZones(options.Logger),
 		allPageNames:            nil,
 		appScreen:               "",
 		appScreenAt:             0,
@@ -341,6 +344,8 @@ func (state *loopState) handle(runContext context.Context, received any) {
 		state.handleBadges(runContext, typed)
 	case holdEvent:
 		state.handleHold(runContext, typed)
+	case clockTickEvent:
+		state.tickClock(runContext)
 	}
 }
 

@@ -21,7 +21,7 @@ const (
 	markerKeyIndex   = 0
 	dashboardPageRow = 8
 	dashboardAppRow  = 16
-	reservedKeyIndex = 3
+	clockKeyIndex    = 3
 	pageOneIcon      = "number-1"
 	pageTwoIcon      = "number-2"
 )
@@ -100,7 +100,8 @@ func TestDaemon_DashboardGoesToThePageOrScreenPressed(t *testing.T) {
 }
 
 // TestDaemon_DashboardTopLeftGoesBack: the dashboard's top left key goes
-// back to the page it was opened from; keys kept for later do nothing.
+// back to the page it was opened from; a clock key or an empty one does
+// nothing.
 func TestDaemon_DashboardTopLeftGoesBack(t *testing.T) {
 	t.Parallel()
 
@@ -108,7 +109,7 @@ func TestDaemon_DashboardTopLeftGoesBack(t *testing.T) {
 		running, device := startDashboardHarness(t, 2)
 
 		holdMarker(device)
-		tap(device, reservedKeyIndex)
+		tap(device, clockKeyIndex)
 		tap(device, dashboardPageRow+5)
 		tap(device, markerKeyIndex)
 		tap(device, besideKeyIndex)
@@ -168,7 +169,7 @@ func TestDaemon_DashboardPagesThroughManyAppScreens(t *testing.T) {
 // TestDaemon_DashboardDrawsPagesAndScreens: the dashboard draws the marker
 // held in the top left, each page by its number and name, the page opened
 // from marked, each screen by its application's icon and name, and the keys
-// kept for later blank.
+// with nothing to show blank.
 func TestDaemon_DashboardDrawsPagesAndScreens(t *testing.T) {
 	t.Parallel()
 
@@ -208,7 +209,7 @@ func TestDaemon_DashboardDrawsPagesAndScreens(t *testing.T) {
 		}
 
 		blank := running.renderer.RenderBlank()
-		for _, keyIndex := range []int{reservedKeyIndex, dashboardPageRow + 5, dashboardAppRow + 4} {
+		for _, keyIndex := range []int{dashboardPageRow + 5, dashboardAppRow + 4} {
 			if difference := distance(drawnImage(t, device, keyIndex), blank); difference > blankDifference {
 				t.Errorf("key %d: want it blank, differing by %.1f", keyIndex, difference)
 			}
