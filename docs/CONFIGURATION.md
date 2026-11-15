@@ -135,8 +135,13 @@ before. Three dots top left on the key show the count, one filled for each
 press made, until the next press is no longer awaited. After the quit the key
 does nothing until it has been left alone for
 a second and a half, so a fourth press does not open the application again.
-An application with unsaved work may still ask about it before it quits. Not
-available on Windows yet.
+An application with unsaved work may still ask about it before it quits.
+
+Windows has no one way to quit an application, so there the third press closes
+the application's windows, each as its close button does. That quits most
+applications, but one that keeps running in the notification area when its
+window closes, as Signal and Discord can, keeps running. Not yet tried on a
+Windows machine.
 
 ## World clocks
 

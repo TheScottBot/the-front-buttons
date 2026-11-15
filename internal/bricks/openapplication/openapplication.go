@@ -35,7 +35,7 @@ type Parameters struct {
 	ShowNotifications bool `brick:"show_notifications" description:"Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows yet."`
 
 	// TriplePressToClose quits the application on a third quick press.
-	TriplePressToClose bool `brick:"triple_press_to_close" description:"Press the key three times quickly to quit the application outright, not just close its window. The first press still opens it. After the quit the key does nothing until it has been left alone for a second and a half, so a fourth press does not open it again. Not available on Windows yet."`
+	TriplePressToClose bool `brick:"triple_press_to_close" description:"Press the key three times quickly to quit the application outright, not just close its window. The first press still opens it. After the quit the key does nothing until it has been left alone for a second and a half, so a fourth press does not open it again. On Windows it closes the application's windows instead, which leaves running one that keeps going in the notification area."`
 }
 
 // ApplicationScreen offers the application's screen to the daemon when the

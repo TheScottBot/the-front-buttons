@@ -236,6 +236,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- Triple press to close works on Windows, not yet tried there: the third press
+  closes the application's windows, each as its close button does, which
+  leaves running an application that keeps going in the notification area.
+  Notification badges stay unavailable on Windows, which has no way to read
+  another application's taskbar badge.
 - The editor's dashboard preview is shown as opened from the page the deck
   shows, following it to another page, and its clocks tick as the deck's do.
   Each view is as wide as the pages screen's grid, and the editor's sections

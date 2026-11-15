@@ -56,10 +56,15 @@ shell or `cmd.exe`:
 | `/usr/bin/plutil` | the editor's app picker reads installed applications' names | `internal/platform/systemadapter/system_darwin.go` |
 | `/usr/bin/security` | the Keychain, through go-keyring; a secret goes on its standard input, never its command line | `internal/platform/systemadapter/credentials.go` |
 | `powershell.exe` | the editor's app picker lists the Start menu (Windows), with one fixed command | `internal/platform/systemadapter/system_windows.go` |
+| `powershell.exe` | Triple press to close reads a Start menu entry's shortcut (Windows), with one fixed command; the entry's app ID goes in an environment variable, never in the command | `internal/platform/systemadapter/quit_windows.go` |
 | the daemon itself | `-accessibility-check`, asking macOS afresh whether it is trusted | `internal/platform/systemadapter/keys_darwin.go` |
 
 On Windows, links and applications open through `ShellExecuteW` and key presses
-go through `SendInput`, both called directly.
+go through `SendInput`, both called directly. Triple press to close lists the
+top level windows, reads each one's process's program path and app ID, and posts
+the application's own windows the message their close buttons send, all called
+directly; it never ends a process. A Squirrel install's program is found by the
+`Update.exe` its shortcut runs, which is only matched against, never run.
 
 ## Operating system permissions and access
 

@@ -4946,6 +4946,46 @@ script not started failed a test. On this MacBook the preview showed page 2
 marked with its own marker, measured the grid's width, and its seconds key
 was asked for again each second and its tens key each ten.
 
+### Triple press to close on Windows
+
+The author chose to close the two gaps Windows had, notification badges and
+Triple press to close, ahead of testing on the Dell, accepting they could not
+be run yet. Looking first at what Windows allows showed neither has a direct
+equivalent. Windows has no general quit command, and closing the windows of
+an application that keeps running in the notification area, as Signal and
+Discord can, only hides it; and Windows has no way for one application to
+read another's taskbar badge. Asked, the author chose to close the windows
+only, never ending a process, so nothing unsaved is ever lost, and to leave
+badges unavailable on Windows until testing there shows what works.
+
+The quitter finds the application's processes by what its identifier names,
+as the launcher and the app picker write it: a packaged application by its
+app ID, matched against each process's application user model ID; a desktop
+application by its program's path, a known folder's path put in front of a
+path written under one; and any other Start menu entry by asking PowerShell
+for its shortcut's target and arguments, the app ID passed in an environment
+variable and never in the command. A Squirrel install's shortcut runs
+Update.exe with --processStart, so its program is looked for by name in
+Update.exe's folder or beneath it, as Discord keeps a versioned folder. The
+windows closed are the application's own visible top level windows without
+an owner, those on the taskbar, each sent the message its close button
+sends, posted rather than sent so no window can hold up the key; an
+application not running has none and is left alone. The decisions sit in the
+untagged file, tested on the Mac; the Windows file only lists windows, reads
+each process's path and app ID, and posts the messages, built, vetted and
+linted for Windows. Not yet run on a Windows machine.
+
+Tests first, failing to build before the change: identifiers read as a
+packaged app ID, bare or in the Apps folder, a path, a path under a known
+folder, and a Start menu app ID; a shortcut read as its target, a Squirrel
+shortcut as its program in Update.exe's folder, quoted or not, and an empty
+entry or a Squirrel shortcut that starts nothing as not found; processes
+matched by path, by name in a folder or beneath it but not beside it, and by
+package, ignoring case; and only visible windows without an owner closed.
+Planting each of keeping the Apps folder prefix, minding case in paths and
+Update.exe, matching any folder or a sibling folder, keeping the quotes,
+closing owned or hidden windows, and taking an empty entry failed a test.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

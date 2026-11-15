@@ -1575,7 +1575,7 @@ A brick kind.
 | `use_app_icon` | boolean | optional |  |  | Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. Not available on Windows yet, where the key shows the missing icon marker. |
 | `app_screen` | boolean | optional |  |  | Hold the key for half a second to also show the application's screen on the deck: a page of its own keys, with the application's icon top left to go back. A tap still just opens the application. Saving the key creates the screen if there is none. |
 | `show_notifications` | boolean | optional |  |  | Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows yet. |
-| `triple_press_to_close` | boolean | optional |  |  | Press the key three times quickly to quit the application outright, not just close its window. The first press still opens it. After the quit the key does nothing until it has been left alone for a second and a half, so a fourth press does not open it again. Not available on Windows yet. |
+| `triple_press_to_close` | boolean | optional |  |  | Press the key three times quickly to quit the application outright, not just close its window. The first press still opens it. After the quit the key does nothing until it has been left alone for a second and a half, so a fourth press does not open it again. On Windows it closes the application's windows instead, which leaves running one that keeps going in the notification area. |
 
 ### `open_editor`
 

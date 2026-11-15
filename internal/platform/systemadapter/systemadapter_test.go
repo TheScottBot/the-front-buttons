@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
@@ -175,8 +176,8 @@ func TestWindowsApplicationLauncher_UsesAppsFolderForAppIDs_AndPathsDirectly(t *
 	t.Parallel()
 
 	launches := map[string]systemadapter.ShellRequest{
-		"MSTeams_8wekyb3d8bbwe!MSTeams":    {Verb: openVerb, File: `shell:AppsFolder\MSTeams_8wekyb3d8bbwe!MSTeams`},
-		`C:\Program Files\Thing\thing.exe`: {Verb: openVerb, File: `C:\Program Files\Thing\thing.exe`},
+		"MSTeams_8wekyb3d8bbwe!MSTeams": {Verb: openVerb, File: `shell:AppsFolder\MSTeams_8wekyb3d8bbwe!MSTeams`},
+		thingPath:                       {Verb: openVerb, File: thingPath},
 	}
 
 	for identifier, want := range launches {
@@ -231,12 +232,136 @@ func TestMacOSQuitTarget_ReadsTheIdentifierAsTheLauncherDoes(t *testing.T) {
 	t.Parallel()
 
 	for identifier, want := range map[string]systemadapter.QuitTarget{
-		"org.whispersystems.signal-desktop": {Name: "org.whispersystems.signal-desktop", ByBundle: true},
-		signalName:                          {Name: signalName, ByBundle: false},
-		signalName + ".app":                 {Name: signalName, ByBundle: false},
+		signalBundle:        {Name: signalBundle, ByBundle: true},
+		signalName:          {Name: signalName, ByBundle: false},
+		signalName + ".app": {Name: signalName, ByBundle: false},
 	} {
 		if got := systemadapter.MacOSQuitTarget(identifier); got != want {
 			t.Errorf("%q: want %+v, got %+v", identifier, want, got)
 		}
+	}
+}
+
+// The Windows applications the quitter tests name.
+const (
+	thingPath        = `C:\Program Files\Thing\thing.exe`
+	signalBundle     = "org.whispersystems.signal-desktop"
+	teamsAppID       = "MSTeams_8wekyb3d8bbwe!MSTeams"
+	discordDirectory = `C:\Users\Wash\AppData\Local\Discord`
+	discordExe       = "Discord.exe"
+)
+
+// TestWindowsQuitTarget_ReadsTheIdentifierAsTheLauncherDoes: on Windows the
+// quitter reads an identifier as the launcher and the app picker write it: a
+// packaged application by its app ID, bare or in the Apps folder; a desktop
+// application by its path, under a known folder or not; and any other Apps
+// folder entry by its app ID, to be looked up in the Start menu.
+func TestWindowsQuitTarget_ReadsTheIdentifierAsTheLauncherDoes(t *testing.T) {
+	t.Parallel()
+
+	for identifier, want := range map[string]systemadapter.WindowsQuitTarget{
+		teamsAppID: {Kind: systemadapter.WindowsQuitByPackage, Value: teamsAppID, KnownFolder: ""},
+		`shell:AppsFolder\` + teamsAppID: {
+			Kind: systemadapter.WindowsQuitByPackage, Value: teamsAppID, KnownFolder: "",
+		},
+		thingPath: {Kind: systemadapter.WindowsQuitByPath, Value: thingPath, KnownFolder: ""},
+		`shell:AppsFolder\{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\notepad.exe`: {
+			Kind: systemadapter.WindowsQuitByPath, Value: "notepad.exe",
+			KnownFolder: "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}",
+		},
+		`shell:AppsFolder\` + signalBundle: {Kind: systemadapter.WindowsQuitByAppID, Value: signalBundle, KnownFolder: ""},
+	} {
+		if got := systemadapter.NewWindowsQuitTarget(identifier); got != want {
+			t.Errorf("%q: want %+v, got %+v", identifier, want, got)
+		}
+	}
+}
+
+// TestParseWindowsAppLink_FindsTheProgramAStartMenuEntryRuns: a Start menu
+// entry's shortcut, its target and arguments a line each, names the program
+// to look for: its target, or for a Squirrel install, whose shortcut runs
+// Update.exe --processStart, the program it starts, in Update.exe's folder or
+// beneath it. An entry not found is said so.
+func TestParseWindowsAppLink_FindsTheProgramAStartMenuEntryRuns(t *testing.T) {
+	t.Parallel()
+
+	signal := `C:\Users\Wash\AppData\Local\Programs\signal-desktop\Signal.exe`
+	squirrel := systemadapter.WindowsProcessRule{Path: "", Directory: discordDirectory, FileName: discordExe, Package: ""}
+
+	for output, want := range map[string]systemadapter.WindowsProcessRule{
+		signal + "\r\n\r\n": {Path: signal, Directory: "", FileName: "", Package: ""},
+		discordDirectory + `\Update.exe` + "\r\n--processStart Discord.exe\r\n": squirrel,
+		discordDirectory + `\update.exe` + "\r\n" +
+			`--processStart "Discord.exe" --process-start-args "--start-minimized"`: squirrel,
+	} {
+		got, parseError := systemadapter.ParseWindowsAppLink(output)
+		if parseError != nil || got != want {
+			t.Errorf("%q: want %+v, got %+v (%v)", output, want, got, parseError)
+		}
+	}
+
+	for _, output := range []string{"", "\r\n", discordDirectory + `\Update.exe` + "\r\n--squirrel-firstrun\r\n"} {
+		_, parseError := systemadapter.ParseWindowsAppLink(output)
+		if !errors.Is(parseError, platform.ErrApplicationNotFound) {
+			t.Errorf("%q: want not found, got %v", output, parseError)
+		}
+	}
+}
+
+// discordProcess is a process whose program is at a path in or beside
+// Discord's folder.
+func discordProcess(after string) systemadapter.WindowsProcess {
+	return systemadapter.WindowsProcess{ImagePath: discordDirectory + after, Package: ""}
+}
+
+// TestWindowsProcessRule_MatchesTheApplicationsProcessesOnly: a rule matches
+// a process by its program's path, by its program's name in a folder or
+// beneath it, or by its package's app ID, ignoring case as Windows does, and
+// nothing else.
+func TestWindowsProcessRule_MatchesTheApplicationsProcessesOnly(t *testing.T) {
+	t.Parallel()
+
+	byPath := systemadapter.WindowsProcessRule{Path: `C:\Apps\Thing.exe`, Directory: "", FileName: "", Package: ""}
+	byFolder := systemadapter.WindowsProcessRule{Path: "", Directory: discordDirectory, FileName: discordExe, Package: ""}
+	byPackage := systemadapter.WindowsProcessRule{Path: "", Directory: "", FileName: "", Package: teamsAppID}
+
+	for _, check := range []struct {
+		rule    systemadapter.WindowsProcessRule
+		process systemadapter.WindowsProcess
+		want    bool
+	}{
+		{byPath, systemadapter.WindowsProcess{ImagePath: `c:\apps\thing.EXE`, Package: ""}, true},
+		{byPath, systemadapter.WindowsProcess{ImagePath: `C:\Apps\Other.exe`, Package: ""}, false},
+		{byFolder, discordProcess(`\app-1.0.9\Discord.exe`), true},
+		{byFolder, discordProcess(`\Update.exe`), false},
+		{byFolder, systemadapter.WindowsProcess{ImagePath: `C:\Other\Discord.exe`, Package: ""}, false},
+		{byFolder, discordProcess(`Canary\Discord.exe`), false},
+		{byPackage, systemadapter.WindowsProcess{ImagePath: `C:\WindowsApps\ms-teams.exe`, Package: teamsAppID}, true},
+		{byPackage, systemadapter.WindowsProcess{ImagePath: `C:\WindowsApps\ms-teams.exe`, Package: ""}, false},
+	} {
+		if got := check.rule.Matches(check.process); got != check.want {
+			t.Errorf("%+v with %+v: want %v, got %v", check.rule, check.process, check.want, got)
+		}
+	}
+}
+
+// TestWindowsWindowsToClose_ClosesTheApplicationsOwnWindows: the windows
+// closed are the application's own visible top level windows, those on the
+// taskbar, as clicking each one's close button would; its hidden and owned
+// windows, and every other process's, are left alone.
+func TestWindowsWindowsToClose_ClosesTheApplicationsOwnWindows(t *testing.T) {
+	t.Parallel()
+
+	windows := []systemadapter.WindowsWindow{
+		{Handle: 1, ProcessID: 10, Visible: true, Owned: false},
+		{Handle: 2, ProcessID: 10, Visible: false, Owned: false},
+		{Handle: 3, ProcessID: 10, Visible: true, Owned: true},
+		{Handle: 4, ProcessID: 11, Visible: true, Owned: false},
+		{Handle: 5, ProcessID: 12, Visible: true, Owned: false},
+	}
+
+	got := systemadapter.WindowsWindowsToClose(windows, func(processID uint32) bool { return processID != 11 })
+	if !slices.Equal(got, []uintptr{1, 5}) {
+		t.Errorf("want windows 1 and 5 closed, got %v", got)
 	}
 }
