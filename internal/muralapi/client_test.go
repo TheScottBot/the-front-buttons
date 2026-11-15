@@ -3,6 +3,8 @@ package muralapi_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -346,5 +348,139 @@ func TestClient_RefusesAnAnswerWithoutTokens(t *testing.T) {
 	_, readError := store.ReadCredential(murals.RefreshTokenCredential)
 	if readError == nil {
 		t.Error("want nothing stored")
+	}
+}
+
+// timerMural answers the token and timer endpoints as Mural does, recording
+// each timer request.
+type timerMural struct {
+	mutex    sync.Mutex
+	requests []string
+	statuses []int
+	refreshs int
+}
+
+func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	writer.Header().Set("Content-Type", "application/json")
+
+	if request.URL.Path == tokenEndpoint {
+		fake.refreshs++
+		encoded, _ := json.Marshal(map[string]any{ //nolint:errchkjson // a test's own map of plain values
+			accessField: fmt.Sprintf("access-%d", fake.refreshs), expiresField: 900,
+		})
+		_, _ = writer.Write(encoded)
+
+		return
+	}
+
+	body, _ := io.ReadAll(request.Body)
+	fake.requests = append(fake.requests,
+		request.Method+" "+request.URL.Path+" "+request.Header.Get("Authorization")+" "+string(body))
+
+	status := http.StatusOK
+	if len(fake.statuses) > 0 {
+		status, fake.statuses = fake.statuses[0], fake.statuses[1:]
+	}
+
+	writer.WriteHeader(status)
+
+	switch status {
+	case http.StatusNotFound:
+		_, _ = writer.Write([]byte(`{"code":"MURAL_NOT_FOUND","message":"Mural not found"}`))
+	case http.StatusForbidden:
+		_, _ = writer.Write([]byte(`{"code":"INVALID_SCOPE","message":"no"}`))
+	default:
+		_, _ = writer.Write([]byte(`{"value":{"duration":300}}`))
+	}
+}
+
+// newTimerFake starts a Mural answering timer requests with the statuses
+// given in turn, and a signed in client against it.
+func newTimerFake(t *testing.T, statuses ...int) (*timerMural, *muralapi.Client) {
+	t.Helper()
+
+	fake := &timerMural{mutex: sync.Mutex{}, requests: nil, statuses: statuses, refreshs: 0}
+	server := httptest.NewServer(http.HandlerFunc(fake.serve))
+	t.Cleanup(server.Close)
+
+	store := testsupport.NewCredentialStoreTestDouble()
+	setUp(t, store, murals.RefreshTokenCredential, refreshToken)
+
+	return fake, muralapi.NewClientAt(server.Client(), store, server.URL, time.Now)
+}
+
+// TestClient_StartsAndAddsToAMuralsTimer: starting posts the duration in
+// seconds and the sound to the mural's timer, and adding patches its delta in
+// seconds, each with the access token.
+func TestClient_StartsAndAddsToAMuralsTimer(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFake(t, http.StatusOK, http.StatusCreated)
+
+	startError := client.StartTimer(t.Context(), "team.1712345678901", 5*time.Minute, true)
+	addError := client.AddTime(t.Context(), "team.1712345678901", 30*time.Second)
+
+	if startError != nil || addError != nil {
+		t.Fatalf("want both done, got %v and %v", startError, addError)
+	}
+
+	want := []string{
+		`POST /api/public/v1/murals/team.1712345678901/timer/start Bearer access-1 {"duration":300,"soundEnabled":true}`,
+		`PATCH /api/public/v1/murals/team.1712345678901/timer Bearer access-1 {"delta":30}`,
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+}
+
+// TestClient_SignsInAgainWhenMuralRefusesTheToken: an access token Mural no
+// longer takes is refreshed and the request sent once more.
+func TestClient_SignsInAgainWhenMuralRefusesTheToken(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFake(t, http.StatusUnauthorized, http.StatusOK)
+
+	addError := client.AddTime(t.Context(), "team.1712345678901", time.Minute)
+	if addError != nil || len(fake.requests) != 2 || fake.refreshs != 2 ||
+		!strings.Contains(fake.requests[1], "Bearer access-2") {
+		t.Errorf("want one retry with a fresh token, got %v (%v)", fake.requests, addError)
+	}
+
+	_, again := newTimerFake(t, http.StatusUnauthorized, http.StatusUnauthorized)
+
+	failure := again.AddTime(t.Context(), "team.1712345678901", time.Minute)
+	if !errors.Is(failure, murals.ErrNotConnected) {
+		t.Errorf("refused twice: want not connected, got %v", failure)
+	}
+}
+
+// TestClient_SaysWhyMuralRefusedTheTimer: no such mural is not found, a
+// refusal is refused by Mural's code, and a mural ID that is not one is never
+// sent.
+func TestClient_SaysWhyMuralRefusedTheTimer(t *testing.T) {
+	t.Parallel()
+
+	_, client := newTimerFake(t, http.StatusNotFound, http.StatusForbidden)
+
+	missing := client.AddTime(t.Context(), "team.1712345678901", time.Minute)
+	refused := client.AddTime(t.Context(), "team.1712345678901", time.Minute)
+
+	if !errors.Is(missing, murals.ErrNotFound) {
+		t.Errorf("want not found, got %v", missing)
+	}
+
+	if !errors.Is(refused, murals.ErrRefused) || !strings.Contains(refused.Error(), "INVALID_SCOPE") {
+		t.Errorf("want refused by its code, got %v", refused)
+	}
+
+	fake, unsent := newTimerFake(t)
+
+	unsentFailure := unsent.AddTime(t.Context(), "../users", time.Minute)
+	if !errors.Is(unsentFailure, murals.ErrNotFound) || len(fake.requests) != 0 {
+		t.Errorf("want a mural ID that is not one never sent, got %v", unsentFailure)
 	}
 }

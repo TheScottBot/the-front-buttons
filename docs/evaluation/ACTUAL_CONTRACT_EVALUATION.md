@@ -5074,6 +5074,48 @@ whatever their binding, a new refresh token not kept, the access token never
 refreshed, the answer repeated in errors, a sign in without a refresh token
 kept and a wider scope failed a test.
 
+### Mural: the timer keys
+
+With the sign in tried against a real Mural app and working, the timer keys
+followed: start, add a minute and add thirty seconds, each its own key, each
+acting on the one board its link names, as a delivery manager may run eight.
+They are three kinds rather than one kind and presets, as presets fill a
+kind's parameters through link templates.
+
+The core package gained the timer port, `murals.Timer`, starting a mural's
+timer for a duration with or without its sound and adding time to it, and
+reads a mural's API ID from a board's address: the workspace after `/m/`,
+the one the board belongs to, and its number, joined by a dot, as the API's
+documented example ID has it. A new field format, `mural_board`, takes only
+addresses that name a board this way. `mural_start_timer` takes a duration,
+five minutes, Mural's own start, if left out, bounded to the API's 90 minutes,
+and a silent box; the add keys take only the link. A key with no label says
+what it does, Start 5:00 or +1:00, and shows why Mural refused: not_set_up,
+not_connected, not_found, refused or network.
+
+The adapter posts `{"duration", "soundEnabled"}` to a board's
+`timer/start` and patches `{"delta"}` to its `timer`, in seconds, with the
+access token, as Mural documents; it takes 200 and 201 as done, as the update
+answers 201. An access token Mural refuses with 401 is dropped and the request
+sent once more with a fresh one; refused again, the key says not connected. A
+mural ID not of the board form is never sent, and only Mural's upper case
+refusal code is repeated from an answer. What Mural does with time added when
+no timer runs is not documented; the key shows whatever Mural answers.
+
+Tests first, failing before the change: board IDs read from addresses, with
+query strings, a missing last part and a different opening workspace, and
+invitations, non numbers, other hosts and http refused; the format the same;
+each key acting on its own board, start's default and given durations and
+sound, the add keys' minute and thirty seconds; the default labels; each
+refusal's reason; the port needed; the start and add requests' methods,
+paths, token and bodies; a refused token refreshed and retried once, twice
+refused not connected; not found and a refusal by its code; and a bad ID
+never sent. Planting each of the sound inverted, no default duration, the add
+keys swapped, not connected shown as network, the ID from the opening
+workspace, any host's board, any ID sent, no retry, a retry with the same
+token, 201 taken as a failure, not found shown as refused, and a duration in
+milliseconds failed a test.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

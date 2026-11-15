@@ -32,10 +32,13 @@ Nothing listens on any other interface, so no other machine can reach it.
   cannot send the token anywhere else (`internal/platform/credentials.go`,
   `CredentialHost`). Redirects to another domain drop the token (Go's
   `net/http`).
-- **Mural's token endpoint**, for signing in to Mural only:
+- **Mural's API**, for the Mural timer keys only: its token endpoint,
   `https://app.mural.co/api/public/v1/authorization/oauth2/token`, sent the
   code Mural returns, or the stored refresh token, with the client ID and
-  secret of the person's own Mural app (`internal/muralapi/client.go`). Each
+  secret of the person's own Mural app (`internal/muralapi/client.go`); and a
+  board's timer, `/api/public/v1/murals/<workspace>.<number>/timer`, started
+  or added to with the access token, for the one board a key's link names
+  (`internal/muralapi/timer.go`). Each
   of the three is bound to `app.mural.co` in the credential store, and the
   client refuses to send one bound anywhere else, so a configuration naming
   one as a GitHub key's credential cannot send it to GitHub, nor the GitHub

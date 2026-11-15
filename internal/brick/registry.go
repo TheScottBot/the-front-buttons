@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/TheScottBot/the-front-buttons/internal/murals"
 	"github.com/TheScottBot/the-front-buttons/internal/pipeline"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
@@ -33,6 +34,9 @@ type Ports struct {
 	ShortcutPresser platform.ShortcutPresser
 	// ClipboardWriter puts text on the clipboard, for a key that pastes it.
 	ClipboardWriter platform.ClipboardWriter
+	// MuralTimer starts and adds to a mural's timer, for the Mural timer
+	// keys.
+	MuralTimer murals.Timer
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

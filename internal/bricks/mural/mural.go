@@ -1,7 +1,7 @@
-// Package mural is the keys for Mural, the online whiteboard, as the author
-// asked for them for running sessions on a board. mural_share_link pastes a
-// board's link, with a message saying what it is for, wherever the person is
-// typing, such as a meeting's chat.
+// Package mural is the keys for Mural, the online whiteboard, for running
+// sessions on a board. mural_share_link pastes a board's link, with a message
+// saying what it is for, wherever the person is typing, such as a meeting's
+// chat; the timer keys (timer.go) start and add to a board's timer.
 package mural
 
 import (
@@ -32,7 +32,12 @@ type ShareParameters struct {
 
 // Register adds the Mural kinds to a registry.
 func Register(registry *brick.Registry) error {
-	return brick.Register(registry, ShareKindName, constructShare) //nolint:wrapcheck // Register already names the kind
+	shareError := brick.Register(registry, ShareKindName, constructShare)
+	if shareError != nil {
+		return shareError //nolint:wrapcheck // Register already names the kind
+	}
+
+	return registerTimers(registry)
 }
 
 func constructShare(parameters ShareParameters, ports brick.Ports) (any, error) {

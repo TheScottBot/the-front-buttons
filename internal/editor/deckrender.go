@@ -92,6 +92,7 @@ func (pages *pageHandlers) deckFallbacks(
 		URLOpener: nil, ApplicationLauncher: nil, ApplicationQuitter: nil, PipelineProvider: nil,
 		EditorAddress: nil, KeyPresser: nil,
 		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil, ClipboardWriter: nil,
+		MuralTimer: nil,
 	})
 	if constructError != nil {
 		return pages.options.Registry.Title(kindName), ""

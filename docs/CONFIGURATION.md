@@ -194,6 +194,38 @@ already need.
           label: Retro
 ```
 
+The timer keys act on one board each, the one their link names, through
+Mural's API, signed in once from the editor (below):
+`mural_start_timer` starts the board's timer, for five minutes unless
+`duration` says otherwise, up to 90 minutes, with its sound at the end unless
+`silent` is ticked; `mural_add_minute` and `mural_add_half_minute` add a minute
+and thirty seconds to it. The link is the board's own address, as its
+browser's address bar shows it; a key with no label says what it does, such as
+Start 5:00 or +0:30. The person signed in must be able to run the board's
+timer, as its owner or a facilitator. A key Mural refuses says why: not_set_up
+or not_connected for the sign in, not_found for a board Mural does not know or
+the person cannot reach, refused for anything else Mural turns down, or
+network.
+
+```yaml
+      - row: 2
+        column: 0
+        kind: mural_start_timer
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          duration: 10m
+      - row: 2
+        column: 1
+        kind: mural_add_minute
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+      - row: 2
+        column: 2
+        kind: mural_add_half_minute
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+```
+
 ### Signing in to Mural
 
 The Mural timer keys use Mural's API, through an app of your own, signed in

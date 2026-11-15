@@ -236,8 +236,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
-- The editor's credentials page signs in to Mural, for the timer keys to
-  come: the client ID and secret of the person's own Mural app are stored,
+- Three Mural timer keys, each acting on the one board its link names:
+  `mural_start_timer`, five minutes unless given a duration, with or without
+  the sound at the end, and `mural_add_minute` and `mural_add_half_minute`,
+  through Mural's API with the sign in from the credentials page.
+- The editor's credentials page signs in to Mural, for the timer keys: the client ID and secret of the person's own Mural app are stored,
   bound to app.mural.co, and Connect to Mural goes to Mural's own page and
   returns to the editor, which keeps the refresh token and refreshes the
   fifteen minute access token as it needs.

@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/TheScottBot/the-front-buttons/internal/murals"
 )
 
 // FieldType is the kind of value a parameter holds. The set is deliberately
@@ -64,6 +66,9 @@ const (
 	// FormatMuralLink is a link to Mural itself, such as a board or an
 	// invitation: https, on app.mural.co, with a path.
 	FormatMuralLink Format = "mural_link"
+	// FormatMuralBoard is a board's own address, as its browser shows it,
+	// from which the mural a timer key acts on is read.
+	FormatMuralBoard Format = "mural_board"
 )
 
 // Bounds limits a value: the length in characters for text, the value for an
@@ -184,6 +189,11 @@ func formatCheckers() map[Format]func(textValue string) bool {
 		FormatFunctionKey: functionKeyRule.MatchString,
 		FormatShortcutKey: func(textValue string) bool { return slices.Contains(ShortcutKeys(), textValue) },
 		FormatMuralLink:   isMuralLink,
+		FormatMuralBoard: func(textValue string) bool {
+			_, isBoard := murals.BoardID(textValue)
+
+			return isBoard
+		},
 	}
 }
 
