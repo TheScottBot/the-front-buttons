@@ -56,6 +56,16 @@ func (paging Paging) Resize(pageCount int) Paging {
 	return Paging{pageCount: pageCount, current: min(max(paging.current, 0), pageCount-1)}
 }
 
+// To moves to a page by its index, for a page found again after a reload,
+// keeping to the pages there are.
+func (paging Paging) To(index int) Paging {
+	if !paging.HasPage() {
+		return paging
+	}
+
+	return Paging{pageCount: paging.pageCount, current: min(max(index, 0), paging.pageCount-1)}
+}
+
 // PageIndication is what the navigation keys show, so the current page is never
 // ambiguous (specification section 2). Number is counted from one, as a person
 // counts pages. TE4 decides how the keys draw it.

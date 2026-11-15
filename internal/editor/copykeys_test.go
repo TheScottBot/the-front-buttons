@@ -231,7 +231,7 @@ func TestEditor_RefusesACopyWithNothingTicked(t *testing.T) {
 	}{
 		{"no key", nil, []string{playPage}, "no keys were ticked"},
 		{"no page", []string{cutTile}, nil, "no page was ticked to copy onto"},
-		{"empty tile", []string{"2.2"}, []string{playPage}, "there is no key at row 3, column 3 to copy"},
+		{"empty tile", []string{"2.2"}, []string{playPage}, "there is no key at row 3, column 3; the page may have changed"},
 		{"itself", []string{cutTile}, []string{workPage}, "a page cannot be copied onto itself"},
 		{"no such page", []string{cutTile}, []string{"9"}, "that page no longer exists"},
 	}
@@ -257,7 +257,7 @@ func TestEditor_SelectModeTicksKeysAndPages(t *testing.T) {
 	harness := newCopyKeysHarness(t)
 
 	normal := harness.get(t, "/page?page=0").Body.String()
-	requireBody(t, normal, `<a href="/page?page=0&amp;select=1">Select keys to copy</a>`)
+	requireBody(t, normal, `<a href="/page?page=0&amp;select=1">Select keys to copy, move or remove</a>`)
 	refuseBody(t, normal, `name="tile"`)
 
 	selecting := harness.get(t, "/page?page=0&select=1").Body.String()
@@ -269,7 +269,7 @@ func TestEditor_SelectModeTicksKeysAndPages(t *testing.T) {
 		`<label for="copy-to-3">Page 2: Play</label>`,
 		`<a href="/page?page=0" class="select-done">Done selecting</a>`,
 		// A fixed click area over the key, which moves when ticked.
-		`<label class="select-hit" for="tile-0-1" aria-hidden="true"></label>`,
+		`<label class="select-hit" for="tile-0-1" aria-hidden="true" draggable="true"></label>`,
 	)
 	refuseBody(t, selecting, `href="/key?page=0&amp;row=0&amp;column=1"`, `value="2.2" form="copy-keys"`,
 		`id="copy-to-0"`)

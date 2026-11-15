@@ -60,3 +60,21 @@ func FallbackLabel(instance any, pageName string, pageNumber int) string {
 
 	return "Off"
 }
+
+// FallbackIcon is the icon a key shows when it has no icon of its own: a page
+// marker its page's number, and anything else none.
+func FallbackIcon(instance any, pageNumber int) string {
+	if _, isMarker := instance.(PageMarker); isMarker {
+		return PageMarkerIcon(pageNumber)
+	}
+
+	return ""
+}
+
+// ShowsPageNumber reports parameters that want their page's number in place
+// of a label and icons of their own: a page marker with its box ticked.
+func ShowsPageNumber(parameters any) bool {
+	numbered, isNumbered := parameters.(PageNumbered)
+
+	return isNumbered && numbered.ShowsPageNumber()
+}

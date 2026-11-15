@@ -122,16 +122,11 @@ func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) i
 // over its icon file, and the colour of the icon's edge unless it sets a
 // background.
 func (state *loopState) appearanceFor(runContext context.Context, configured configuredKey) render.Appearance {
-	configuredAppearance, _ := brick.AppearanceOf(configured.key.Parameters)
-
-	label := configuredAppearance.Label
-	if label == "" {
-		label = fallbackLabel(configured)
-	}
+	configuredAppearance, label, icon := ownAppearance(configured)
 
 	appearance := render.Appearance{
 		Label:       label,
-		Icon:        configuredAppearance.Icon,
+		Icon:        icon,
 		ErrorReason: configured.errorReason,
 	}
 
@@ -169,6 +164,30 @@ func (state *loopState) appearanceFor(runContext context.Context, configured con
 	appearance.Badge = state.badgeFor(configured)
 
 	return appearance
+}
+
+// ownAppearance is a key's configured appearance, with the label and icon it
+// shows: its own, or where it has none, those the deck gives it. A page marker
+// showing its page's number sets its own label and icons aside, keeping them
+// for when it is told otherwise.
+func ownAppearance(configured configuredKey) (brick.Appearance, string, string) {
+	configuredAppearance, _ := brick.AppearanceOf(configured.key.Parameters)
+
+	if brick.ShowsPageNumber(configured.key.Parameters) {
+		configuredAppearance.Label, configuredAppearance.Icon, configuredAppearance.IconFile = "", "", ""
+	}
+
+	label := configuredAppearance.Label
+	if label == "" {
+		label = fallbackLabel(configured)
+	}
+
+	icon := configuredAppearance.Icon
+	if icon == "" && configuredAppearance.IconFile == "" {
+		icon = brick.FallbackIcon(configured.instance, configured.pageNumber)
+	}
+
+	return configuredAppearance, label, icon
 }
 
 // drawLive lets a live brick draw part of its key from its latest state, as

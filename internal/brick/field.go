@@ -93,8 +93,9 @@ type Field struct {
 	// with one name.
 	MacLabel     string
 	WindowsLabel string
-	// Default is where a number starts in a new key's form, written as the
-	// form shows it; empty for none. It never fills a value left out of the
+	// Default is where a number or check box starts in a new key's form,
+	// written as the form shows it, a check box's as true or false; empty for
+	// none. It never fills a value left out of the
 	// configuration file: a brick says what it does then.
 	Default string
 

@@ -101,12 +101,16 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 	switch request.URL.Query().Get("saved") {
 	case "key":
 		message = savedMessage
-	case "removed":
+	case removedQuery:
 		message, undo = removedMessage, pages.removals.holding()
 	case "credential":
 		message = credentialMessage
 	case copiedQuery:
 		message = copiedMessage
+	case movedQuery:
+		message = movedMessage
+	case reorderedQuery:
+		message = reorderedMessage
 	}
 
 	return baseView{
@@ -258,6 +262,8 @@ type pageView struct {
 	// and SelectTargets are the pages its keys can be copied onto.
 	Selecting     bool
 	SelectTargets []selectTarget
+	// ReorderPlaces are where the page can move among the pages of its sort.
+	ReorderPlaces []reorderPlace
 	// Types are the bricks and presets the drawer offers to drag onto an
 	// empty tile, the same list the key form chooses from.
 	Types []typeOption
@@ -282,7 +288,7 @@ func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Re
 
 	if query.Get(selectQuery) == "1" {
 		// Tiles in the address start ticked, as Shift and a click opens it.
-		selection := copySelection{source: pageIndex, tiles: nil, targets: nil}
+		selection := copySelection{source: pageIndex, tiles: nil, targets: nil, shift: layout.Position{Row: 0, Column: 0}}
 		for _, value := range query[copyTileField] {
 			selection.tiles = append(selection.tiles, tileFrom(value))
 		}
@@ -366,7 +372,7 @@ func (pages *pageHandlers) pageViewFor(
 		AppTypes:    pages.appTypeOptions(page, ""),
 		AppGroups:   pages.appGroupViews(page),
 
-		Selecting: false, SelectTargets: nil,
+		Selecting: false, SelectTargets: nil, ReorderPlaces: reorderPlaces(configuration.Pages, pageIndex),
 		FixedGroups: fixedGroupViews(), DrawerChars: 0,
 	}
 
@@ -543,8 +549,9 @@ func describeKey(presetTable presets.Table, page config.Page, position layout.Po
 
 	kindName := shownKind(presetTable, key)
 
+	// A page marker showing its page's number has set its own label aside.
 	appearance, _ := brick.AppearanceOf(key.Parameters)
-	if appearance.Label != "" {
+	if appearance.Label != "" && !brick.ShowsPageNumber(key.Parameters) {
 		return appearance.Label, kindName
 	}
 
@@ -1011,8 +1018,17 @@ func (pages *pageHandlers) keyPicture(
 	}
 
 	appearance := pages.keyPreview(previewContext, pageAt(configuration, pageIndex), position, query)
-	if stored {
-		pages.fillDeckDefaults(&appearance, configuration.Pages, pageIndex, position)
+
+	// A stored key gets everything the deck adds; a page marker still in its
+	// form its page's number, as it is the whole of what the marker shows.
+	key, found := keyAt(pageAt(configuration, pageIndex), position)
+	unsavedKind, _ := strings.CutPrefix(query.Get("type"), kindChoicePrefix)
+
+	switch {
+	case stored && found:
+		pages.fillDeckDefaults(&appearance, configuration.Pages, pageIndex, key.Kind, key.Parameters)
+	case !stored && brick.IsPageMarker(unsavedKind):
+		pages.fillDeckDefaults(&appearance, configuration.Pages, pageIndex, unsavedKind, pages.unsavedParameters(query))
 	}
 
 	return pages.options.Renderer.Render(appearance)
@@ -1052,6 +1068,12 @@ func (pages *pageHandlers) keyPreview(
 		query.Set(fieldPrefix+"background", configured.Background)
 
 		parameters = key.Parameters
+	}
+
+	// A page marker showing its page's number sets its own label and icons
+	// aside, as the deck does.
+	if brick.ShowsPageNumber(parameters) {
+		appearance.Label, appearance.Icon, iconFile = "", "", ""
 	}
 
 	if iconFile != "" {

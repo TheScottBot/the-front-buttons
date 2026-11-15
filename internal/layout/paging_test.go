@@ -136,3 +136,21 @@ func TestPaging_Indication_IsAbsent_WhenNamesDoNotMatchThePageCount(t *testing.T
 		t.Fatal("want no indication with no pages")
 	}
 }
+
+func TestPaging_To_GoesToAPageAndKeepsToThePagesThereAre(t *testing.T) {
+	t.Parallel()
+
+	paging := layout.NewPaging(3)
+
+	if moved := paging.To(2); moved.Current() != 2 {
+		t.Fatalf("want page 2, got %d", moved.Current())
+	}
+
+	if moved := paging.To(7); moved.Current() != 2 {
+		t.Fatalf("want the last page for an index past it, got %d", moved.Current())
+	}
+
+	if moved := layout.NewPaging(0).To(1); moved.HasPage() {
+		t.Fatal("want no page where there are none")
+	}
+}

@@ -50,18 +50,20 @@ function announce(message: string): void {
   }
 }
 
-// refusalFrom reads the reason from a refused move's page: the server writes
-// it in the errors alert, starting "Error: ".
+// refusalFrom reads the reason from a refused change's page: the server
+// writes it starting "Error: ", in the key form's errors alert, or in the
+// page's list of problems.
 function refusalFrom(page: string): string {
   const parsed = new DOMParser().parseFromString(page, "text/html");
   const alert = parsed.querySelector(".errors");
+  const problems = [...parsed.querySelectorAll(".problems li")].map((item) => item.textContent?.trim() ?? "");
 
-  return alert?.textContent?.trim() || "Error: the key could not be moved.";
+  return alert?.textContent?.trim() || problems.join(" ") || "Error: the change could not be made.";
 }
 
 // send posts one change the way the editor's own forms do, with the page's
 // token, and follows the redirect a change the server accepted answers with.
-async function send(path: string, fields: Record<string, string>): Promise<void> {
+export async function send(path: string, fields: Record<string, string | readonly string[]>): Promise<void> {
   const token = document.querySelector<HTMLInputElement>('input[name="token"]')?.value;
   if (token === undefined) {
     announce("Error: this page has no editor token; reload it and try again.");
@@ -69,7 +71,12 @@ async function send(path: string, fields: Record<string, string>): Promise<void>
     return;
   }
 
-  const body = new URLSearchParams({ token, ...fields });
+  const body = new URLSearchParams({ token });
+  for (const [name, value] of Object.entries(fields)) {
+    for (const each of typeof value === "string" ? [value] : value) {
+      body.append(name, each);
+    }
+  }
 
   try {
     const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
@@ -99,6 +106,169 @@ function relocate(source: Tile, destination: string, copying: boolean): Promise<
 // returns to offers Undo.
 function remove(source: Tile): Promise<void> {
   return send("/key/delete", { page: source.page, row: source.row, column: source.column });
+}
+
+// Ticked keys carried together: in select mode a key picked up carries every
+// ticked key, ticking itself if it was not. Dropped on a free tile, each key
+// shifts as far as the one carried; on a page's name each goes to its own
+// tile there; in the bin all are removed. Each is the same POST the select
+// mode form sends, with the shift added, through the same checks, which
+// refuse the whole drop, moving nothing, if any key cannot land.
+interface Group {
+  readonly source: Tile;
+  readonly tiles: readonly string[];
+}
+
+function groupOf(cell: HTMLTableCellElement, source: Tile | null): Group | null {
+  const box = cell.querySelector<HTMLInputElement>('.select-key input[type="checkbox"]');
+  if (box === null || source === null) {
+    return null;
+  }
+
+  box.checked = true;
+  const tiles = [...document.querySelectorAll<HTMLInputElement>('.select-key input[name="tile"]:checked')]
+    .map((ticked) => ticked.value);
+
+  return { source, tiles };
+}
+
+// carriesTile reports a tile one of the carried keys is on, which another
+// may land on as they all move.
+function carriesTile(group: Group | null, tile: Tile | null): boolean {
+  return group !== null && tile !== null && tile.page === group.source.page &&
+    group.tiles.includes(`${tile.row}.${tile.column}`);
+}
+
+function relocateGroup(group: Group, destination: Tile, copying: boolean): Promise<void> {
+  return send(copying ? "/keys/copy" : "/keys/move", {
+    page: group.source.page,
+    tile: group.tiles,
+    to: destination.page,
+    row_offset: String(Number(destination.row) - Number(group.source.row)),
+    column_offset: String(Number(destination.column) - Number(group.source.column)),
+  });
+}
+
+function removeGroup(group: Group): Promise<void> {
+  return send("/keys/remove", { page: group.source.page, tile: group.tiles });
+}
+
+// The ghost of carried keys: over a tile, each carried key's picture is
+// drawn where it would land, so where they will go, and whether they fit, can
+// be seen before letting go. A tile that cannot take one, a key staying put or
+// one kept for paging, is crossed; a key that would fall off the deck crosses
+// them all. Only a drop where every key fits is taken; the server checks again.
+const ghostClass = "ghost";
+const ghostFitsClass = "ghost-fits";
+const ghostBlockedClass = "ghost-blocked";
+
+// ghostPicture copies a ticked key's picture, without its check box, to draw
+// where it would land.
+function ghostPicture(cell: HTMLTableCellElement): HTMLElement {
+  const ghost = document.createElement("span");
+  ghost.className = ghostClass;
+  ghost.setAttribute("aria-hidden", "true");
+
+  for (const node of cell.querySelector(".select-key label")?.childNodes ?? []) {
+    ghost.append(node.cloneNode(true));
+  }
+
+  return ghost;
+}
+
+function clearGhosts(root: HTMLElement): void {
+  for (const ghost of root.querySelectorAll(`.${ghostClass}`)) {
+    ghost.remove();
+  }
+
+  for (const cell of root.querySelectorAll(`.${ghostFitsClass}, .${ghostBlockedClass}`)) {
+    cell.classList.remove(ghostFitsClass, ghostBlockedClass);
+  }
+}
+
+// showGhosts draws the carried keys landing as the key carried lands on a
+// tile, and reports whether every one fits.
+function showGhosts(group: Group, grid: HTMLElement, destination: Tile, pictures: ReadonlyMap<string, HTMLElement>): boolean {
+  const rowShift = Number(destination.row) - Number(group.source.row);
+  const columnShift = Number(destination.column) - Number(group.source.column);
+  const landed: HTMLTableCellElement[] = [];
+  let fits = true;
+  let offDeck = false;
+
+  for (const tile of group.tiles) {
+    const [row, column] = tile.split(".").map(Number);
+    const landing = `${destination.page}.${row + rowShift}.${column + columnShift}`;
+    const cell = grid.querySelector<HTMLTableCellElement>(`td[${tileAttribute}="${landing}"]`);
+    if (cell === null) {
+      fits = false;
+      offDeck = true;
+      continue;
+    }
+
+    const free = stateOf(cell) === "empty" || carriesTile(group, parseTile(landing));
+    fits &&= free;
+    cell.classList.add(free ? ghostFitsClass : ghostBlockedClass);
+    landed.push(cell);
+
+    const picture = pictures.get(tile);
+    if (picture !== undefined) {
+      cell.append(picture.cloneNode(true));
+    }
+  }
+
+  if (offDeck) {
+    for (const cell of landed) {
+      cell.classList.replace(ghostFitsClass, ghostBlockedClass);
+    }
+  }
+
+  return fits;
+}
+
+// groupDragImage is the picture the browser drags for carried keys: every
+// ticked key, laid out as on the grid, held where the key carried was picked
+// up. It is drawn out of sight for the browser to copy, then taken away.
+function groupDragImage(group: Group, event: DragEvent): void {
+  const cells = group.tiles
+    .map((tile) => document.querySelector<HTMLTableCellElement>(`td[${tileAttribute}="${group.source.page}.${tile}"]`))
+    .filter((cell): cell is HTMLTableCellElement => cell !== null);
+  if (cells.length === 0 || event.dataTransfer === null) {
+    return;
+  }
+
+  const boxes = cells.map((cell) => cell.getBoundingClientRect());
+  const left = Math.min(...boxes.map((box) => box.left));
+  const top = Math.min(...boxes.map((box) => box.top));
+  const image = document.createElement("div");
+  image.className = "grid group-drag-image";
+  image.style.width = `${Math.max(...boxes.map((box) => box.right)) - left}px`;
+  image.style.height = `${Math.max(...boxes.map((box) => box.bottom)) - top}px`;
+
+  cells.forEach((cell, index) => {
+    const picture = cell.querySelector(".select-key")?.cloneNode(true);
+    if (!(picture instanceof HTMLElement)) {
+      return;
+    }
+
+    picture.querySelector("input")?.remove();
+    picture.querySelector("label")?.removeAttribute("for");
+    picture.style.left = `${boxes[index].left - left}px`;
+    picture.style.top = `${boxes[index].top - top}px`;
+    picture.style.width = `${boxes[index].width}px`;
+    picture.style.height = `${boxes[index].height}px`;
+    image.append(picture);
+  });
+
+  // Held where the pointer took the key carried, as it is on the grid.
+  document.body.append(image);
+  event.dataTransfer.setDragImage(image, event.clientX - left, event.clientY - top);
+  window.setTimeout(() => image.remove(), 0);
+}
+
+function markGroup(group: Group, root: HTMLElement, marked: boolean): void {
+  for (const tile of group.tiles) {
+    root.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)?.classList.toggle(draggingClass, marked);
+  }
 }
 
 // The bin the author asked for: shown only while a key is carried, in the
@@ -215,6 +385,10 @@ export function enableDrag(grid: HTMLTableElement): void {
   // on a grid a held drag brings in.
   const root: HTMLElement = grid.closest("main") ?? document.body;
   let source: Tile | null = null;
+  let group: Group | null = null;
+  let pictures = new Map<string, HTMLElement>();
+  let ghostedAt = "";
+  let ghostFits = false;
   let shownPage = "";
   let opened = false;
   let dropped = false;
@@ -254,6 +428,11 @@ export function enableDrag(grid: HTMLTableElement): void {
     }, holdMilliseconds);
   };
 
+  // A free tile takes a drop, and with keys carried together, a tile one of
+  // them is leaving.
+  const accepts = (cell: HTMLTableCellElement): boolean =>
+    stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute)));
+
   if (bin !== null) {
     bin.addEventListener("dragover", (event: DragEvent) => {
       if (source === null || event.dataTransfer === null) {
@@ -276,7 +455,7 @@ export function enableDrag(grid: HTMLTableElement): void {
       dropped = true;
       const carried = source;
       hideBin(bin);
-      void remove(carried);
+      void (group === null ? remove(carried) : removeGroup(group));
     });
   }
 
@@ -287,12 +466,26 @@ export function enableDrag(grid: HTMLTableElement): void {
     }
 
     source = parseTile(cell.getAttribute(tileAttribute));
+    group = groupOf(cell, source);
     shownPage = source?.page ?? "";
     opened = false;
     dropped = false;
     event.dataTransfer.effectAllowed = "copyMove";
     event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
     cell.classList.add(draggingClass);
+
+    // A ticked key's own layer is an empty label over it, so the drag shows
+    // every ticked key's picture instead.
+    if (group !== null) {
+      const carried = group;
+      groupDragImage(carried, event);
+      markGroup(carried, root, true);
+      pictures = new Map(carried.tiles.flatMap((tile) => {
+        const ticked = root.querySelector<HTMLTableCellElement>(`td[${tileAttribute}="${carried.source.page}.${tile}"]`);
+
+        return ticked === null ? [] : [[tile, ghostPicture(ticked)] as const];
+      }));
+    }
 
     const shown = shownGrid();
     if (bin !== null && shown !== null) {
@@ -302,9 +495,16 @@ export function enableDrag(grid: HTMLTableElement): void {
 
   root.addEventListener("dragend", (event: DragEvent) => {
     cellOf(event.target)?.classList.remove(draggingClass);
+    if (group !== null) {
+      markGroup(group, root, false);
+    }
+
     clearDropTargets(root);
+    clearGhosts(root);
+    ghostedAt = "";
     disarm();
     source = null;
+    group = null;
 
     if (bin !== null) {
       hideBin(bin);
@@ -324,6 +524,8 @@ export function enableDrag(grid: HTMLTableElement): void {
 
     const link = pageLinkOf(event.target);
     if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+      clearGhosts(root);
+      ghostedAt = "";
       event.preventDefault();
       showCopying(event);
       arm(link);
@@ -332,7 +534,26 @@ export function enableDrag(grid: HTMLTableElement): void {
     }
 
     const cell = cellOf(event.target);
-    if (cell === null || stateOf(cell) !== "empty") {
+
+    if (group !== null) {
+      const tile = cell?.getAttribute(tileAttribute) ?? "";
+      const destination = parseTile(tile);
+      const shown = cell?.closest<HTMLElement>("table.grid") ?? null;
+      if (tile !== ghostedAt) {
+        clearGhosts(root);
+        ghostedAt = tile;
+        ghostFits = destination !== null && shown !== null && showGhosts(group, shown, destination, pictures);
+      }
+
+      if (ghostFits) {
+        event.preventDefault();
+        showCopying(event);
+      }
+
+      return;
+    }
+
+    if (cell === null || !accepts(cell)) {
       return;
     }
 
@@ -360,21 +581,27 @@ export function enableDrag(grid: HTMLTableElement): void {
       event.preventDefault();
       disarm();
       dropped = true;
-      void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, copying(event));
+      const sameTile = `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`;
+      const target = parseTile(sameTile);
+      void (group !== null && target !== null ?
+        relocateGroup(group, target, copying(event)) :
+        relocate(source, sameTile, copying(event)));
 
       return;
     }
 
     const cell = cellOf(event.target);
     const destination = cell?.getAttribute(tileAttribute) ?? null;
-    if (cell === null || stateOf(cell) !== "empty" || parseTile(destination) === null) {
+    const target = parseTile(destination);
+    if (cell === null || target === null || (group === null ? !accepts(cell) : !ghostFits)) {
       return;
     }
 
     event.preventDefault();
     clearDropTargets(root);
+    clearGhosts(root);
     dropped = true;
-    void relocate(source, destination as string, copying(event));
+    void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination as string, copying(event)));
   });
 
   document.getElementById("drag-help")?.removeAttribute("hidden");

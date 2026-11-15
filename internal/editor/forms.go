@@ -270,6 +270,7 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			fillValue(&view, field, schema.Read(parameters, field))
 		} else {
 			view.Value = field.Default
+			view.Checked = field.Type == brick.FieldTypeBoolean && field.Default == "true"
 		}
 
 		views = append(views, view)

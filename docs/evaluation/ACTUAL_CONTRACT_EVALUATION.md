@@ -4189,6 +4189,84 @@ screen 1 and drawn as 2/2.
 Verified on the physical deck: a second app screen, paged between with back
 and forward.
 
+### Moving and removing ticked keys, reordering pages, the grid by keyboard
+
+The author asked for more to do with ticked keys, for pages reordered by
+dragging their names, and for the arrow keys on the grid; and, as reordering
+would leave every hand numbered marker wrong, for the page marker to show its
+page's number and number icon unless told otherwise.
+
+Select mode now moves the ticked keys onto the pages ticked, the same all or
+nothing copy followed by taking them off the page they came from, and removes
+them; the removal is remembered whole, so Undo puts every key back. A page's
+name dropped on another of its own sort, regular page or app screen, takes its
+place, through POST /page/reorder behind the editor's usual guard, and a Move
+this page form does the same from the keyboard. The removal remembered for
+Undo follows its page through a reorder. The daemon, given a reordered file,
+keeps the regular page it was showing by its name where only one page has it,
+rather than whichever page took its place. The page marker gains a Page number
+check box, ticked in a new marker's form, that sets the label and icons aside
+for "Page N" and the number's bundled icon, in the deck and in every preview;
+a marker without a label or icon gets the icon too, and one with the box
+unticked, as every marker written before it is, keeps its own. A check box may
+now declare a default, true or false, in its schema. The arrow keys move focus
+across the grid's tiles, Delete removes the key focused through the same
+removal as its Remove button, and a hint, hidden without the script, says so.
+
+Tests first, failing before the change: moving onto two pages and off the
+source, a clashing move moving nothing, removing two keys and one Undo putting
+both back, a removal with nothing ticked refused; reordering a regular page and
+an app screen, refusing across the two sorts and for a page that does not
+exist, Undo following a reordered page, and the keyboard form's places; the
+daemon keeping its page through a reorder; a check box's default read and a
+malformed one refused; the marker's box ticked by default and standing in for
+the label and icons on the deck, in the saved and unsaved previews and in the
+grid's words; and the scripts carrying the page drag and the arrow keys.
+Planted violations, a move that leaves the keys behind, an Undo that does not
+follow its page, a deck or preview that keeps the marker's own label, and a
+form that leaves the box unticked, each failed a test.
+
+### Dragging ticked keys, and the page list moving live
+
+On the deck build the author found that ticked keys could not be dragged,
+that entering and leaving select mode jumped to the top of the page, that a
+page could only be dropped last right beside the last name, and asked for the
+names to move live as a page is carried rather than marking where it would go.
+
+In select mode each key's layer can now be picked up, and carries every
+ticked key: dropped on a free tile, or on a tile one of them is leaving, the
+keys shift together as far as the one carried, through the select mode routes
+with a row and column offset added, which the server checks as before, now
+for the tile each key lands on, refusing one off the deck, and letting moving
+keys land on tiles they leave; a page's name takes them to the same tiles
+there, and the bin removes them. A refusal from a page, not only from a key's
+form, is now read out. Select mode's links, Shift and a click, and Escape keep
+the scroll position in session storage for the next page alone. The page list
+moves the carried name live, the others sliding into place, measuring each
+name's place in the list's own layout so a slide under way does not move it
+back, takes anywhere past the last name as last, and puts the names back if
+let go elsewhere.
+
+Tests first, failing before the change: keys shifted across their own page,
+onto a tile one leaves, and onto another page; shifts refused off the deck,
+onto a staying key and onto a paging tile, and a copy onto its own page
+without a shift. A planted violation, no tile left free by a moving key, failed
+a test. Driven in a browser against the editor's test harness: two ticked keys
+dragged one column right moved together, a drag onto a key named the tile, a
+page name dropped well past the last went last, a name carried showed in its
+new place with the others moved and went back when let go elsewhere, and the
+scroll position held into select mode and out.
+
+The author then asked to see every carried key, not one, to judge where they
+would go and whether they fit. The drag now carries a picture of all the
+ticked keys as laid out on the grid, and over a tile each key's ghost is drawn
+on the tile it would land on: outlined where it fits, crossed on a key that
+stays or a paging tile, and all crossed when one would fall off the deck, with
+a drop taken only when all fit. Driven in a browser against the harness: two
+ticked keys showed both ghosts where they would land, a spot with a key in the
+way crossed only that tile and refused the drop, one past the paging tile
+crossed the one ghost left on the deck, and a drop that fit moved both.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

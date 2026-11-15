@@ -311,16 +311,27 @@ func applyPlatformLabels(field *Field, structTag reflect.StructTag) error {
 	return nil
 }
 
-// applyDefault reads a number's default tag: where a new key's form starts. It
-// must be a whole number within the field's bounds.
+// applyDefault reads a default tag: where a new key's form starts. A number's
+// must be a whole number within the field's bounds, and a check box's true or
+// false.
 func applyDefault(field *Field, structTag reflect.StructTag) error {
 	defaultTag, hasDefault := structTag.Lookup(defaultTagKey)
 	if !hasDefault {
 		return nil
 	}
 
+	if field.Type == FieldTypeBoolean {
+		if defaultTag != "true" && defaultTag != "false" {
+			return declarationFault("a check box's default %q must be true or false", defaultTag)
+		}
+
+		field.Default = defaultTag
+
+		return nil
+	}
+
 	if field.Type != FieldTypeInteger {
-		return declarationFault("default applies only to a number, not %s", field.Type)
+		return declarationFault("default applies only to a number or a check box, not %s", field.Type)
 	}
 
 	value, parseError := strconv.ParseInt(defaultTag, 10, 64)

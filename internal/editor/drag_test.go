@@ -123,3 +123,26 @@ func TestEditor_PageNamesAreDropTargets(t *testing.T) {
 		}
 	}
 }
+
+// TestEditor_ArrowKeysMoveAroundTheGrid: the script moves focus between
+// tiles with the arrow keys and removes a key with Delete, through the same
+// removal as its Remove button, and its hint, hidden without the script, says
+// so.
+func TestEditor_ArrowKeysMoveAroundTheGrid(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	script := harness.get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{"ArrowUp", "ArrowRight", "grid-keys-help", "/key/delete"} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+
+	if !regexp.MustCompile(`<p class="grid-keys-help" id="grid-keys-help" hidden>On the grid, the arrow keys move ` +
+		`between tiles and Enter opens one; Delete removes the key on a tile, which Undo puts back.</p>`).
+		MatchString(harness.get(t, firstPagePath).Body.String()) {
+		t.Error("want the arrow key hint hidden until the script shows it")
+	}
+}

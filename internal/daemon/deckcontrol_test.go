@@ -215,8 +215,9 @@ func TestDaemon_ReconnectingDeckKeepsTheBrightnessChosen(t *testing.T) {
 	})
 }
 
-// TestDaemon_UnlabelledPageMarkerShowsItsPage: a marker without a label of its
-// own shows the page it is on, so a new page's marker needs no typing.
+// TestDaemon_UnlabelledPageMarkerShowsItsPage: a marker without a label or
+// icon of its own shows the page it is on and its number, so a new page's
+// marker needs no typing.
 func TestDaemon_UnlabelledPageMarkerShowsItsPage(t *testing.T) {
 	t.Parallel()
 
@@ -231,7 +232,7 @@ func TestDaemon_UnlabelledPageMarkerShowsItsPage(t *testing.T) {
 				{Name: "Marked", Application: "", Keys: []config.Key{{
 					Position:   layout.Position{Row: 0, Column: 0},
 					Kind:       pagemarker.KindName,
-					Parameters: &pagemarker.Parameters{Appearance: noAppearance()},
+					Parameters: &pagemarker.Parameters{Appearance: noAppearance(), PageNumber: false},
 					Preset:     nil,
 				}}},
 			},
@@ -244,9 +245,53 @@ func TestDaemon_UnlabelledPageMarkerShowsItsPage(t *testing.T) {
 
 		tap(device, forwardKey)
 
-		want := running.renderer.Render(render.Appearance{Label: "Page 2"})
+		want := running.renderer.Render(render.Appearance{Label: "Page 2", Icon: "number-2"})
 		if difference := distance(drawnImage(t, device, 0), want); difference > blankDifference {
-			t.Errorf("want the marker to show Page 2, differing by %.1f", difference)
+			t.Errorf("want the marker to show Page 2 and its number, differing by %.1f", difference)
+		}
+
+		running.stop(t)
+	})
+}
+
+// TestDaemon_PageNumberBoxStandsInForTheMarkersOwnLabel: a marker with its
+// page number box ticked shows its page's number and icon over a label and
+// icon of its own, which stay in the file for when the box is unticked.
+func TestDaemon_PageNumberBoxStandsInForTheMarkersOwnLabel(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		own := noAppearance()
+		own.Label, own.Icon = "Page 7", "number-7"
+
+		running := startHarness(t)
+		running.configurations <- config.Configuration{
+			SchemaVersion: config.CurrentSchemaVersion,
+			Pages: []config.Page{{Name: "Marked", Application: "", Keys: []config.Key{
+				{
+					Position: layout.Position{Row: 0, Column: 0}, Kind: pagemarker.KindName,
+					Parameters: &pagemarker.Parameters{Appearance: own, PageNumber: true}, Preset: nil,
+				},
+				{
+					Position: layout.Position{Row: 0, Column: 1}, Kind: pagemarker.KindName,
+					Parameters: &pagemarker.Parameters{Appearance: own, PageNumber: false}, Preset: nil,
+				},
+			}}},
+		}
+
+		device := testsupport.NewDeckDeviceTestDouble(xlModel(t))
+		running.watcher.Attach("deck-a", device)
+		time.Sleep(settle)
+		synctest.Wait()
+
+		numbered := running.renderer.Render(render.Appearance{Label: "Page 1", Icon: "number-1"})
+		if difference := distance(drawnImage(t, device, 0), numbered); difference > blankDifference {
+			t.Errorf("want the ticked marker to show Page 1 and its number, differing by %.1f", difference)
+		}
+
+		kept := running.renderer.Render(render.Appearance{Label: "Page 7", Icon: "number-7"})
+		if difference := distance(drawnImage(t, device, 1), kept); difference > blankDifference {
+			t.Errorf("want the unticked marker to show its own, differing by %.1f", difference)
 		}
 
 		running.stop(t)

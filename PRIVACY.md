@@ -23,6 +23,8 @@ There is no telemetry, analytics or crash reporting.
   and two display choices kept for a year, the theme (`theme`) and whether the
   grid is drawn like the deck (`deck_render`). The display choices hold nothing
   else.
+- A scroll position, in the tab's session storage, while select mode is opened
+  or left, removed as soon as the next page reads it.
 
 ## What the editor shows
 

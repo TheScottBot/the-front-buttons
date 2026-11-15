@@ -9,25 +9,29 @@
 <ul class="pages app-screens" aria-labelledby="app-screens">{{range .AppScreens}}<li><a href="/page?page={{.Index}}" data-page="{{.Index}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>{{end}}</ul>{{end}}
 </nav>{{end}}
 {{if .HasPage}}
-<p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you drop to copy it instead. Drop a key on a page's name to move it to the same tile there, or hold it over the name to open that page and place it. The move form on each key's page does the same from the keyboard.</p>
+<p class="drag-help" id="drag-help" hidden>Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you drop to copy it instead. Drop a key on a page's name to move it to the same tile there, or hold it over the name to open that page and place it. Drag a page's name onto another's to move the page into that place. The move form on each key's page does the same from the keyboard.</p>
+<p class="grid-keys-help" id="grid-keys-help" hidden>On the grid, the arrow keys move between tiles and Enter opens one; Delete removes the key on a tile, which Undo puts back.</p>
 <table class="grid">
-<caption>{{if .ScreenTitle}}{{.ScreenCaption}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. {{if .Selecting}}Tick the keys to copy.{{else}}Choose a key to edit it.{{end}}</caption>
-{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</label></span><label class="select-hit" for="tile-{{.SelectID}}" aria-hidden="true"></label>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</a>{{end}}</td>{{end}}</tr>
+<caption>{{if .ScreenTitle}}{{.ScreenCaption}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. {{if .Selecting}}Tick the keys to copy, move or remove.{{else}}Choose a key to edit it.{{end}}</caption>
+{{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}">{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</label></span><label class="select-hit" for="tile-{{.SelectID}}" aria-hidden="true" draggable="true"></label>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
 {{if .Selecting}}<form method="post" action="/keys/copy" id="copy-keys" class="copy-keys">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
 <fieldset>
-<legend>Copy the ticked keys onto</legend>
+<legend>Copy or move the ticked keys onto</legend>
 <ul class="copy-targets">{{range .SelectTargets}}
 <li><input type="checkbox" id="copy-to-{{.Value}}" name="to" value="{{.Value}}"{{if .Checked}} checked{{end}}> <label for="copy-to-{{.Value}}">{{.Label}}</label></li>{{end}}
 </ul>
 </fieldset>
 <button type="submit">Copy the ticked keys</button>
-<p class="help">Each key goes on the same tile it is on here. If any would land on a key, on any page ticked, nothing is copied and every such tile is named.</p>
+<button type="submit" formaction="/keys/move">Move the ticked keys</button>
+<p class="help">Each key goes on the same tile it is on here; moving also takes it off this page. If any would land on a key, on any page ticked, nothing is copied or moved and every such tile is named.</p>
+<button type="submit" formaction="/keys/remove" formnovalidate>Remove the ticked keys</button>
+<p class="help">Removing needs no page ticked. Undo puts the keys back.</p>
 <p><a href="/page?page={{.PageIndex}}" class="select-done">Done selecting</a><span class="select-help" hidden>, or press Escape</span></p>
 </form>
-{{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy</a></p>
+{{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy, move or remove</a></p>
 <p class="select-help" hidden>Or hold Shift and click a key to start selecting with it.</p>
 {{end}}<aside id="brick-drawer" class="brick-drawer" aria-label="Bricks" hidden>
 <button type="button" class="drawer-toggle" aria-expanded="false" aria-controls="brick-list">Bricks</button>
@@ -70,7 +74,17 @@
 <input id="rename-name" name="name" type="text" value="{{.PageName}}" required minlength="1" maxlength="24">
 <button type="submit">Rename</button>
 </form>
-<details class="copy-page">
+{{if gt (len .ReorderPlaces) 1}}<form method="post" action="/page/reorder" class="inline">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<input type="hidden" name="showing" value="{{.PageIndex}}">
+<label for="reorder-to">Move this page to</label>
+<select id="reorder-to" name="to">
+{{range .ReorderPlaces}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>
+{{end}}</select>
+<button type="submit">Move page</button>
+</form>
+{{end}}<details class="copy-page">
 <summary>Copy this page's keys</summary>
 <form method="post" action="/page/copy/new" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">

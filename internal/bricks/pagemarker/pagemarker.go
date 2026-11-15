@@ -9,10 +9,19 @@ import "github.com/TheScottBot/the-front-buttons/internal/brick"
 // KindName is the kind's name in configuration.
 const KindName = brick.PageMarkerKindName
 
-// Parameters is the kind's one declaration of its parameters: only its
-// appearance. Left without a label, the key shows its page's number.
+// Parameters is the kind's one declaration of its parameters: its
+// appearance, and whether its page's number stands in for it. Left without a
+// label or icon, the key shows its page's number either way.
 type Parameters struct {
 	brick.Appearance
+
+	PageNumber bool `brick:"page_number" default:"true" replaces:"label,icon,icon_file" description:"Show the page's number, Page 2 and the icon of a 2, which follows the page wherever it moves; on an app screen, the screen's name. Untick it to give the key a label and icon of your own."`
+}
+
+// ShowsPageNumber reports whether the page's number stands in for the
+// marker's own label and icons.
+func (parameters Parameters) ShowsPageNumber() bool {
+	return parameters.PageNumber
 }
 
 // Register adds the kind to a registry.

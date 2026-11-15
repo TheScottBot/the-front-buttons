@@ -225,6 +225,24 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - Dragging a key with Command held, Ctrl on Windows, copies it; Option still
   does, and copying by drag works again in browsers that report no keys held
   during a drag.
+- The editor's select mode moves the ticked keys onto the pages ticked, as a
+  copy that takes them off the page they came from, or removes them, which
+  Undo puts back together.
+- A page's name dragged along the editor's page list moves the page, the
+  others sliding aside as it goes, among the regular pages or among the app
+  screens; anywhere past the last name counts as last. A form on each page does
+  the same from the keyboard. The deck stays on the page it was showing.
+- In select mode, dragging a key carries every ticked key: onto a free tile,
+  each shifted as far as the one dragged; onto a page's name, to the same
+  tiles there; into the bin, removed. The drag shows every ticked key, and a
+  ghost of each on the tile it would land on, crossed where it would not fit. Entering and leaving select mode keeps
+  the page's scroll position.
+- A `page_marker` key has a Page number box, ticked for a new marker, that
+  shows its page's number and the icon of that number over a label and icon of
+  its own, so it follows its page as pages are reordered. A marker without a
+  label or icon shows the number icon too.
+- The arrow keys move between the editor's grid tiles, and Delete removes the
+  key on a tile, which Undo puts back.
 - An `open_application` key with Show notifications ticked shows the badge its
   application has on its Dock icon, top right: a red pill with a count, or a red
   dot for a badge without one, such as Discord's. The Dock is read every two

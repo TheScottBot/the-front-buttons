@@ -154,6 +154,7 @@ func TestDeriveSchema_EnforcesEveryTagRule(t *testing.T) {
 		{"default on text", reflect.TypeFor[defaultOnText](), defaultMessage},
 		{"default out of bounds", reflect.TypeFor[defaultOutOfBounds](), defaultMessage},
 		{"default not a number", reflect.TypeFor[defaultNotANumber](), defaultMessage},
+		{"default not a boolean", reflect.TypeFor[defaultNotABoolean](), defaultMessage},
 		{"platform labels on text", reflect.TypeFor[platformLabelOnText](), "platform"},
 		{"a Mac label alone", reflect.TypeFor[macLabelAlone](), "platform"},
 	}
@@ -345,6 +346,22 @@ func TestDeriveSchema_ReadsANumbersDefault(t *testing.T) {
 	field, found := schema.Field("count")
 	if !found || field.Default != "5" {
 		t.Fatalf("want the default 5, got %+v", field)
+	}
+}
+
+// TestDeriveSchema_ReadsACheckBoxsDefault: a check box may start ticked in a
+// new key's form, as the page marker's page number does.
+func TestDeriveSchema_ReadsACheckBoxsDefault(t *testing.T) {
+	t.Parallel()
+
+	schema, deriveError := brick.DeriveSchemaOfType(reflect.TypeFor[defaultedCheckBox]())
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	field, found := schema.Field("on")
+	if !found || field.Default != "true" {
+		t.Fatalf("want the default true, got %+v", field)
 	}
 }
 

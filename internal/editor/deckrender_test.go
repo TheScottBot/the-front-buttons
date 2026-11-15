@@ -1,7 +1,9 @@
 package editor_test
 
 import (
+	"image"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
@@ -92,9 +94,73 @@ func TestEditor_PreviewsAKeyWithTheLabelTheDeckGivesIt(t *testing.T) {
 
 	harness := newDeckRenderHarness(t)
 
-	want := previewRenderer(t).Render(render.Appearance{Label: "Page 1"})
+	want := previewRenderer(t).Render(render.Appearance{Label: "Page 1", Icon: "number-1"})
 	if !testsupport.SameImage(previewImage(t, harness, markerPreview), want) {
 		t.Error("want the page marker previewed with its page number")
+	}
+}
+
+// numberedMarkers has Work, empty, and Play, with a marker whose page number
+// box is ticked over a label and icon of its own, and one unticked.
+const numberedMarkers = `schema_version: 1
+pages:
+  - name: Work
+    keys: []
+  - name: Play
+    keys:
+      - row: 0
+        column: 0
+        kind: page_marker
+        parameters:
+          page_number: true
+          label: Page 7
+          icon: number-7
+      - row: 0
+        column: 1
+        kind: page_marker
+        parameters:
+          label: Page 7
+          icon: number-7
+`
+
+// TestEditor_PreviewsAMarkersPageNumberOverItsOwn: a marker with its page
+// number box ticked is previewed with its page's number and icon, saved or
+// still in the form, and one unticked with its own.
+func TestEditor_PreviewsAMarkersPageNumberOverItsOwn(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+	harness.replaceFile(t, numberedMarkers)
+	renderer := previewRenderer(t)
+	numbered := renderer.Render(render.Appearance{Label: "Page 2", Icon: "number-2"})
+
+	for path, want := range map[string]image.Image{
+		"/preview.png?page=1&row=0&column=0": numbered,
+		"/preview.png?page=1&row=0&column=1": renderer.Render(render.Appearance{Label: "Page 7", Icon: "number-7"}),
+		"/preview.png?page=1&row=1&column=1&type=kind%3Apage_marker&field.page_number=on&field.label=Mine": numbered,
+	} {
+		if !testsupport.SameImage(previewImage(t, harness, path), want) {
+			t.Errorf("%s: want it previewed as the deck draws it", path)
+		}
+	}
+
+	// The grid in words names the ticked marker by its kind, not the label
+	// it has set aside.
+	grid := harness.get(t, "/page?page=1").Body.String()
+	requireBody(t, grid, `aria-label="Row 1, column 1: page_marker"`, `aria-label="Row 1, column 2: Page 7 (page_marker)"`)
+}
+
+// TestEditor_NewMarkerStartsWithItsPageNumber: a new marker's form has its
+// page number box ticked, setting the label and icons aside.
+func TestEditor_NewMarkerStartsWithItsPageNumber(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, "/key?page=0&row=1&column=1&type=kind%3Apage_marker").Body.String()
+
+	want := `<input id="field-page_number" name="field.page_number" type="checkbox" checked ` +
+		`data-replaces="field-label field-icon field-icon_file"`
+	if !strings.Contains(body, want) {
+		t.Errorf("want the page number box ticked, got %s", body)
 	}
 }
 

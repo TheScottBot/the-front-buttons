@@ -17,8 +17,10 @@ import (
 // and the ticked keys are copied onto every page ticked, app screens among
 // them, each on the tile it came from. Either every key goes onto every page,
 // or nothing is copied and every tile in the way is named, so nothing is ever
-// overwritten. The form posts the ticked tiles as "row.column", so a later
-// way of ticking, such as Shift and a click, only has to post the same.
+// overwritten. Moving is the same copy, then the keys are taken off the page
+// they came from; removing takes them off, and Undo puts them back. The form
+// posts the ticked tiles as "row.column", so a later way of ticking, such as
+// Shift and a click, only has to post the same.
 
 // The fields of the copy, and the query that turns select mode on.
 const (
@@ -27,6 +29,9 @@ const (
 	selectQuery     = "select"
 	copiedQuery     = "copied"
 	copiedMessage   = "Copied. The deck shows the change within a second."
+	movedQuery      = "moved"
+	movedMessage    = "Moved. The deck shows the change within a second."
+	removedQuery    = "removed"
 	tileParts       = 2
 )
 
@@ -37,21 +42,55 @@ var (
 	errCopyNoTargets = errors.New("no page was ticked to copy onto; tick at least one")
 	errCopyNoKeyAt   = errors.New("there is no key")
 	errCopyBlocked   = errors.New("nothing was copied")
+	errMoveBlocked   = errors.New("nothing was moved")
 )
 
 // copySelection is what a copy asks for: the page copied from, its ticked
-// tiles and the pages ticked to copy onto.
+// tiles, the pages ticked to copy onto, and how far each key shifts, in rows
+// and columns, which is none from the form and as far as the key dragged when
+// the keys are dragged together.
 type copySelection struct {
 	source  int
 	tiles   []layout.Position
 	targets []int
+	shift   layout.Position
+}
+
+// The fields of a shift, and what one that is not a whole number reads as:
+// off the deck.
+const (
+	rowShiftField    = "row_offset"
+	columnShiftField = "column_offset"
+	offDeckShift     = 1 << 16
+)
+
+// shiftFrom reads one part of a shift, none if it is left out.
+func shiftFrom(value string) int {
+	if value == "" {
+		return 0
+	}
+
+	shift, parseError := strconv.Atoi(value)
+	if parseError != nil {
+		return offDeckShift
+	}
+
+	return shift
+}
+
+// shifted is where a key lands once shifted.
+func (selection copySelection) shifted(position layout.Position) layout.Position {
+	return layout.Position{Row: position.Row + selection.shift.Row, Column: position.Column + selection.shift.Column}
 }
 
 // selectionFrom reads a copy's form. A tile that is not "row.column" is read
 // as off the deck, which has no key to copy.
 func selectionFrom(request *http.Request) copySelection {
 	form := request.PostForm
-	selection := copySelection{source: integerParameter(form, "page"), tiles: nil, targets: nil}
+	selection := copySelection{
+		source: integerParameter(form, "page"), tiles: nil, targets: nil,
+		shift: layout.Position{Row: shiftFrom(form.Get(rowShiftField)), Column: shiftFrom(form.Get(columnShiftField))},
+	}
 
 	for _, value := range form[copyTileField] {
 		position := tileFrom(value)
@@ -93,28 +132,74 @@ func tileFrom(value string) layout.Position {
 	return layout.Position{Row: row, Column: column}
 }
 
-// copyTickedKeys copies the ticked keys onto the ticked pages, through the
-// same save path as every other change, and returns to the page copied from.
+// What may be done with ticked keys: copied onto the ticked pages, moved
+// onto them, which is a copy that takes the keys off the page they came from,
+// or removed.
+type tickedAction int
+
+const (
+	copyTicked tickedAction = iota
+	moveTicked
+	removeTicked
+)
+
+// copyTickedKeys copies the ticked keys onto the ticked pages.
 func (pages *pageHandlers) copyTickedKeys(writer http.ResponseWriter, request *http.Request) {
+	pages.actOnTicked(writer, request, copyTicked)
+}
+
+// moveTickedKeys moves the ticked keys onto the ticked pages.
+func (pages *pageHandlers) moveTickedKeys(writer http.ResponseWriter, request *http.Request) {
+	pages.actOnTicked(writer, request, moveTicked)
+}
+
+// removeTickedKeys removes the ticked keys, which Undo puts back.
+func (pages *pageHandlers) removeTickedKeys(writer http.ResponseWriter, request *http.Request) {
+	pages.actOnTicked(writer, request, removeTicked)
+}
+
+// actOnTicked copies, moves or removes the ticked keys through the same save
+// path as every other change, and returns to the page they came from.
+func (pages *pageHandlers) actOnTicked(writer http.ResponseWriter, request *http.Request, action tickedAction) {
 	selection := selectionFrom(request)
 
+	var taken []config.Key
+
 	saveError := pages.changeConfiguration(func(configuration *config.Configuration) error {
-		keys, checkError := pages.checkCopy(*configuration, selection)
+		keys, checkError := pages.checkTicked(*configuration, selection, action)
 		if checkError != nil {
 			return checkError
 		}
 
+		// A move takes the keys off first, so a key shifted across its own
+		// page may land on a tile another is leaving.
+		if action != copyTicked {
+			source := &configuration.Pages[selection.source]
+			source.Keys = slices.DeleteFunc(source.Keys, func(key config.Key) bool {
+				return slices.Contains(selection.tiles, key.Position)
+			})
+			taken = keys
+		}
+
 		for _, target := range selection.targets {
 			for _, key := range keys {
-				configuration.Pages[target].Keys = append(configuration.Pages[target].Keys, key.Clone())
+				landed := key.Clone()
+				landed.Position = selection.shifted(key.Position)
+				configuration.Pages[target].Keys = append(configuration.Pages[target].Keys, landed)
 			}
 		}
 
 		return nil
 	})
 	if saveError == nil {
-		// The redirect's only variable part is a formatted integer.
-		address := fmt.Sprintf("/page?page=%d&saved=%s", selection.source, copiedQuery)
+		saved := map[tickedAction]string{copyTicked: copiedQuery, moveTicked: movedQuery, removeTicked: removedQuery}
+		if action == removeTicked {
+			pages.removals.remember(selection.source, taken)
+		}
+
+		// The redirect's only variable parts are a formatted integer and a
+		// constant.
+		address := fmt.Sprintf("/page?page=%d&saved=%s", selection.source, saved[action])
 		http.Redirect(writer, request, address, http.StatusSeeOther)
 
 		return
@@ -129,44 +214,82 @@ func (pages *pageHandlers) copyTickedKeys(writer http.ResponseWriter, request *h
 	pages.renderPageSelecting(writer, request, http.StatusUnprocessableEntity, configuration, selection, messages)
 }
 
+// checkTicked returns the ticked keys once the action is known to be
+// possible: for a removal, that each is there; for a copy or move, that each
+// fits on every ticked page too.
+func (pages *pageHandlers) checkTicked(
+	configuration config.Configuration, selection copySelection, action tickedAction,
+) ([]config.Key, error) {
+	if action == removeTicked {
+		if !pageExists(configuration, selection.source) {
+			return nil, errCopyNoPage
+		}
+
+		if len(selection.tiles) == 0 {
+			return nil, errCopyNoKeys
+		}
+
+		return tickedKeys(configuration.Pages[selection.source], selection.tiles)
+	}
+
+	return pages.checkCopy(configuration, selection, action == moveTicked)
+}
+
 // isCopyRefusal reports a refusal explained in its own words.
 func isCopyRefusal(saveError error) bool {
 	return errors.Is(saveError, errCopyNoPage) || errors.Is(saveError, errCopySamePage) ||
 		errors.Is(saveError, errCopyNoKeys) || errors.Is(saveError, errCopyNoTargets) ||
-		errors.Is(saveError, errCopyNoKeyAt) || errors.Is(saveError, errCopyBlocked)
+		errors.Is(saveError, errCopyNoKeyAt) || errors.Is(saveError, errCopyBlocked) ||
+		errors.Is(saveError, errMoveBlocked)
 }
 
 // checkCopy returns the ticked keys once every one is known to fit on every
 // ticked page.
 func (pages *pageHandlers) checkCopy(
-	configuration config.Configuration, selection copySelection,
+	configuration config.Configuration, selection copySelection, moving bool,
 ) ([]config.Key, error) {
 	requestError := checkCopyRequest(configuration, selection)
 	if requestError != nil {
 		return nil, requestError
 	}
 
-	keys := make([]config.Key, 0, len(selection.tiles))
-
-	for _, position := range selection.tiles {
-		key, found := keyAt(configuration.Pages[selection.source], position)
-		if !found || brick.IsPageMarker(key.Kind) {
-			return nil, fmt.Errorf("%w at %s to copy; the page may have changed since it was opened",
-				errCopyNoKeyAt, tileWords(position))
-		}
-
-		keys = append(keys, key)
+	keys, keysError := tickedKeys(configuration.Pages[selection.source], selection.tiles)
+	if keysError != nil {
+		return nil, keysError
 	}
 
 	var blocked []string
 
 	for _, target := range selection.targets {
-		blocked = append(blocked, pages.blockedTiles(configuration.Pages, target, keys)...)
+		blocked = append(blocked, pages.blockedTiles(configuration.Pages, target, keys, selection, moving)...)
 	}
 
 	if blocked != nil {
+		refusal := errCopyBlocked
+		if moving {
+			refusal = errMoveBlocked
+		}
+
 		return nil, fmt.Errorf("%w: %s. Remove or move what is in the way, or untick those keys or pages",
-			errCopyBlocked, strings.Join(blocked, "; "))
+			refusal, strings.Join(blocked, "; "))
+	}
+
+	return keys, nil
+}
+
+// tickedKeys returns the keys at the ticked tiles, refusing a tile with no key
+// or with the page marker, which each page keeps as its own.
+func tickedKeys(page config.Page, tiles []layout.Position) ([]config.Key, error) {
+	keys := make([]config.Key, 0, len(tiles))
+
+	for _, position := range tiles {
+		key, found := keyAt(page, position)
+		if !found || brick.IsPageMarker(key.Kind) {
+			return nil, fmt.Errorf("%w at %s; the page may have changed since it was opened",
+				errCopyNoKeyAt, tileWords(position))
+		}
+
+		keys = append(keys, key)
 	}
 
 	return keys, nil
@@ -188,7 +311,7 @@ func checkCopyRequest(configuration config.Configuration, selection copySelectio
 		switch {
 		case !pageExists(configuration, target):
 			return errCopyNoPage
-		case target == selection.source:
+		case target == selection.source && selection.shift == layout.Position{Row: 0, Column: 0}:
 			return errCopySamePage
 		}
 	}
@@ -201,33 +324,53 @@ func pageExists(configuration config.Configuration, pageIndex int) bool {
 	return pageIndex >= 0 && pageIndex < len(configuration.Pages)
 }
 
-// blockedTiles names every tile of a page a copied key cannot go on: one
-// holding a key, one kept for paging or the application's icon, or one on a
-// page that does not offer the key's application's own brick.
-func (pages *pageHandlers) blockedTiles(allPages []config.Page, target int, keys []config.Key) []string {
+// blockedTiles names every tile of a page a copied key cannot go on, once
+// shifted: one off the deck, one holding a key, one kept for paging or the
+// application's icon, or one on a page that does not offer the key's
+// application's own brick. Keys moving across their own page leave their
+// tiles free for each other.
+func (pages *pageHandlers) blockedTiles(
+	allPages []config.Page, target int, keys []config.Key, selection copySelection, moving bool,
+) []string {
 	page := allPages[target]
 	where := pages.copyPlaceName(allPages, target)
+	leaving := moving && target == selection.source
 
 	var blocked []string
 
 	for _, key := range keys {
-		tile := where + ", " + tileWords(key.Position) + ", "
+		landing := selection.shifted(key.Position)
+		leftFree := leaving && slices.Contains(selection.tiles, landing)
 
-		switch {
-		case pages.options.Grid.IsReserved(key.Position):
-			blocked = append(blocked, tile+"is kept for paging")
-		case pages.options.Grid.IsReservedOn(key.Position, page.IsAppScreen()):
-			blocked = append(blocked, tile+"is kept for the application's icon")
-		case !pages.kindOfferedOn(key.Kind, page):
-			blocked = append(blocked, tile+"cannot hold "+key.Kind+", which belongs on its application's screen")
-		default:
-			if _, taken := keyAt(page, key.Position); taken {
-				blocked = append(blocked, tile+"already has a key")
-			}
+		if problem := pages.landingProblem(page, key.Kind, landing, leftFree); problem != "" {
+			blocked = append(blocked, where+", "+tileWords(landing)+", "+problem)
 		}
 	}
 
 	return blocked
+}
+
+// landingProblem says why a key of a kind cannot land on a tile of a page,
+// or nothing if it can; a tile left free is one another moving key leaves.
+func (pages *pageHandlers) landingProblem(
+	page config.Page, kindName string, landing layout.Position, leftFree bool,
+) string {
+	switch {
+	case !pages.options.Grid.Contains(landing):
+		return "is off the deck"
+	case pages.options.Grid.IsReserved(landing):
+		return "is kept for paging"
+	case pages.options.Grid.IsReservedOn(landing, page.IsAppScreen()):
+		return "is kept for the application's icon"
+	case !pages.kindOfferedOn(kindName, page):
+		return "cannot hold " + kindName + ", which belongs on its application's screen"
+	}
+
+	if _, taken := keyAt(page, landing); taken && !leftFree {
+		return "already has a key"
+	}
+
+	return ""
 }
 
 // copyPlaceName names a page in a copy's refusal: "the GoLand screen" for an

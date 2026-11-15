@@ -282,7 +282,8 @@
   function refusalFrom(page) {
     const parsed = new DOMParser().parseFromString(page, "text/html");
     const alert = parsed.querySelector(".errors");
-    return alert?.textContent?.trim() || "Error: the key could not be moved.";
+    const problems = [...parsed.querySelectorAll(".problems li")].map((item) => item.textContent?.trim() ?? "");
+    return alert?.textContent?.trim() || problems.join(" ") || "Error: the change could not be made.";
   }
   async function send(path, fields) {
     const token = document.querySelector('input[name="token"]')?.value;
@@ -290,7 +291,12 @@
       announce("Error: this page has no editor token; reload it and try again.");
       return;
     }
-    const body = new URLSearchParams({ token, ...fields });
+    const body = new URLSearchParams({ token });
+    for (const [name, value] of Object.entries(fields)) {
+      for (const each of typeof value === "string" ? [value] : value) {
+        body.append(name, each);
+      }
+    }
     try {
       const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
       if (response.ok && response.redirected) {
@@ -313,6 +319,115 @@
   }
   function remove(source) {
     return send("/key/delete", { page: source.page, row: source.row, column: source.column });
+  }
+  function groupOf(cell, source) {
+    const box = cell.querySelector('.select-key input[type="checkbox"]');
+    if (box === null || source === null) {
+      return null;
+    }
+    box.checked = true;
+    const tiles = [...document.querySelectorAll('.select-key input[name="tile"]:checked')].map((ticked) => ticked.value);
+    return { source, tiles };
+  }
+  function carriesTile(group, tile) {
+    return group !== null && tile !== null && tile.page === group.source.page && group.tiles.includes(`${tile.row}.${tile.column}`);
+  }
+  function relocateGroup(group, destination, copying2) {
+    return send(copying2 ? "/keys/copy" : "/keys/move", {
+      page: group.source.page,
+      tile: group.tiles,
+      to: destination.page,
+      row_offset: String(Number(destination.row) - Number(group.source.row)),
+      column_offset: String(Number(destination.column) - Number(group.source.column))
+    });
+  }
+  function removeGroup(group) {
+    return send("/keys/remove", { page: group.source.page, tile: group.tiles });
+  }
+  var ghostClass = "ghost";
+  var ghostFitsClass = "ghost-fits";
+  var ghostBlockedClass = "ghost-blocked";
+  function ghostPicture(cell) {
+    const ghost = document.createElement("span");
+    ghost.className = ghostClass;
+    ghost.setAttribute("aria-hidden", "true");
+    for (const node of cell.querySelector(".select-key label")?.childNodes ?? []) {
+      ghost.append(node.cloneNode(true));
+    }
+    return ghost;
+  }
+  function clearGhosts(root) {
+    for (const ghost of root.querySelectorAll(`.${ghostClass}`)) {
+      ghost.remove();
+    }
+    for (const cell of root.querySelectorAll(`.${ghostFitsClass}, .${ghostBlockedClass}`)) {
+      cell.classList.remove(ghostFitsClass, ghostBlockedClass);
+    }
+  }
+  function showGhosts(group, grid2, destination, pictures) {
+    const rowShift = Number(destination.row) - Number(group.source.row);
+    const columnShift = Number(destination.column) - Number(group.source.column);
+    const landed = [];
+    let fits = true;
+    let offDeck = false;
+    for (const tile of group.tiles) {
+      const [row, column] = tile.split(".").map(Number);
+      const landing = `${destination.page}.${row + rowShift}.${column + columnShift}`;
+      const cell = grid2.querySelector(`td[${tileAttribute}="${landing}"]`);
+      if (cell === null) {
+        fits = false;
+        offDeck = true;
+        continue;
+      }
+      const free = stateOf(cell) === "empty" || carriesTile(group, parseTile(landing));
+      fits && (fits = free);
+      cell.classList.add(free ? ghostFitsClass : ghostBlockedClass);
+      landed.push(cell);
+      const picture = pictures.get(tile);
+      if (picture !== void 0) {
+        cell.append(picture.cloneNode(true));
+      }
+    }
+    if (offDeck) {
+      for (const cell of landed) {
+        cell.classList.replace(ghostFitsClass, ghostBlockedClass);
+      }
+    }
+    return fits;
+  }
+  function groupDragImage(group, event) {
+    const cells = group.tiles.map((tile) => document.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)).filter((cell) => cell !== null);
+    if (cells.length === 0 || event.dataTransfer === null) {
+      return;
+    }
+    const boxes = cells.map((cell) => cell.getBoundingClientRect());
+    const left = Math.min(...boxes.map((box) => box.left));
+    const top = Math.min(...boxes.map((box) => box.top));
+    const image = document.createElement("div");
+    image.className = "grid group-drag-image";
+    image.style.width = `${Math.max(...boxes.map((box) => box.right)) - left}px`;
+    image.style.height = `${Math.max(...boxes.map((box) => box.bottom)) - top}px`;
+    cells.forEach((cell, index) => {
+      const picture = cell.querySelector(".select-key")?.cloneNode(true);
+      if (!(picture instanceof HTMLElement)) {
+        return;
+      }
+      picture.querySelector("input")?.remove();
+      picture.querySelector("label")?.removeAttribute("for");
+      picture.style.left = `${boxes[index].left - left}px`;
+      picture.style.top = `${boxes[index].top - top}px`;
+      picture.style.width = `${boxes[index].width}px`;
+      picture.style.height = `${boxes[index].height}px`;
+      image.append(picture);
+    });
+    document.body.append(image);
+    event.dataTransfer.setDragImage(image, event.clientX - left, event.clientY - top);
+    window.setTimeout(() => image.remove(), 0);
+  }
+  function markGroup(group, root, marked) {
+    for (const tile of group.tiles) {
+      root.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)?.classList.toggle(draggingClass, marked);
+    }
   }
   var binArmedClass = "armed";
   var binTopClass = "key-bin-top";
@@ -385,6 +500,10 @@
   function enableDrag(grid2) {
     const root = grid2.closest("main") ?? document.body;
     let source = null;
+    let group = null;
+    let pictures = /* @__PURE__ */ new Map();
+    let ghostedAt = "";
+    let ghostFits = false;
     let shownPage = "";
     let opened = false;
     let dropped = false;
@@ -416,6 +535,7 @@
         });
       }, holdMilliseconds);
     };
+    const accepts = (cell) => stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute)));
     if (bin !== null) {
       bin.addEventListener("dragover", (event) => {
         if (source === null || event.dataTransfer === null) {
@@ -434,7 +554,7 @@
         dropped = true;
         const carried = source;
         hideBin(bin);
-        void remove(carried);
+        void (group === null ? remove(carried) : removeGroup(group));
       });
     }
     root.addEventListener("dragstart", (event) => {
@@ -443,12 +563,22 @@
         return;
       }
       source = parseTile(cell.getAttribute(tileAttribute));
+      group = groupOf(cell, source);
       shownPage = source?.page ?? "";
       opened = false;
       dropped = false;
       event.dataTransfer.effectAllowed = "copyMove";
       event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
       cell.classList.add(draggingClass);
+      if (group !== null) {
+        const carried = group;
+        groupDragImage(carried, event);
+        markGroup(carried, root, true);
+        pictures = new Map(carried.tiles.flatMap((tile) => {
+          const ticked = root.querySelector(`td[${tileAttribute}="${carried.source.page}.${tile}"]`);
+          return ticked === null ? [] : [[tile, ghostPicture(ticked)]];
+        }));
+      }
       const shown = shownGrid();
       if (bin !== null && shown !== null) {
         showBin(bin, shown);
@@ -456,9 +586,15 @@
     });
     root.addEventListener("dragend", (event) => {
       cellOf(event.target)?.classList.remove(draggingClass);
+      if (group !== null) {
+        markGroup(group, root, false);
+      }
       clearDropTargets(root);
+      clearGhosts(root);
+      ghostedAt = "";
       disarm();
       source = null;
+      group = null;
       if (bin !== null) {
         hideBin(bin);
       }
@@ -472,13 +608,30 @@
       }
       const link = pageLinkOf(event.target);
       if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+        clearGhosts(root);
+        ghostedAt = "";
         event.preventDefault();
         showCopying(event);
         arm(link);
         return;
       }
       const cell = cellOf(event.target);
-      if (cell === null || stateOf(cell) !== "empty") {
+      if (group !== null) {
+        const tile = cell?.getAttribute(tileAttribute) ?? "";
+        const destination = parseTile(tile);
+        const shown = cell?.closest("table.grid") ?? null;
+        if (tile !== ghostedAt) {
+          clearGhosts(root);
+          ghostedAt = tile;
+          ghostFits = destination !== null && shown !== null && showGhosts(group, shown, destination, pictures);
+        }
+        if (ghostFits) {
+          event.preventDefault();
+          showCopying(event);
+        }
+        return;
+      }
+      if (cell === null || !accepts(cell)) {
         return;
       }
       event.preventDefault();
@@ -500,18 +653,22 @@
         event.preventDefault();
         disarm();
         dropped = true;
-        void relocate(source, `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`, copying(event));
+        const sameTile = `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`;
+        const target2 = parseTile(sameTile);
+        void (group !== null && target2 !== null ? relocateGroup(group, target2, copying(event)) : relocate(source, sameTile, copying(event)));
         return;
       }
       const cell = cellOf(event.target);
       const destination = cell?.getAttribute(tileAttribute) ?? null;
-      if (cell === null || stateOf(cell) !== "empty" || parseTile(destination) === null) {
+      const target = parseTile(destination);
+      if (cell === null || target === null || (group === null ? !accepts(cell) : !ghostFits)) {
         return;
       }
       event.preventDefault();
       clearDropTargets(root);
+      clearGhosts(root);
       dropped = true;
-      void relocate(source, destination, copying(event));
+      void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination, copying(event)));
     });
     document.getElementById("drag-help")?.removeAttribute("hidden");
   }
@@ -787,6 +944,211 @@
     window.addEventListener("pagehide", () => stream.close());
   }
 
+  // internal/editor/web/gridkeys.ts
+  var tileAttribute2 = "data-tile";
+  var focusableSelector = 'a[href], input[type="checkbox"]';
+  var steps = {
+    ArrowUp: [-1, 0],
+    ArrowDown: [1, 0],
+    ArrowLeft: [0, -1],
+    ArrowRight: [0, 1]
+  };
+  function cellOf3(target) {
+    return target instanceof Element ? target.closest(`td[${tileAttribute2}]`) : null;
+  }
+  function focusable(cell) {
+    return cell?.querySelector(focusableSelector) ?? null;
+  }
+  function nextTile(grid2, cell, step) {
+    const row = cell.parentElement instanceof HTMLTableRowElement ? cell.parentElement.sectionRowIndex : -1;
+    const rows = grid2.tBodies[0]?.rows ?? grid2.rows;
+    for (let rowIndex = row + step[0], column = cell.cellIndex + step[1]; rowIndex >= 0 && rowIndex < rows.length && column >= 0 && column < rows[rowIndex].cells.length; rowIndex += step[0], column += step[1]) {
+      const target = focusable(rows[rowIndex].cells[column]);
+      if (target !== null) {
+        return target;
+      }
+    }
+    return null;
+  }
+  function removeKey(cell) {
+    const parts = (cell.getAttribute(tileAttribute2) ?? "").split(".");
+    if (cell.getAttribute("data-state") !== "key" || cell.querySelector(".select-key") !== null || parts.length !== 3) {
+      return false;
+    }
+    void send("/key/delete", { page: parts[0], row: parts[1], column: parts[2] });
+    return true;
+  }
+  function enableGridKeys(grid2) {
+    const root = grid2.closest("main") ?? document.body;
+    root.addEventListener("keydown", (event) => {
+      const cell = cellOf3(event.target);
+      const table = cell?.closest("table.grid");
+      if (cell === null || table === null || table === void 0 || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      const step = steps[event.key];
+      if (step !== void 0) {
+        event.preventDefault();
+        nextTile(table, cell, step)?.focus();
+        return;
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && removeKey(cell)) {
+        event.preventDefault();
+      }
+    });
+    document.getElementById("grid-keys-help")?.removeAttribute("hidden");
+  }
+
+  // internal/editor/web/pagedrag.ts
+  var pageType = "application/x-front-buttons-page";
+  var pageAttribute2 = "data-page";
+  var movingClass = "reorder-moving";
+  var slideMilliseconds = 150;
+  var slack = 24;
+  function pageLinkOf2(target) {
+    const link = target instanceof Element ? target.closest(`nav a[${pageAttribute2}]`) : null;
+    return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute2) ?? "") ? link : null;
+  }
+  function itemsOf(list) {
+    return [...list.children].filter((child) => child instanceof HTMLLIElement);
+  }
+  function pageOf(item) {
+    return item.querySelector(`a[${pageAttribute2}]`)?.getAttribute(pageAttribute2) ?? "";
+  }
+  function showingPage() {
+    return document.querySelector(`nav a[${pageAttribute2}][aria-current="page"]`)?.getAttribute(pageAttribute2) ?? "";
+  }
+  function reducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  function slide(list, change) {
+    const items = itemsOf(list);
+    const before = new Map(items.map((item) => [item, item.getBoundingClientRect()]));
+    change();
+    if (reducedMotion()) {
+      return;
+    }
+    for (const item of items) {
+      const was = before.get(item);
+      const now = item.getBoundingClientRect();
+      if (was === void 0 || was.left === now.left && was.top === now.top) {
+        continue;
+      }
+      item.animate(
+        [{ transform: `translate(${was.left - now.left}px, ${was.top - now.top}px)` }, { transform: "none" }],
+        { duration: slideMilliseconds, easing: "ease-out" }
+      );
+    }
+  }
+  function within(list, x, y) {
+    const box = list.getBoundingClientRect();
+    return x >= box.left - slack && x <= box.right + slack && y >= box.top - slack && y <= box.bottom + slack;
+  }
+  function placeOf2(item) {
+    return {
+      left: item.offsetLeft,
+      top: item.offsetTop,
+      right: item.offsetLeft + item.offsetWidth,
+      bottom: item.offsetTop + item.offsetHeight
+    };
+  }
+  function newSpot(carried, x, y) {
+    const box = carried.list.getBoundingClientRect();
+    const pointX = x - box.left - carried.list.clientLeft;
+    const pointY = y - box.top - carried.list.clientTop;
+    const items = itemsOf(carried.list);
+    const others = items.filter((item) => item !== carried.item);
+    const last = others.at(-1);
+    if (last !== void 0) {
+      const end = placeOf2(last);
+      if (pointY > end.bottom || pointY >= end.top && pointX > end.right) {
+        return null;
+      }
+    }
+    const over = others.find((item) => {
+      const place2 = placeOf2(item);
+      return pointX >= place2.left && pointX <= place2.right && pointY >= place2.top && pointY <= place2.bottom;
+    });
+    if (over === void 0) {
+      return void 0;
+    }
+    const place = placeOf2(over);
+    const pastMiddle = pointX > (place.left + place.right) / 2;
+    const carriedFirst = items.indexOf(carried.item) < items.indexOf(over);
+    if (carriedFirst && pastMiddle) {
+      return over.nextElementSibling instanceof HTMLLIElement ? over.nextElementSibling : null;
+    }
+    return !carriedFirst && !pastMiddle ? over : void 0;
+  }
+  function moveTo(carried, spot) {
+    const current = carried.item.nextElementSibling;
+    if (spot === carried.item || spot === current || spot === null && current === null) {
+      return;
+    }
+    slide(carried.list, () => carried.list.insertBefore(carried.item, spot));
+  }
+  function putBack(carried) {
+    const byPage = new Map(itemsOf(carried.list).map((item) => [pageOf(item), item]));
+    slide(carried.list, () => {
+      for (const page of carried.order) {
+        const item = byPage.get(page);
+        if (item !== void 0) {
+          carried.list.append(item);
+        }
+      }
+    });
+  }
+  function enablePageReorder(root) {
+    let carried = null;
+    let dropped = false;
+    root.addEventListener("dragstart", (event) => {
+      const link = pageLinkOf2(event.target);
+      const item = link?.closest("li");
+      const list = item?.parentElement;
+      if (link === null || !(item instanceof HTMLLIElement) || !(list instanceof HTMLElement) || event.dataTransfer === null) {
+        return;
+      }
+      carried = { item, list, order: itemsOf(list).map(pageOf) };
+      dropped = false;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData(pageType, pageOf(item));
+      window.setTimeout(() => item.classList.add(movingClass), 0);
+    });
+    root.addEventListener("dragover", (event) => {
+      if (carried === null || event.dataTransfer === null || !within(carried.list, event.clientX, event.clientY)) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      const spot = newSpot(carried, event.clientX, event.clientY);
+      if (spot !== void 0) {
+        moveTo(carried, spot);
+      }
+    });
+    root.addEventListener("drop", (event) => {
+      if (carried === null || !within(carried.list, event.clientX, event.clientY)) {
+        return;
+      }
+      event.preventDefault();
+      dropped = true;
+      const from = pageOf(carried.item);
+      const to = carried.order[itemsOf(carried.list).indexOf(carried.item)] ?? from;
+      if (to !== from) {
+        void send("/page/reorder", { page: from, to, showing: showingPage() });
+      }
+    });
+    root.addEventListener("dragend", () => {
+      if (carried === null) {
+        return;
+      }
+      carried.item.classList.remove(movingClass);
+      if (!dropped) {
+        putBack(carried);
+      }
+      carried = null;
+    });
+  }
+
   // internal/editor/web/picker.ts
   function enablePickers(root) {
     root.addEventListener("change", (event) => {
@@ -820,17 +1182,38 @@
   }
 
   // internal/editor/web/select.ts
-  var tileAttribute2 = "data-tile";
+  var tileAttribute3 = "data-tile";
   var keyState = "key";
-  function placeOf2(cell) {
-    const parts = (cell?.getAttribute(tileAttribute2) ?? "").split(".");
+  var scrollKey = "front-buttons-select-scroll";
+  function keepScroll() {
+    try {
+      window.sessionStorage.setItem(scrollKey, String(Math.round(window.scrollY)));
+    } catch {
+    }
+  }
+  function restoreScroll() {
+    try {
+      const kept = window.sessionStorage.getItem(scrollKey);
+      window.sessionStorage.removeItem(scrollKey);
+      if (kept !== null && /^\d+$/.test(kept)) {
+        window.scrollTo(0, Number(kept));
+      }
+    } catch {
+    }
+  }
+  function goKeepingScroll(address) {
+    keepScroll();
+    window.location.assign(address);
+  }
+  function placeOf3(cell) {
+    const parts = (cell?.getAttribute(tileAttribute3) ?? "").split(".");
     if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
       return null;
     }
     return { page: parts[0], row: Number(parts[1]), column: Number(parts[2]) };
   }
-  function cellOf3(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute2}]`) : null;
+  function cellOf4(target) {
+    return target instanceof Element ? target.closest(`td[${tileAttribute3}]`) : null;
   }
   function showHints() {
     for (const hint of document.querySelectorAll(".select-help")) {
@@ -839,11 +1222,11 @@
   }
   function openSelecting(place) {
     const address = new URLSearchParams({ page: place.page, select: "1", tile: `${place.row}.${place.column}` });
-    window.location.assign(`/page?${address.toString()}`);
+    goKeepingScroll(`/page?${address.toString()}`);
   }
   function enableShiftTicking(grid2) {
     grid2.addEventListener("click", (event) => {
-      const box = cellOf3(event.target)?.querySelector('.select-key input[type="checkbox"]');
+      const box = cellOf4(event.target)?.querySelector('.select-key input[type="checkbox"]');
       if (!event.shiftKey || box === null || box === void 0 || event.target === box) {
         return;
       }
@@ -862,19 +1245,23 @@
         return;
       }
       event.preventDefault();
-      window.location.assign(done.href);
+      goKeepingScroll(done.href);
     });
   }
   function enableSelecting(grid2) {
     showHints();
+    restoreScroll();
+    for (const link of document.querySelectorAll(".select-link a, a.select-done")) {
+      link.addEventListener("click", keepScroll);
+    }
     if (grid2.querySelector(".select-key") !== null) {
       enableShiftTicking(grid2);
       enableEscapeToLeave();
       return;
     }
     grid2.addEventListener("click", (event) => {
-      const cell = cellOf3(event.target);
-      const place = placeOf2(cell);
+      const cell = cellOf4(event.target);
+      const place = placeOf3(cell);
       if (cell !== null && place !== null && event.shiftKey && event.button === 0 && cell.getAttribute("data-state") === keyState) {
         event.preventDefault();
         event.stopPropagation();
@@ -917,10 +1304,12 @@
   enableThemeToggle(document);
   enableRenderToggle(document);
   enableLive(document);
+  enablePageReorder(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableSelecting(grid);
     enableDrag(grid);
+    enableGridKeys(grid);
     enableKeyDialog(grid);
     enableDrawer(grid);
   }

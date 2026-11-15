@@ -329,6 +329,7 @@ func (state *loopState) handle(runContext context.Context, received any) {
 
 func (state *loopState) applyConfiguration(runContext context.Context, configuration config.Configuration) {
 	state.configurationGeneration++
+	showingName := state.regularPageName()
 	state.iconFiles = map[string]image.Image{}
 	state.appIcons = map[string]image.Image{}
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
@@ -371,6 +372,7 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 
 	if state.hasConfiguration {
 		state.paging = state.paging.Resize(len(state.regular))
+		state.paging = state.paging.To(foundOnce(state.pageNames, showingName, state.paging.Current()))
 	} else {
 		state.paging = layout.NewPaging(len(state.regular))
 		state.hasConfiguration = true
@@ -387,6 +389,41 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.logMissingCredentials(runContext, configuration)
 	state.mirrorAll(runContext)
 	state.repaintAll(runContext)
+}
+
+// regularPageName is the name of the regular page the deck is on, or empty
+// before there is one.
+func (state *loopState) regularPageName() string {
+	if !state.paging.HasPage() || state.paging.Current() >= len(state.pageNames) {
+		return ""
+	}
+
+	return state.pageNames[state.paging.Current()]
+}
+
+// foundOnce is where a name is among the names, so pages reordered in the
+// editor keep the deck on the page it was showing; a name gone, or held by
+// more than one page, keeps the place it had.
+func foundOnce(names []string, name string, fallback int) int {
+	found := -1
+
+	for index, candidate := range names {
+		if candidate != name {
+			continue
+		}
+
+		if found >= 0 {
+			return fallback
+		}
+
+		found = index
+	}
+
+	if found < 0 {
+		return fallback
+	}
+
+	return found
 }
 
 // liveSources lists every live brick on every page, so the hub runs them all

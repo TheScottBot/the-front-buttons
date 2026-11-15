@@ -11,6 +11,40 @@
 const tileAttribute = "data-tile";
 const keyState = "key";
 
+// Going into select mode and out of it loads the page again, which would
+// start it at the top. The place it was scrolled to is kept for the next page
+// only, in this tab's session storage, which may be refused; the page then
+// simply opens at the top, as it would without the script.
+const scrollKey = "front-buttons-select-scroll";
+
+function keepScroll(): void {
+  try {
+    window.sessionStorage.setItem(scrollKey, String(Math.round(window.scrollY)));
+  } catch {
+    // Without storage the page opens at the top.
+  }
+}
+
+function restoreScroll(): void {
+  try {
+    const kept = window.sessionStorage.getItem(scrollKey);
+    window.sessionStorage.removeItem(scrollKey);
+
+    if (kept !== null && /^\d+$/.test(kept)) {
+      window.scrollTo(0, Number(kept));
+    }
+  } catch {
+    // Without storage the page opens at the top.
+  }
+}
+
+// goKeepingScroll follows an address into or out of select mode, keeping
+// the page where it was.
+function goKeepingScroll(address: string): void {
+  keepScroll();
+  window.location.assign(address);
+}
+
 interface Place {
   readonly page: string;
   readonly row: number;
@@ -39,7 +73,7 @@ function showHints(): void {
 // openSelecting goes to select mode with the key clicked ticked.
 function openSelecting(place: Place): void {
   const address = new URLSearchParams({ page: place.page, select: "1", tile: `${place.row}.${place.column}` });
-  window.location.assign(`/page?${address.toString()}`);
+  goKeepingScroll(`/page?${address.toString()}`);
 }
 
 // enableShiftTicking makes a click with Shift held in select mode tick or
@@ -75,12 +109,18 @@ function enableEscapeToLeave(): void {
     }
 
     event.preventDefault();
-    window.location.assign(done.href);
+    goKeepingScroll(done.href);
   });
 }
 
 export function enableSelecting(grid: HTMLTableElement): void {
   showHints();
+  restoreScroll();
+
+  // The links into and out of select mode keep the page where it was too.
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(".select-link a, a.select-done")) {
+    link.addEventListener("click", keepScroll);
+  }
 
   if (grid.querySelector(".select-key") !== null) {
     enableShiftTicking(grid);

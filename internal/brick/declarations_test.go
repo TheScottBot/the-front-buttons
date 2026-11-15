@@ -138,6 +138,14 @@ type defaultNotANumber struct {
 	Count int `brick:"count" bounds:"1,10" default:"lots" description:"Not a number."`
 }
 
+type defaultNotABoolean struct {
+	On bool `brick:"on" default:"yes" description:"Not true or false."`
+}
+
+type defaultedCheckBox struct {
+	On bool `brick:"on" default:"true" description:"Ticked unless changed."`
+}
+
 type defaultedCount struct {
 	Count int `brick:"count" bounds:"1,10" default:"5" description:"Five unless changed."`
 }

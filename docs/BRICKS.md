@@ -1609,6 +1609,7 @@ A brick kind.
 | `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
 | `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `page_number` | boolean | optional |  |  | Show the page's number, Page 2 and the icon of a 2, which follows the page wherever it moves; on an app screen, the screen's name. Untick it to give the key a label and icon of your own. |
 
 ### `pipeline_status`
 

@@ -64,23 +64,59 @@ and that page opens in place, the name filling as it counts down, so you can
 drop the key on any free tile of it. Let go anywhere else and you stay on that
 page with nothing moved. Each key's form does the same from the keyboard.
 
-## Copying keys between pages
+## Moving around the grid
+
+With a tile focused, the arrow keys move between tiles, passing over any that
+cannot take focus, and Enter opens one. Delete, or Backspace, removes the key
+on a tile, and the page offers Undo to put it back. In select mode Space ticks
+the key focused.
+
+## Reordering pages
+
+Drag a page's name along the page list and it moves as you go, the other
+names sliding aside to show where it will land; let go and the page takes that
+place. Anywhere past the last name counts as the last place, and letting go
+outside the list puts the names back. Regular pages and app screens are
+listed apart, and each moves only within its own list: the regular pages' order
+is the order the deck pages through, and an application's screens are paged
+between in theirs. **Move this page to**, under the grid, does the same from
+the keyboard. The deck stays on the page it was showing, wherever that went.
+
+A page marker's **Page number** box, ticked for a new marker, shows the page's
+number on the key, Page 2 and the icon of a 2, so the marker follows its page
+as pages move. Untick it to give the marker a label and icon of your own,
+which a marker made before the box existed has, and keeps, until it is ticked.
+
+## Copying, moving and removing keys
 
 To put the same keys on several pages, such as cut, copy, paste and Spotify on
-every app screen, choose **Select keys to copy** under the grid. Each key
-becomes a check box: tick the keys, tick every page and app screen to copy them
-onto, and choose **Copy the ticked keys**. Each key lands on the same tile it is
-on, on every page ticked.
+every app screen, choose **Select keys to copy, move or remove** under the
+grid. Each key becomes a check box: tick the keys, tick every page and app
+screen to put them on, and choose **Copy the ticked keys**. Each key lands on
+the same tile it is on, on every page ticked. **Move the ticked keys** does the
+same and takes them off the page they came from. **Remove the ticked keys**
+needs no page ticked; the page then offers Undo, which puts every one back.
+
+In select mode, drag a key to carry every ticked key with it, ticking it if
+it was not. Drop it on a free tile and each key shifts as far as the one
+carried; on a page's name, or held there to open that page, each goes to its
+own tile there; in the bin, all are removed. Hold Command (Ctrl on Windows) to
+copy instead of move. The drag carries a picture of every ticked key, laid out
+as on the grid, and over a tile each key's ghost shows where it would land:
+outlined where it fits, crossed on a tile in the way, and all crossed if one
+would fall off the deck. Only a drop where every key fits is taken. Going into select mode and out of it keeps the page where it was
+scrolled to.
 
 Or hold Shift and click a key on the grid to open select mode with that key
 ticked. In select mode a click ticks or unticks one key, with Shift held or not,
 so you can keep holding Shift as you go. **Done selecting**, or Escape, leaves
-select mode without copying.
+select mode without changing anything.
 
 If any key would land on a key already there, on a tile kept for paging or for
 an app screen's icon, or on a page that cannot hold it, such as a JetBrains key
 on a regular page, nothing is copied anywhere. Every such tile is named, and
-what was ticked stays ticked to change and try again.
+what was ticked stays ticked to change and try again. A move refused this way
+moves nothing, so every key stays where it was.
 
 **Copy this page's keys** copies a whole page, and a single key's form, or
 dragging it with Command (Ctrl on Windows) held, copies one key to any free tile.

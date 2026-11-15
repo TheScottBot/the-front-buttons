@@ -51,47 +51,55 @@ func pageIndication(allPages []config.Page, pageIndex int) (layout.PageIndicatio
 	return paging.Indication(names)
 }
 
-// fillDeckDefaults gives a stored key's preview what the deck would draw that
-// its own appearance leaves out: the label the deck gives a key without one,
-// and for a key that draws live state the editor never sees, such as album
-// art, its placeholder icon in place of a blank.
+// fillDeckDefaults gives a key's preview what the deck would draw that its
+// own appearance leaves out: the label and icon the deck gives a key without
+// them, such as a page marker's page number, and for a key that draws live
+// state the editor never sees, such as album art, its placeholder icon in
+// place of a blank.
 func (pages *pageHandlers) fillDeckDefaults(
-	appearance *render.Appearance, allPages []config.Page, pageIndex int, position layout.Position,
+	appearance *render.Appearance, allPages []config.Page, pageIndex int, kindName string, parameters any,
 ) {
+	label, icon := pages.deckFallbacks(allPages, pageIndex, kindName, parameters)
+
 	if appearance.Label == "" {
-		appearance.Label = pages.deckLabel(allPages, pageIndex, position)
+		appearance.Label = label
 	}
 
-	key, found := keyAt(pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex), position)
-	if found && pages.options.Registry != nil && appearance.Icon == "" && appearance.IconImage == nil {
-		appearance.Icon = pages.options.Registry.PlaceholderIcon(key.Kind)
+	if appearance.Icon == "" && appearance.IconImage == nil {
+		appearance.Icon = icon
+	}
+
+	if appearance.Icon == "" && appearance.IconImage == nil && pages.options.Registry != nil {
+		appearance.Icon = pages.options.Registry.PlaceholderIcon(kindName)
 	}
 }
 
-// deckLabel is the label the deck gives a stored key that has none of its
-// own, such as a page marker's page number.
-func (pages *pageHandlers) deckLabel(allPages []config.Page, pageIndex int, position layout.Position) string {
-	page := pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex)
-
-	key, found := keyAt(page, position)
-	if !found || pages.options.Registry == nil {
-		return ""
+// deckFallbacks is the label and icon the deck gives a key that has none of
+// its own, such as a page marker's page number and its icon.
+func (pages *pageHandlers) deckFallbacks(
+	allPages []config.Page, pageIndex int, kindName string, parameters any,
+) (string, string) {
+	if pages.options.Registry == nil {
+		return "", ""
 	}
 
-	kind, known := pages.options.Registry.Kind(key.Kind)
+	kind, known := pages.options.Registry.Kind(kindName)
 	if !known {
-		return ""
+		return "", ""
 	}
 
-	instance, constructError := kind.Construct(key.Parameters, brick.Ports{
+	instance, constructError := kind.Construct(parameters, brick.Ports{
 		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: nil,
 		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil,
 	})
 	if constructError != nil {
-		return pages.options.Registry.Title(key.Kind)
+		return pages.options.Registry.Title(kindName), ""
 	}
 
-	return brick.FallbackLabel(instance, page.Name, slices.Index(regularPages(allPages), pageIndex)+1)
+	page := pageAt(config.Configuration{SchemaVersion: 0, Pages: allPages}, pageIndex)
+	pageNumber := slices.Index(regularPages(allPages), pageIndex) + 1
+
+	return brick.FallbackLabel(instance, page.Name, pageNumber), brick.FallbackIcon(instance, pageNumber)
 }
 
 // screenIndication is what an app screen's paging tiles show when its

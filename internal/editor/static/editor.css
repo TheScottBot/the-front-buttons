@@ -998,6 +998,62 @@ label[for$="-picker"] {
   padding: 0 0.5rem 0.5rem;
 }
 
+/* The ghost of carried keys: each key's picture drawn faintly on the tile it
+   would land on, outlined where it fits and crossed where it does not. */
+
+.grid td.ghost-fits,
+.grid td.ghost-blocked {
+  position: relative;
+}
+
+.grid td .ghost {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  font-weight: 700;
+  color: var(--on-block-accent);
+  background: var(--block);
+  outline: 4px dashed var(--accent);
+  outline-offset: -4px;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.grid td .ghost img {
+  max-width: 100%;
+  height: auto;
+}
+
+.grid td.ghost-blocked .ghost {
+  outline-style: solid;
+  outline-color: var(--rule);
+  opacity: 0.55;
+  background-image:
+    linear-gradient(45deg, transparent calc(50% - 2px), var(--rule) calc(50% - 2px),
+      var(--rule) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(-45deg, transparent calc(50% - 2px), var(--rule) calc(50% - 2px),
+      var(--rule) calc(50% + 2px), transparent calc(50% + 2px));
+}
+
+/* The picture dragged for carried keys, drawn out of sight for the browser
+   to copy: each key placed as on the grid. */
+
+.group-drag-image {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+}
+
+.group-drag-image .select-key {
+  position: absolute;
+  margin: 0;
+}
+
 /* The tiles a carried brick or group would fill, numbered down the column
    for a group. */
 
@@ -1305,6 +1361,20 @@ header .theme-switch {
   to {
     background-size: 100% 4px;
   }
+}
+
+/* A page's name carried to reorder the pages moves along the list as it is
+   carried, faded where it would land, while the others slide aside. The list
+   is the names' offset parent, so the script reads where each sits. */
+
+.pages {
+  position: relative;
+}
+
+.pages li.reorder-moving a {
+  opacity: 0.4;
+  outline: 3px dashed var(--accent);
+  outline-offset: 2px;
 }
 
 /* The grid a held drag left behind holds the key being carried, so it stays
