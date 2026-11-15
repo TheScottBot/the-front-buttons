@@ -1,8 +1,9 @@
 {{template "head" .}}
 <div class="page-heading">
 <h1>Pages</h1>
-{{if .HasPage}}<div class="history">
+{{if .HasPage}}<div class="heading-tools">
 <button type="button" class="zoom-out" aria-keyshortcuts="-" hidden>Zoom out</button>
+<div class="history">
 <form method="post" action="/undo" class="in-place">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="showing" value="{{.PageIndex}}">
@@ -13,6 +14,7 @@
 <input type="hidden" name="showing" value="{{.PageIndex}}">
 <button type="submit"{{if not .CanRedo}} disabled{{end}}>Redo</button>
 </form>
+</div>
 </div>{{end}}
 <button type="button" class="render-switch" role="switch" aria-checked="{{if .DeckRender}}true{{else}}false{{end}}" hidden>Render like deck</button>
 </div>

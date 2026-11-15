@@ -303,6 +303,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- Pressing Zoom out on the editor's pages screen a second time made the button
+  vanish; it now stays, reading Zoom in while zoomed out. The zoomed out pages
+  and All pages reach across a wide window rather than the editor's column.
 - Turning on edit mode in the editor lifted every key's picture and words a
   few pixels, from the margin under labels; keys now stay where they were.
 - Links in the editor are underlined unbroken, under letters that drop below

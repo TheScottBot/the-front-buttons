@@ -1497,6 +1497,11 @@
     }
     zoom.hidden = false;
     zoom.addEventListener("click", () => void (mural === null ? zoomOut(grid2) : zoomIn(mural.from)));
+    new MutationObserver(() => {
+      const zoomed = document.body.classList.contains("zoomed-out");
+      zoom.textContent = zoomed ? "Zoom in" : "Zoom out";
+      zoom.setAttribute("aria-pressed", String(zoomed));
+    }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
     document.addEventListener("keydown", (event) => {
       const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
       if (typing || event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]") !== null) {

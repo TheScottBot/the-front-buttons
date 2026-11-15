@@ -183,6 +183,13 @@ export function enableMural(grid: HTMLTableElement): void {
   zoom.hidden = false;
   zoom.addEventListener("click", () => void (mural === null ? zoomOut(grid) : zoomIn(mural.from)));
 
+  // The button says what it will do: zoom out, or zoomed out, zoom back in.
+  new MutationObserver(() => {
+    const zoomed = document.body.classList.contains("zoomed-out");
+    zoom.textContent = zoomed ? "Zoom in" : "Zoom out";
+    zoom.setAttribute("aria-pressed", String(zoomed));
+  }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
   document.addEventListener("keydown", (event: KeyboardEvent) => {
     const typing = event.target instanceof HTMLElement &&
       event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');

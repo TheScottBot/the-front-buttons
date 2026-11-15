@@ -929,8 +929,22 @@ input[type="search"] {
 /* The pages screen zoomed out: the pages around this one side by side, as
    many as fit, this one outlined as a pressed key is, with buttons to move
    along either side of Zoom in. */
+/* The zoomed out pages screen and All pages reach across the window, clear
+   of the drawer tabs at its left edge, so a wide window shows more pages;
+   the rest of the editor keeps its column. */
+.mural,
+.overview {
+  margin-right: min(0px, calc(50% - 50vw + 3rem));
+  margin-left: min(0px, calc(50% - 50vw + 3rem));
+}
+
+html {
+  overflow-x: clip;
+}
+
 .mural {
-  margin: 0 0 2rem;
+  margin-top: 0;
+  margin-bottom: 2rem;
 }
 
 .mural:focus {
@@ -1563,10 +1577,15 @@ label[for$="-picker"] {
 
 /* Undo and Redo sit beside the Render like deck switch, faded and still while
    there is nothing to undo or redo. */
-.page-heading .history {
+.page-heading .heading-tools {
   display: flex;
   gap: 0.75rem;
   margin-left: auto;
+}
+
+.page-heading .history {
+  display: flex;
+  gap: 0.75rem;
 }
 
 .page-heading .history form {

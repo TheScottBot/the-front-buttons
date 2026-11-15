@@ -4558,6 +4558,16 @@ arrows moved along to Three and four, four and One, One and Two, and back;
 Main dragged from Two to Three moved with the mural in place; Escape put the
 grid back showing the move, and Command-Z undid it, the page never loaded.
 
+On the deck build, on a 2000 pixel wide window, the author found the editor
+held to its narrow column, so the mural showed two pages, and that pressing
+Zoom out twice made the button vanish. The button had sat among Undo and Redo,
+which zooming back in redraws from the server, bringing it back hidden and
+without its handler; it now sits beside them, and reads Zoom in while zoomed
+out. The mural and All pages now reach across the window, clear of the drawer
+tabs, while the rest of the editor keeps its column. In a browser at 2000 by
+900 against the harness, zooming out showed all four pages across the window
+with no sideways scroll, and the button zoomed in and out again three times.
+
 ### Keys shifting as select mode opens
 
 The author found that turning on edit mode moved every key's icon and words up a few
