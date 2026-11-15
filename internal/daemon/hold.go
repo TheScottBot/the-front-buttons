@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 )
@@ -97,16 +98,25 @@ func (state *loopState) handleHold(runContext context.Context, event holdEvent) 
 
 	delete(state.holds.pending, event.keyIndex)
 
-	if held.configurationGeneration == state.configurationGeneration {
-		state.press(runContext, held.pageIndex, held.brickIndex, true)
+	if held.configurationGeneration != state.configurationGeneration {
+		return
 	}
+
+	// A page marker held opens the dashboard; an app key its screen.
+	if _, isMarker := state.pages[held.pageIndex][held.brickIndex].instance.(brick.PageMarker); isMarker {
+		state.openDashboard(runContext, held.pageIndex, held.brickIndex)
+
+		return
+	}
+
+	state.press(runContext, held.pageIndex, held.brickIndex, true)
 }
 
 // pressDown takes a key going down: an app key that shows its screen when
 // held waits to see which it is; any other key acts now.
 func (state *loopState) pressDown(runContext context.Context, keyIndex int, slot layout.Slot) {
 	pageIndex, showing := state.showingPage()
-	if slot.Kind == layout.SlotBrick && showing && state.holdsForScreen(pageIndex, slot.BrickIndex) {
+	if slot.Kind == layout.SlotBrick && showing && state.holdsLong(pageIndex, slot.BrickIndex) {
 		state.startHold(runContext, keyIndex, pageIndex, slot.BrickIndex)
 
 		return

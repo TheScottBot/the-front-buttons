@@ -27,6 +27,12 @@ func (state *loopState) repaintAll(runContext context.Context) {
 		return
 	}
 
+	if state.dashboard.open {
+		state.paintDashboard(runContext)
+
+		return
+	}
+
 	state.slots = state.arrangeCurrentPage(runContext)
 
 	for keyIndex, slot := range state.slots {
@@ -77,7 +83,7 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 	}
 
 	keyIndex, onGrid := state.grid.KeyIndex(position)
-	if !onGrid || state.hiddenByOff(position) {
+	if !onGrid || state.hiddenByOff(position) || state.dashboard.open {
 		return
 	}
 

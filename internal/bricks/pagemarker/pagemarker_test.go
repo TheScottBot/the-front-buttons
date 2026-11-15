@@ -2,6 +2,7 @@ package pagemarker_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
@@ -86,5 +87,22 @@ func TestPageMarker_IconIsItsPagesNumber(t *testing.T) {
 		if got := brick.PageMarkerIcon(pageNumber); got != want {
 			t.Errorf("page %d: want %q, got %q", pageNumber, want, got)
 		}
+	}
+}
+
+// TestPageMarker_SaysItOpensTheDashboard: the marker tells the editor that
+// holding it opens the page dashboard.
+func TestPageMarker_SaysItOpensTheDashboard(t *testing.T) {
+	t.Parallel()
+
+	registry := brick.NewRegistry()
+
+	registerError := pagemarker.Register(registry)
+	if registerError != nil {
+		t.Fatal(registerError)
+	}
+
+	if description := registry.Description(pagemarker.KindName); !strings.Contains(description, "page dashboard") {
+		t.Errorf("want the marker to say it opens the dashboard, got %q", description)
 	}
 }

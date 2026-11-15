@@ -235,6 +235,11 @@ type loopState struct {
 	// appScreens lists each application's screens by their index in pages,
 	// in the order of the file.
 	appScreens map[string][]int
+	// screenPages lists every app screen by its index in pages, in the
+	// order of the file, for the dashboard.
+	screenPages []int
+	// dashboard is the page dashboard, while a held page marker has it open.
+	dashboard dashboardState
 	// allPageNames names every page by its index in pages, for an app
 	// screen's paging tiles.
 	allPageNames []string
@@ -275,6 +280,8 @@ func newLoopState(options Options) *loopState {
 		pageNames:               nil,
 		regular:                 nil,
 		appScreens:              map[string][]int{},
+		screenPages:             nil,
+		dashboard:               dashboardState{open: false, fromPage: 0, markerBrick: 0, screenOffset: 0},
 		allPageNames:            nil,
 		appScreen:               "",
 		appScreenAt:             0,
@@ -345,8 +352,8 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.pages = make([][]configuredKey, 0, len(configuration.Pages))
 	state.pageNames = nil
 	state.regular = nil
-	state.appScreens = map[string][]int{}
-	state.allPageNames = nil
+	state.appScreens, state.screenPages, state.allPageNames = map[string][]int{}, nil, nil
+	state.closeDashboard()
 
 	for pageIndex, page := range configuration.Pages {
 		state.allPageNames = append(state.allPageNames, page.Name)
@@ -354,6 +361,7 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 
 		if page.IsAppScreen() {
 			state.appScreens[page.Application] = append(state.appScreens[page.Application], pageIndex)
+			state.screenPages = append(state.screenPages, pageIndex)
 		} else {
 			state.regular = append(state.regular, pageIndex)
 			state.pageNames = append(state.pageNames, page.Name)
@@ -694,6 +702,7 @@ func (state *loopState) disconnect(runContext context.Context, reason string) {
 	state.slots = nil
 	state.deckGeneration++
 	state.releaseAllPressed()
+	state.closeDashboard()
 	state.options.Counters.Increment("deck.disconnects")
 	state.logState(runContext, stateDisconnected, slog.String("reason", reason))
 }
@@ -727,6 +736,13 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 			state.wake(runContext)
 
 			return
+		}
+
+		// The dashboard's keys are its own, not the page's.
+		if state.dashboard.open {
+			state.pressDashboard(runContext, change.KeyIndex)
+
+			continue
 		}
 
 		slot, slotFound := layout.SlotAt(state.slots, change.KeyIndex)

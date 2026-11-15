@@ -58,6 +58,16 @@ its screens adds one straight after its last, or give several pages the same
 between the application's screens, wrapping round, and their tiles show which
 screen it is, such as 1/2. With a single screen they leave it, as before.
 
+Holding a `page_marker` key for half a second opens the page dashboard on the
+deck, in place of the page. Its top left key is the marker you held, and
+pressing it goes back to the page. The rest of the top row is kept for a clock
+to come. The second row holds your regular pages, each by its number and name,
+the page you came from marked; the third holds the app screens, each by its
+application's icon and name. Pressing a page or screen shows it. With more app
+screens than a row holds, the paging tiles in the bottom corners move that row
+along, a row's worth at a time. The dashboard stays until a key is pressed; a
+tap on the marker, rather than a hold, still does nothing.
+
 ```yaml
 pages:
   - name: Work

@@ -245,7 +245,7 @@ func TestDaemon_UnlabelledPageMarkerShowsItsPage(t *testing.T) {
 
 		tap(device, forwardKey)
 
-		want := running.renderer.Render(render.Appearance{Label: "Page 2", Icon: "number-2"})
+		want := running.renderer.Render(render.Appearance{Label: "Page 2", Icon: pageTwoIcon})
 		if difference := distance(drawnImage(t, device, 0), want); difference > blankDifference {
 			t.Errorf("want the marker to show Page 2 and its number, differing by %.1f", difference)
 		}
@@ -284,7 +284,7 @@ func TestDaemon_PageNumberBoxStandsInForTheMarkersOwnLabel(t *testing.T) {
 		time.Sleep(settle)
 		synctest.Wait()
 
-		numbered := running.renderer.Render(render.Appearance{Label: "Page 1", Icon: "number-1"})
+		numbered := running.renderer.Render(render.Appearance{Label: "Page 1", Icon: pageOneIcon})
 		if difference := distance(drawnImage(t, device, 0), numbered); difference > blankDifference {
 			t.Errorf("want the ticked marker to show Page 1 and its number, differing by %.1f", difference)
 		}

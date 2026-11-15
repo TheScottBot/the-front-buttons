@@ -239,6 +239,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The daemon remembers the regular page the deck last showed, in its state
   folder, and opens on it after a restart or an install, rather than on the
   first page.
+- Holding a page marker on the deck for half a second opens the page
+  dashboard: the marker in the top left to come back, the rest of the top row
+  kept for a clock to come, the regular pages on the second row and the app
+  screens on the third, each shown when pressed, the bottom corners paging the
+  screens along when there are more than a row holds.
 - Pressing - on the editor's pages screen, or Zoom out, shows the pages around
   the one on show side by side, as many as the window holds, without loading
   the page; the arrows move along, keys drag between them, and Escape or +

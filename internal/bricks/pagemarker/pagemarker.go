@@ -24,9 +24,19 @@ func (parameters Parameters) ShowsPageNumber() bool {
 	return parameters.PageNumber
 }
 
-// Register adds the kind to a registry.
+// description says what the marker does, for the editor's drawer.
+const description = "Marks its page and does nothing when tapped. Held for half a second, it opens the page " +
+	"dashboard on the deck: the regular pages on its second row and the app screens on its third, each " +
+	"shown when pressed, with the marker in the top left to come back."
+
+// Register adds the kind to a registry, with what it does.
 func Register(registry *brick.Registry) error {
-	return brick.Register(registry, KindName, construct) //nolint:wrapcheck // Register already names the kind
+	registerError := brick.Register(registry, KindName, construct)
+	if registerError != nil {
+		return registerError //nolint:wrapcheck // Register already names the kind
+	}
+
+	return registry.SetDescription(KindName, description) //nolint:wrapcheck // the kind was registered just now
 }
 
 func construct(Parameters, brick.Ports) (any, error) {

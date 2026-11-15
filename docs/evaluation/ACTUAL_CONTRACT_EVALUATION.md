@@ -4613,6 +4613,33 @@ remembered one is gone, a page kept by the file across a restart, and a file
 not written by it ignored. A planted violation, the remembered page not
 opened, failed a test.
 
+### The page dashboard
+
+The author asked for the deck to echo the editor's zoomed out view: holding a
+page marker opens a dashboard of pages, the top row kept for clocks to come in
+a later stage. Holding a marker now waits, through the same half second hold
+an app key uses for its screen, and opens the dashboard in place of the page;
+a tap still does nothing. Its top left key is the marker, drawn as on its
+page, and goes back; the rest of the top row is blank, kept for the clock. The
+second row holds the regular pages by number and name, the page held from
+marked in the editor's highlight; the third the app screens by their
+application's icon and name, a row's worth at a time, which the paging tiles
+in the bottom corners move along, wrapping round, only when there are more
+than a row holds. Pressing a page or screen shows it, a page being remembered
+for the next start. What each row holds is a list, so a row such as the
+bottom one can be given more to show later without the rest changing. Live
+keys and badges do not draw over it, presses on it are not reported to the
+editor as presses on the page, and a new configuration or a deck let go closes
+it. The marker's description in the editor's drawer says what holding it does.
+
+Tests first, failing before the change: a page and a screen pressed shown, a
+page without a marker not opening it, the top left going back and the kept
+keys doing nothing, a tap doing nothing, ten screens paged along and back
+round, the keys drawn as they should be rather than their nearest wrong look,
+the deck's pictures being compressed, and a reload closing it. Planted
+violations, a held marker not opening the dashboard and a reload leaving it
+open, each failed a test.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

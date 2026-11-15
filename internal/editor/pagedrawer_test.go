@@ -67,7 +67,7 @@ func TestEditor_ShortcutsSheetOpensOnAQuestionMark(t *testing.T) {
 
 	for _, want := range []string{
 		`<p class="shortcuts-help" hidden>Press ? for every shortcut, or ` +
-			`<button type="button" class="shortcuts-open">show them</button>.</p>`,
+			`<button type="button" class="shortcuts-open">show them</button></p>`,
 		`<dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title">`,
 		`<caption>Command is Ctrl on Windows.</caption>`,
 		`<tr><th scope="row">Undo or redo</th><td>Command-Z, Shift-Command-Z</td></tr>`,
