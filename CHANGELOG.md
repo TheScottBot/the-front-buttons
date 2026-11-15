@@ -235,8 +235,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - In select mode, dragging a key carries every ticked key: onto a free tile,
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
-  ghost of each on the tile it would land on, crossed where it would not fit. Entering and leaving select mode keeps
-  the page's scroll position.
+  ghost of each on the tile it would land on, crossed where it would not fit.
+- Every change on the editor's pages screen, a drop, a save from the key
+  dialog, Undo, or entering and leaving select mode, keeps the grid where it
+  was in the window rather than opening the page at the top.
 - A `page_marker` key has a Page number box, ticked for a new marker, that
   shows its page's number and the icon of that number over a label and icon of
   its own, so it follows its page as pages are reordered. A marker without a

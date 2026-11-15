@@ -146,3 +146,25 @@ func TestEditor_ArrowKeysMoveAroundTheGrid(t *testing.T) {
 		t.Error("want the arrow key hint hidden until the script shows it")
 	}
 }
+
+// TestEditor_KeepsTheGridInPlaceAcrossReloads: every change on the pages
+// screen loads the page again; the script keeps where the grid sat in the
+// window and puts the next page's grid there, with room below where the page
+// is too short to scroll so far.
+func TestEditor_KeepsTheGridInPlaceAcrossReloads(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	script := harness.get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{"front-buttons-grid-place", "pagehide", "--keep-room"} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+
+	if !regexp.MustCompile(`(?s)body::after \{[^}]*height: var\(--keep-room, 0\)`).
+		MatchString(harness.get(t, "/static/editor.css").Body.String()) {
+		t.Error("stylesheet: want room below the page for a grid kept in place")
+	}
+}

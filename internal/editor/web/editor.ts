@@ -5,6 +5,7 @@
 import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
 import { enableDrawer } from "./drawer";
+import { enableKeepPlace } from "./keepplace";
 import { enableLive } from "./live";
 import { enableGridKeys } from "./gridkeys";
 import { enableGroupOrder } from "./group";
@@ -35,4 +36,8 @@ if (grid !== null) {
   enableGridKeys(grid);
   enableKeyDialog(grid);
   enableDrawer(grid);
+
+  // Last, once every hint the script shows above the grid is showing, so the
+  // grid is where it will stay.
+  enableKeepPlace(grid);
 }

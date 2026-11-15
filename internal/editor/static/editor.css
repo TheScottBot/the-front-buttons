@@ -161,6 +161,15 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+/* Room the script adds below the page, so a grid kept in place across a
+   reload stays put on a page too short to scroll that far. */
+
+body::after {
+  content: "";
+  display: block;
+  height: var(--keep-room, 0);
+}
+
 main:focus-visible {
   outline: 4px solid var(--rule);
   outline-offset: 2px;

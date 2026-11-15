@@ -66,6 +66,9 @@ page with nothing moved. Each key's form does the same from the keyboard.
 
 ## Moving around the grid
 
+Every change on the pages screen, from a drop, the key dialog, Undo, or going
+into select mode and out of it, keeps the grid where it was in the window.
+
 With a tile focused, the arrow keys move between tiles, passing over any that
 cannot take focus, and Enter opens one. Delete, or Backspace, removes the key
 on a tile, and the page offers Undo to put it back. In select mode Space ticks
@@ -104,8 +107,7 @@ own tile there; in the bin, all are removed. Hold Command (Ctrl on Windows) to
 copy instead of move. The drag carries a picture of every ticked key, laid out
 as on the grid, and over a tile each key's ghost shows where it would land:
 outlined where it fits, crossed on a tile in the way, and all crossed if one
-would fall off the deck. Only a drop where every key fits is taken. Going into select mode and out of it keeps the page where it was
-scrolled to.
+would fall off the deck. Only a drop where every key fits is taken.
 
 Or hold Shift and click a key on the grid to open select mode with that key
 ticked. In select mode a click ticks or unticks one key, with Shift held or not,

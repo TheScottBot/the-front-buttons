@@ -4267,6 +4267,20 @@ ticked keys showed both ghosts where they would land, a spot with a key in the
 way crossed only that tile and refused the drop, one past the paging tile
 crossed the one ghost left on the deck, and a drop that fit moved both.
 
+The author then found the page still jumping: up a little near the bottom,
+and at other times they could not pin down. Keeping a scroll position could
+not hold, as select mode changes what is above and below the grid and so how
+far the page scrolls, and every other change on the pages screen, a drop, a
+save from the key dialog, Undo, still loaded the page at the top. The script
+now keeps where the grid sat in the window as any page of the grid is left,
+and the next one, if it comes within ten seconds, scrolls to put its grid
+there, adding room at its bottom where it is too short to scroll so far. It
+does so last, once the hints the script shows above the grid are showing,
+which a first version, run before them, missed by a hundred and fifty pixels.
+Driven in a browser against the harness: at the bottom of the page, into
+select mode and out again, and part way down, a key removed with Delete and
+put back with Undo, each kept the grid within a pixel of where it was.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

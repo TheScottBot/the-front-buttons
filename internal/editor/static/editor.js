@@ -880,6 +880,47 @@
     drawer.hidden = false;
   }
 
+  // internal/editor/web/keepplace.ts
+  var placeKey = "front-buttons-grid-place";
+  var freshMilliseconds = 1e4;
+  function keep(grid2) {
+    try {
+      const kept = { top: grid2.getBoundingClientRect().top, at: Date.now() };
+      window.sessionStorage.setItem(placeKey, JSON.stringify(kept));
+    } catch {
+    }
+  }
+  function takeKept() {
+    try {
+      const stored = window.sessionStorage.getItem(placeKey);
+      window.sessionStorage.removeItem(placeKey);
+      const kept = stored === null ? null : JSON.parse(stored);
+      if (typeof kept?.top !== "number" || typeof kept.at !== "number" || Date.now() - kept.at > freshMilliseconds) {
+        return null;
+      }
+      return { top: kept.top, at: kept.at };
+    } catch {
+      return null;
+    }
+  }
+  function restore(grid2, kept) {
+    const wanted = window.scrollY + grid2.getBoundingClientRect().top - kept.top;
+    const room = wanted - (document.documentElement.scrollHeight - window.innerHeight);
+    if (room > 0) {
+      document.documentElement.style.setProperty("--keep-room", `${Math.ceil(room)}px`);
+    }
+    window.scrollTo(0, Math.max(Math.round(wanted), 0));
+  }
+  function enableKeepPlace(grid2) {
+    const kept = takeKept();
+    if (kept !== null) {
+      restore(grid2, kept);
+    }
+    window.addEventListener("pagehide", () => {
+      keep(document.querySelector("table.grid:not(.grid-left-behind)") ?? grid2);
+    });
+  }
+
   // internal/editor/web/live.ts
   var heldClass = "held";
   var holdingClass = "holding";
@@ -1184,27 +1225,6 @@
   // internal/editor/web/select.ts
   var tileAttribute3 = "data-tile";
   var keyState = "key";
-  var scrollKey = "front-buttons-select-scroll";
-  function keepScroll() {
-    try {
-      window.sessionStorage.setItem(scrollKey, String(Math.round(window.scrollY)));
-    } catch {
-    }
-  }
-  function restoreScroll() {
-    try {
-      const kept = window.sessionStorage.getItem(scrollKey);
-      window.sessionStorage.removeItem(scrollKey);
-      if (kept !== null && /^\d+$/.test(kept)) {
-        window.scrollTo(0, Number(kept));
-      }
-    } catch {
-    }
-  }
-  function goKeepingScroll(address) {
-    keepScroll();
-    window.location.assign(address);
-  }
   function placeOf3(cell) {
     const parts = (cell?.getAttribute(tileAttribute3) ?? "").split(".");
     if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
@@ -1222,7 +1242,7 @@
   }
   function openSelecting(place) {
     const address = new URLSearchParams({ page: place.page, select: "1", tile: `${place.row}.${place.column}` });
-    goKeepingScroll(`/page?${address.toString()}`);
+    window.location.assign(`/page?${address.toString()}`);
   }
   function enableShiftTicking(grid2) {
     grid2.addEventListener("click", (event) => {
@@ -1245,15 +1265,11 @@
         return;
       }
       event.preventDefault();
-      goKeepingScroll(done.href);
+      window.location.assign(done.href);
     });
   }
   function enableSelecting(grid2) {
     showHints();
-    restoreScroll();
-    for (const link of document.querySelectorAll(".select-link a, a.select-done")) {
-      link.addEventListener("click", keepScroll);
-    }
     if (grid2.querySelector(".select-key") !== null) {
       enableShiftTicking(grid2);
       enableEscapeToLeave();
@@ -1312,5 +1328,6 @@
     enableGridKeys(grid);
     enableKeyDialog(grid);
     enableDrawer(grid);
+    enableKeepPlace(grid);
   }
 })();
