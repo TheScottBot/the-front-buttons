@@ -30,14 +30,11 @@ type textFaces struct {
 	wordSizes  []font.Face
 	pageNumber font.Face
 	question   font.Face
-	// clockDigit and clockLabel are the clock's: one figure of a time,
-	// large, and a short label such as a time zone's, in Thyme's typeface,
-	// JetBrains Mono Regular.
-	clockDigit font.Face
-	clockLabel font.Face
-	// clockSecond is a pair's second figure, a little smaller, so HH MM SS
-	// read as pairs; clockColon the small colon beside it.
-	clockSecond font.Face
+	// clockFigure, clockLabel and clockColon are the clock's: one figure of
+	// a time, a short label such as a time zone's, and the small colon after
+	// the hours and minutes, in Thyme's typeface, JetBrains Mono Regular.
+	clockFigure font.Face
+	clockLabel  font.Face
 	clockColon  font.Face
 }
 
@@ -61,9 +58,8 @@ const (
 	wordHundredths          = 15
 	pageNumberHundredths    = 26
 	questionHundredths      = 44
-	clockDigitHundredths    = 80
+	clockFigureHundredths   = 66
 	clockLabelHundredths    = 30
-	clockSecondHundredths   = 66
 	clockColonHundredths    = 44
 )
 
@@ -85,7 +81,7 @@ func loadFaces(keyPixels int) (textFaces, error) {
 	if mediumError != nil || boldError != nil {
 		return textFaces{
 				labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil,
-				clockDigit: nil, clockLabel: nil, clockSecond: nil, clockColon: nil,
+				clockFigure: nil, clockLabel: nil, clockColon: nil,
 			},
 			fmt.Errorf("parsing the compiled in Go fonts: %w %w", mediumError, boldError)
 	}
@@ -107,7 +103,7 @@ func loadFaces(keyPixels int) (textFaces, error) {
 
 	faces := textFaces{
 		labelSizes: nil, wordSizes: nil, pageNumber: nil, question: nil,
-		clockDigit: nil, clockLabel: nil, clockSecond: nil, clockColon: nil,
+		clockFigure: nil, clockLabel: nil, clockColon: nil,
 	}
 
 	var sizeError error
@@ -141,15 +137,14 @@ func loadClockFaces(makeFace func(parsed *opentype.Font, hundredths int) (font.F
 		return fmt.Errorf("parsing the vendored JetBrains Mono font: %w", monoError)
 	}
 
-	var digitError, labelError, secondError, colonError error
+	var figureError, labelError, colonError error
 
-	faces.clockDigit, digitError = makeFace(mono, clockDigitHundredths)
+	faces.clockFigure, figureError = makeFace(mono, clockFigureHundredths)
 	faces.clockLabel, labelError = makeFace(mono, clockLabelHundredths)
-	faces.clockSecond, secondError = makeFace(mono, clockSecondHundredths)
 	faces.clockColon, colonError = makeFace(mono, clockColonHundredths)
 
-	if digitError != nil || labelError != nil || secondError != nil || colonError != nil {
-		return fmt.Errorf("building the clock's faces: %w", errors.Join(digitError, labelError, secondError, colonError))
+	if figureError != nil || labelError != nil || colonError != nil {
+		return fmt.Errorf("building the clock's faces: %w", errors.Join(figureError, labelError, colonError))
 	}
 
 	return nil

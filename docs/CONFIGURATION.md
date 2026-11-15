@@ -62,9 +62,9 @@ Holding a `page_marker` key for half a second opens the page dashboard on the
 deck, in place of the page. Its top left key is the marker you held, and
 pressing it goes back to the page. The next six keys of the top row show the
 local time as HHMMSS, a figure to a key, in the look of Thyme, the author's
-clock: its pink JetBrains Mono figures on its navy. Each pair's second figure
-is a little smaller, with a small colon after the hours and the minutes, so the
-six keys read as 15:31:42. The top right key is a
+clock: its pink JetBrains Mono figures on its navy. Each pair is drawn towards
+each other, with a small colon after the hours and the minutes, so the six keys
+read as 15:31:42. The top right key is a
 world icon, which shows the world clocks: UTC, London (LDN), Berlin (BER) and
 Sao Paulo (SAO), a row each, its label and then its HHMMSS, with the world icon
 kept in the top right to go back to the dashboard. Both tick each second. The

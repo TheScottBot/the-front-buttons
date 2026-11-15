@@ -67,9 +67,9 @@ func requireCentred(t *testing.T, name string, rendered image.Image) {
 	}
 }
 
-// TestRenderClock_DrawsADigitLargeInThymesColours: a clock digit is one
-// large figure, pink on navy, in the middle of its key, each figure its own.
-func TestRenderClock_DrawsADigitLargeInThymesColours(t *testing.T) {
+// TestRenderClock_DrawsAFigureInThymesColours: a clock figure is pink on
+// navy, at least half the key high, centred down, each figure its own.
+func TestRenderClock_DrawsAFigureInThymesColours(t *testing.T) {
 	t.Parallel()
 
 	renderer := newTestRenderer(t)
@@ -83,10 +83,13 @@ func TestRenderClock_DrawsADigitLargeInThymesColours(t *testing.T) {
 		t.Error("want the figure drawn pink")
 	}
 
-	requireCentred(t, "5", five)
-
-	if ink := inkBounds(five, clockNavy()); ink.Dy() < testKeyPixels/2 {
+	ink := inkBounds(five, clockNavy())
+	if ink.Dy() < testKeyPixels/2 {
 		t.Errorf("want the figure at least half the key high, got %d", ink.Dy())
+	}
+
+	if diff := ink.Min.Y - (testKeyPixels - ink.Max.Y); diff > 4 || diff < -4 {
+		t.Errorf("want the figure centred down, %d above and %d below", ink.Min.Y, testKeyPixels-ink.Max.Y)
 	}
 
 	if distanceBetween(five, renderer.RenderClockDigit("8")) == 0 {
@@ -137,29 +140,29 @@ func distanceBetween(first image.Image, second image.Image) int {
 	return differing
 }
 
-// TestRenderClock_DrawsAPairsSecondFigureSmaller_WithAColon: a pair's second
-// figure is drawn smaller than its first, so HH MM SS read as pairs, and with
-// a colon, a small one follows it at the key's right.
-func TestRenderClock_DrawsAPairsSecondFigureSmaller_WithAColon(t *testing.T) {
+// TestRenderClock_DrawsAPairTogether_WithAColon: a pair's figures are one
+// size, the first drawn towards its key's right and the second towards its
+// left, so the pair sits together; with a colon, a small one follows the
+// second at its key's right.
+func TestRenderClock_DrawsAPairTogether_WithAColon(t *testing.T) {
 	t.Parallel()
 
 	renderer := newTestRenderer(t)
 	first := inkBounds(renderer.RenderClockDigit("5"), clockNavy())
-	plain := renderer.RenderClockSecondDigit("5", false)
-	second := inkBounds(plain, clockNavy())
+	second := inkBounds(renderer.RenderClockSecondDigit("5", false), clockNavy())
 
-	if second.Dy() >= first.Dy() {
-		t.Errorf("want the second figure smaller, %d high against %d", second.Dy(), first.Dy())
+	if first.Dy() != second.Dy() {
+		t.Errorf("want a pair one size, %d high against %d", first.Dy(), second.Dy())
 	}
 
-	requireCentred(t, "second", plain)
+	middle := testKeyPixels / 2
+	if (first.Min.X+first.Max.X)/2 <= middle || (second.Min.X+second.Max.X)/2 >= middle {
+		t.Errorf("want the first towards the right and the second towards the left, got %v and %v", first, second)
+	}
 
 	colon := inkBounds(renderer.RenderClockSecondDigit("5", true), clockNavy())
-	if colon.Max.X <= second.Max.X+testKeyPixels/10 {
-		t.Errorf("want a colon at the right, ink ending at %d against %d without", colon.Max.X, second.Max.X)
-	}
-
-	if colon.Max.X >= testKeyPixels {
-		t.Error("want the colon within the key")
+	if colon.Max.X <= second.Max.X+testKeyPixels/10 || colon.Max.X >= testKeyPixels {
+		t.Errorf("want a colon at the right within the key, ink ending at %d against %d without", colon.Max.X,
+			second.Max.X)
 	}
 }

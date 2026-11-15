@@ -12,20 +12,25 @@ import (
 // Clock keys, in the look of Thyme, the author's clock, taken from its theme
 // (internal/theme/theme.go there): its panel's navy, its time's pink, and the
 // dimmer pink of its zone labels, so the eye reads the times first; and its
-// typeface, JetBrains Mono Regular. A time is drawn a figure to a key, large,
-// so six keys in a row read HHMMSS; an icon takes the time's pink.
+// typeface, JetBrains Mono Regular. A time is drawn a figure to a key, each
+// pair drawn towards each other with a small colon after the hours and
+// minutes, so six keys in a row read as 15:31:42; an icon takes the time's
+// pink.
 const (
 	clockBackgroundPacked = 0x12131c
 	clockForegroundPacked = 0xf894f8
 	clockLabelPacked      = 0xd583d7
 	// clockIconHundredths is a clock icon's size, as a share of the key.
 	clockIconHundredths = 60
-	// clockSecondWidthHundredths is the share of the key a pair's second
-	// figure is centred in when a colon follows it in the rest.
-	clockSecondWidthHundredths = 76
+	// clockFigureWidthHundredths is the share of the key a figure is
+	// centred in, at its right for a pair's first and its left for the
+	// second, so a pair sits together; the rest of the second's key holds
+	// the colon.
+	clockFigureWidthHundredths = 76
 )
 
-// RenderClockDigit draws one figure of a time.
+// RenderClockDigit draws the first figure of a pair of a time, centred
+// towards the key's right, so it sits close to the pair's second.
 func (renderer *Renderer) RenderClockDigit(figure string) image.Image {
 	if renderer.frame != nil {
 		return renderer.frame.place(renderer.frame.inner.RenderClockDigit(figure))
@@ -34,12 +39,17 @@ func (renderer *Renderer) RenderClockDigit(figure string) image.Image {
 	renderer.mutex.Lock()
 	defer renderer.mutex.Unlock()
 
-	return renderer.clockText(figure, renderer.faces.clockDigit, rgb(clockForegroundPacked))
+	key := renderer.newKey(rgb(clockBackgroundPacked))
+	drawClockText(key, renderer.faces.clockFigure, figure, rgb(clockForegroundPacked),
+		renderer.keyPixels-renderer.scaled(clockFigureWidthHundredths), renderer.keyPixels, renderer.keyPixels)
+
+	return key
 }
 
-// RenderClockSecondDigit draws the second figure of a pair of a time, a
-// little smaller than the first so HH MM SS read as pairs, and with colon a
-// small colon beside it, at the key's right, as between hours and minutes.
+// RenderClockSecondDigit draws the second figure of a pair of a time,
+// centred towards the key's left, so it sits close to the pair's first, and
+// with colon a small colon in the room left at the key's right, as after the
+// hours and the minutes.
 func (renderer *Renderer) RenderClockSecondDigit(figure string, colon bool) image.Image {
 	if renderer.frame != nil {
 		return renderer.frame.place(renderer.frame.inner.RenderClockSecondDigit(figure, colon))
@@ -48,17 +58,15 @@ func (renderer *Renderer) RenderClockSecondDigit(figure string, colon bool) imag
 	renderer.mutex.Lock()
 	defer renderer.mutex.Unlock()
 
-	if !colon {
-		return renderer.clockText(figure, renderer.faces.clockSecond, rgb(clockForegroundPacked))
-	}
-
 	key := renderer.newKey(rgb(clockBackgroundPacked))
 	foreground := rgb(clockForegroundPacked)
+	figureWidth := renderer.scaled(clockFigureWidthHundredths)
 
-	// The figure is centred in the key's left part, the colon in its right.
-	figureWidth := renderer.scaled(clockSecondWidthHundredths)
-	drawClockText(key, renderer.faces.clockSecond, figure, foreground, 0, figureWidth, renderer.keyPixels)
-	drawClockText(key, renderer.faces.clockColon, ":", foreground, figureWidth, renderer.keyPixels, renderer.keyPixels)
+	drawClockText(key, renderer.faces.clockFigure, figure, foreground, 0, figureWidth, renderer.keyPixels)
+
+	if colon {
+		drawClockText(key, renderer.faces.clockColon, ":", foreground, figureWidth, renderer.keyPixels, renderer.keyPixels)
+	}
 
 	return key
 }

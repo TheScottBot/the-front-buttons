@@ -4678,6 +4678,14 @@ second figure smaller than the first, centred without a colon, and the colon
 at the right within the key with one; a row rendered with the real font read
 as 15:31:42.
 
+That read better, but the smaller second figures beside the large first ones
+looked odd, with a wide gap inside each pair. Both figures of a pair are now
+the smaller size, the first centred towards its key's right and the second
+towards its left, so each pair sits together and the colons mark the gaps
+between them; the seconds' second moves left too, without a colon. The test
+now has a pair one size, the first right of the middle and the second left of
+it.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
