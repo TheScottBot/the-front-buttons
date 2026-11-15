@@ -4535,6 +4535,16 @@ search ready, closing In use, and the shortcuts sheet names both. Driven in a
 browser against the harness: B opened Bricks over In use with the search
 focused, and B typed in the search stayed in the box.
 
+### Keys shifting as select mode opens
+
+The author found that turning on edit mode moved every key's icon and words up a few
+pixels. In select mode a key's picture and words sit in a label, and labels
+carry a margin below them, which lifted the centred contents by half of it,
+2.4 pixels. A key's label in select mode now has none. Measured in a browser
+against the harness, with Render like deck on and off, three keys' pictures and
+words sat at the same height before and after edit mode was turned on, where
+they had risen 2.4 pixels; a test holds the rule.
+
 ### The deck's page across restarts
 
 The author found every restart and install put the deck back on the first

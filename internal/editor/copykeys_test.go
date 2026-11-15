@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -342,4 +343,16 @@ func TestEditor_ScriptSwitchesSelectModeInPlace(t *testing.T) {
 
 	requireBody(t, harness.get(t, "/page?page=0&select=1").Body.String(),
 		`<form method="post" action="/keys/copy" id="copy-keys" class="copy-keys in-place">`)
+}
+
+// TestEditor_SelectModeKeepsKeysWhereTheyWere: a key's label in select mode
+// has none of the margin other labels have, which lifted every key a few
+// pixels as select mode opened.
+func TestEditor_SelectModeKeepsKeysWhereTheyWere(t *testing.T) {
+	t.Parallel()
+
+	stylesheet := newCopyKeysHarness(t).get(t, "/static/editor.css").Body.String()
+	if !regexp.MustCompile(`\.grid \.select-key label \{\s*margin: 0;`).MatchString(stylesheet) {
+		t.Error("stylesheet: want a key's label in select mode without a margin")
+	}
 }

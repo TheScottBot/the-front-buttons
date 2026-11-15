@@ -652,7 +652,10 @@ input[type="search"] {
   user-select: none;
 }
 
+/* No margin, as other labels have, so a key sits exactly where it does
+   outside select mode rather than a few pixels higher. */
 .grid .select-key label {
+  margin: 0;
   font-weight: 700;
   color: var(--on-block-accent);
   user-select: none;

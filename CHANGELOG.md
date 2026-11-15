@@ -299,6 +299,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- Turning on edit mode in the editor lifted every key's picture and words a
+  few pixels, from the margin under labels; keys now stay where they were.
 - Links in the editor are underlined unbroken, under letters that drop below
   the line too, such as a g.
 - Shift and a click on a paging tile or an empty tile in the editor's grid
