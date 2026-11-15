@@ -236,6 +236,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The editor's Dashboard section shows the page dashboard as the deck draws
+  it, its pages and its world clocks side by side, opened from the first page
+  with a page marker, or saying the deck cannot open it without one. The deck
+  and the preview draw it with the same code, now in its own package.
 - A key held down on the deck is drawn pressed, dimmed and a little smaller,
   until it is let go, whatever it does. A page marker or an app key held
   towards its dashboard or screen shows a pink bar filling along its bottom

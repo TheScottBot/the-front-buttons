@@ -19,6 +19,7 @@ import (
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/config"
+	"github.com/TheScottBot/the-front-buttons/internal/dashboard"
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
 	"github.com/TheScottBot/the-front-buttons/internal/diagnostics"
@@ -241,7 +242,7 @@ type loopState struct {
 	// dashboard is the page dashboard, while a held page marker has it open.
 	dashboard dashboardState
 	// zones are the world clocks the dashboard's world icon shows.
-	zones []worldZone
+	zones []dashboard.Zone
 	// allPageNames names every page by its index in pages, for an app
 	// screen's paging tiles.
 	allPageNames []string
@@ -286,7 +287,7 @@ func newLoopState(options Options) *loopState {
 		appScreens:              map[string][]int{},
 		screenPages:             nil,
 		dashboard:               closedDashboard(),
-		zones:                   loadWorldZones(config.DefaultWorldClocks(), options.Logger),
+		zones:                   dashboard.LoadZones(config.DefaultWorldClocks(), options.Logger),
 		allPageNames:            nil,
 		appScreen:               "",
 		appScreenAt:             0,
@@ -361,7 +362,7 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.regular = nil
 	state.appScreens, state.screenPages, state.allPageNames = map[string][]int{}, nil, nil
 	state.closeDashboard()
-	state.zones = loadWorldZones(configuration.WorldClocksOrDefault(), state.options.Logger)
+	state.zones = dashboard.LoadZones(configuration.WorldClocksOrDefault(), state.options.Logger)
 
 	for pageIndex, page := range configuration.Pages {
 		state.allPageNames = append(state.allPageNames, page.Name)

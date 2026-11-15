@@ -172,6 +172,8 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("GET /group", pages.showGroup)
 	mux.HandleFunc("POST /group", pages.saveGroup)
 	mux.HandleFunc("GET /preview.png", pages.preview)
+	mux.HandleFunc("GET /dashboard", pages.showDashboard)
+	mux.HandleFunc("GET /dashboard/key.png", pages.dashboardKey)
 	mux.HandleFunc("GET /events", pages.events)
 	mux.HandleFunc("GET /icons", pages.showIcons)
 	mux.HandleFunc("GET /icon.png", pages.iconPreview)

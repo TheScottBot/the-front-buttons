@@ -82,7 +82,8 @@ the page you came from marked; the third holds the app screens, each by its
 application's icon and name. Pressing a page or screen shows it. With more app
 screens than a row holds, the paging tiles in the bottom corners move that row
 along, a row's worth at a time. The dashboard stays until a key is pressed; a
-tap on the marker, rather than a hold, still does nothing.
+tap on the marker, rather than a hold, still does nothing. The editor's
+Dashboard section shows it as the deck draws it.
 
 ```yaml
 pages:

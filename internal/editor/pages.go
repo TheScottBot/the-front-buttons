@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"image"
-	"image/png"
 	"net/http"
 	"net/url"
 	"slices"
@@ -1004,19 +1003,7 @@ func (pages *pageHandlers) preview(writer http.ResponseWriter, request *http.Req
 	query := request.URL.Query()
 	pageIndex := integerParameter(query, "page")
 	position := layout.Position{Row: integerParameter(query, "row"), Column: integerParameter(query, "column")}
-	picture := pages.previewPicture(request.Context(), configuration, pageIndex, position, query)
-
-	var encoded bytes.Buffer
-
-	encodeError := png.Encode(&encoded, picture)
-	if encodeError != nil {
-		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-		return
-	}
-
-	writer.Header().Set("Content-Type", "image/png")
-	_, _ = writer.Write(encoded.Bytes())
+	writePNG(writer, pages.previewPicture(request.Context(), configuration, pageIndex, position, query))
 }
 
 // previewPicture draws a tile as the deck would: a paging tile, an app

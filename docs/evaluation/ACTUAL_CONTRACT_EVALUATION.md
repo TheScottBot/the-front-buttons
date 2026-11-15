@@ -4827,6 +4827,44 @@ a counted press, first survived, the release redrawing the key anyway, so
 the test now looks while the key is still down; another showed a check in
 the count that a quit already made redundant, which was removed.
 
+### The dashboard in the editor
+
+The author chose a preview of the page dashboard in the editor from a list of
+ideas: the editor drew every page but not the dashboard or its world clocks,
+which could only be seen on the deck.
+
+The dashboard's layout and drawing moved out of the daemon into a package of
+their own, `internal/dashboard`, taking what they depend on as a scene, the
+grid, the view, the page opened from, the regular pages, the app screens,
+how far they are paged and the world clocks, and a look, the renderer, the
+page names, the marker's picture and each screen's icon. The daemon builds
+both from its state, keeping the dashboard's opening, presses and ticking;
+the editor builds them from the file. So the preview cannot drift from the
+deck. The daemon's dashboard and clock tests passed unchanged across the
+move.
+
+The editor's new Dashboard section shows both views side by side on black,
+each key a PNG drawn by the shared code. It is shown as opened from the first
+page marker, on the regular pages in order and then the app screens, its
+page marked and the marker drawn as the editor previews it; with no marker
+it says the deck cannot open the dashboard yet and shows it from the first
+page, its top left blank. The world view takes the file's clocks or the
+defaults. Clocks show the time the page loaded; the preview does not tick.
+
+Tests first, failing before the change: the section is in the editor's
+sections and shows both views, 64 keys; the marker, its page marked, the
+other pages, an app screen by its icon, the world icon in both views, the
+file's clocks and the blank rows past them are each the renderer's own
+picture, pixel for pixel; without a marker the page says so, the top left is
+blank and the first page marked, and the defaults show; a marker on the
+second page marks that page; a key off the grid, a negative one, an unknown
+view and a key that is no number are not found. Planting each of opening
+always from the first page, never drawing the marker, ignoring the file's
+clocks, no upper bound on the key, no app screens, the marker words reversed
+and no section link failed a test. On this MacBook the section drew the
+author's own configuration: the marker, four pages, four app screens by their
+icons, and the four default clocks with the date.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

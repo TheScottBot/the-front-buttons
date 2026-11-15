@@ -1,11 +1,9 @@
 package editor
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"image/color"
-	"image/png"
 	"net/http"
 	"net/url"
 	"slices"
@@ -168,18 +166,8 @@ func (pages *pageHandlers) iconPreview(writer http.ResponseWriter, request *http
 		return
 	}
 
-	var encoded bytes.Buffer
-
-	encodeError := png.Encode(&encoded, pages.options.Renderer.Render(render.Appearance{
+	writePNG(writer, pages.options.Renderer.Render(render.Appearance{
 		Label: "", Icon: name, IconImage: nil, Background: color.RGBA{R: 0, G: 0, B: 0, A: 0},
 		Status: render.StatusNone, ErrorReason: "",
 	}))
-	if encodeError != nil {
-		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-
-		return
-	}
-
-	writer.Header().Set("Content-Type", "image/png")
-	_, _ = writer.Write(encoded.Bytes())
 }

@@ -94,7 +94,7 @@ func TestEditor_PreviewsAKeyWithTheLabelTheDeckGivesIt(t *testing.T) {
 
 	harness := newDeckRenderHarness(t)
 
-	want := previewRenderer(t).Render(render.Appearance{Label: "Page 1", Icon: "number-1"})
+	want := previewRenderer(t).Render(render.Appearance{Label: "Page 1", Icon: firstPageIcon})
 	if !testsupport.SameImage(previewImage(t, harness, markerPreview), want) {
 		t.Error("want the page marker previewed with its page number")
 	}
@@ -132,7 +132,7 @@ func TestEditor_PreviewsAMarkersPageNumberOverItsOwn(t *testing.T) {
 	harness := newHarness(t, nil)
 	harness.replaceFile(t, numberedMarkers)
 	renderer := previewRenderer(t)
-	numbered := renderer.Render(render.Appearance{Label: "Page 2", Icon: "number-2"})
+	numbered := renderer.Render(render.Appearance{Label: "Page 2", Icon: secondPageIcon})
 
 	for path, want := range map[string]image.Image{
 		"/preview.png?page=1&row=0&column=0": numbered,

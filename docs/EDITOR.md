@@ -62,6 +62,15 @@ the grids in place. Command-Z and Shift-Command-Z undo and redo there too.
 Choose a key to open its page with it marked. With Render like deck on, the
 grids show the deck's pictures and live state, as the pages screen does.
 
+## Dashboard
+
+**Dashboard**, in the editor's sections, shows the page dashboard as the deck
+draws it, its pages and its world clocks side by side, each key its picture,
+drawn by the same code as the deck's. It is shown as opened from the first
+page with a page marker, that marker in its top left; with none, the page says
+the deck cannot open the dashboard yet. The clocks show the time the page was
+loaded.
+
 ## Finding a key
 
 The **In use** tab, on the left under Bricks, opens a drawer to find a key in

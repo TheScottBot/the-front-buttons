@@ -926,6 +926,41 @@ input[type="search"] {
   margin: 0 auto;
 }
 
+/* Dashboard: the page dashboard's two views side by side as the deck draws
+   them, its keys black and close together as on the deck. */
+.dashboard-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2.5rem;
+  margin-top: 1.5rem;
+}
+
+.dashboard-view h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.grid.dashboard-preview {
+  border-spacing: 0.25rem;
+  margin: 0;
+  padding: 0.25rem;
+  background: #000;
+}
+
+.grid.dashboard-preview td {
+  width: 3.6rem;
+  height: 3.6rem;
+  background: #000;
+  border: 0;
+  box-shadow: none;
+}
+
+.grid.dashboard-preview img {
+  display: block;
+  width: 3.6rem;
+  height: 3.6rem;
+}
+
 /* The pages screen zoomed out: the pages around this one side by side, as
    many as fit, this one outlined as a pressed key is, with buttons to move
    along either side of Zoom in. */

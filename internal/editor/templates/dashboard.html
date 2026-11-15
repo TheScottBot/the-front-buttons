@@ -1,0 +1,13 @@
+{{template "head" .}}
+<h1>Dashboard</h1>
+<p class="help">The page dashboard as the deck draws it: hold a page marker on the deck for half a second to open it, and press its world icon, top right, for the world clocks. {{if .HasMarker}}It is shown as opened from the first page with a page marker.{{else}}No page has a page marker, so the deck cannot open the dashboard yet; add one to a page from the brick drawer.{{end}} The clocks show the time this page was loaded.</p>
+<div class="dashboard-previews">
+{{range $view := .Views}}<section class="dashboard-view" aria-labelledby="dashboard-{{.Name}}">
+<h2 id="dashboard-{{.Name}}">{{.Heading}}</h2>
+<table class="grid dashboard-preview" data-dashboard-view="{{.Name}}">
+<caption class="visually-hidden">The dashboard's {{.Heading}}, as the deck draws it</caption>
+{{range .Rows}}<tr>{{range .}}<td><img src="/dashboard/key.png?view={{$view.Name}}&amp;key={{.}}" alt="" width="96" height="96"></td>{{end}}</tr>
+{{end}}</table>
+</section>
+{{end}}</div>
+{{template "foot" .}}
