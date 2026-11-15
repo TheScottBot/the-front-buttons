@@ -30,6 +30,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/editor"
 	"github.com/TheScottBot/the-front-buttons/internal/githubactions"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/muralapi"
 	"github.com/TheScottBot/the-front-buttons/internal/pipeline"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
@@ -282,6 +283,9 @@ type core struct {
 	// mirror is what the editor may see of the deck as it runs: the daemon
 	// draws into it and the editor reads it, for Render like deck.
 	mirror *deckmirror.Mirror
+	// mural is Mural's API, signed in from the editor; set once the
+	// credential store is open.
+	mural *muralapi.Client
 }
 
 func buildCore() (core, error) {
@@ -329,7 +333,7 @@ func buildCore() (core, error) {
 	return core{
 		model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer, icons: icons,
 		iconFiles: usericons.NewFolder(""), appIcons: systemadapter.NewApplicationIcons(),
-		mirror: deckmirror.New(mirrorSubscribers),
+		mirror: deckmirror.New(mirrorSubscribers), mural: nil,
 	}, nil
 }
 
@@ -364,6 +368,7 @@ func start(
 
 	counters := diagnostics.NewCounters()
 	credentials := systemadapter.NewKeyringCredentialStore()
+	built.mural = muralapi.NewClient(newAPIHTTPClient(), credentials)
 
 	editorLogin, stopEditor, editorError := startEditor(runContext, logger, built, store, credentials, counters,
 		editorPort, stateDirectory)
@@ -490,6 +495,7 @@ func startEditor(
 		Platform: systemadapter.ShortcutPlatform(),
 		Sessions: sessions,
 		Mirror:   built.mirror,
+		Mural:    built.mural,
 	}))
 
 	go func() {
@@ -529,6 +535,12 @@ func loginLinks(sessions *editor.Sessions, address string, editorURL string) fun
 // newGitHubHTTPClient is the HTTP client for GitHub: the standard transport with
 // a bound on each request.
 func newGitHubHTTPClient() *http.Client {
+	return newAPIHTTPClient()
+}
+
+// newAPIHTTPClient is an HTTP client for a web API, bounded so a stalled
+// connection shows as a network error rather than a key that never answers.
+func newAPIHTTPClient() *http.Client {
 	httpClient := new(http.Client)
 	httpClient.Timeout = githubRequestTimeout
 

@@ -21,7 +21,7 @@ privilege (`scripts/install-windows.ps1`).
 48080 or any free port if that is taken (`internal/editor/server.go`, `Listen`).
 Nothing listens on any other interface, so no other machine can reach it.
 
-**Outgoing.** Two kinds of request, and no others:
+**Outgoing.** Three kinds of request, and no others:
 
 - **The GitHub API**, for pipeline status keys only: the workflow runs of the
   repository a key names, with the token stored for it
@@ -32,6 +32,15 @@ Nothing listens on any other interface, so no other machine can reach it.
   cannot send the token anywhere else (`internal/platform/credentials.go`,
   `CredentialHost`). Redirects to another domain drop the token (Go's
   `net/http`).
+- **Mural's token endpoint**, for signing in to Mural only:
+  `https://app.mural.co/api/public/v1/authorization/oauth2/token`, sent the
+  code Mural returns, or the stored refresh token, with the client ID and
+  secret of the person's own Mural app (`internal/muralapi/client.go`). Each
+  of the three is bound to `app.mural.co` in the credential store, and the
+  client refuses to send one bound anywhere else, so a configuration naming
+  one as a GitHub key's credential cannot send it to GitHub, nor the GitHub
+  client send it anywhere but where it is bound. Only an OAuth error code
+  from an answer is ever repeated, never the rest, which may echo a token.
 - **Spotify's image server**, for the album key only: the current track's art,
   from `https://i.scdn.co/image/` and nowhere else, once per track, at most
   2 MB within 5 seconds (`internal/platform/systemadapter/spotify.go`,
@@ -113,7 +122,9 @@ they hold anything private:
 
 Tokens live only in the macOS Keychain or Windows Credential Manager, under the
 service name `the-front-buttons`, each with the host it may be sent to beside
-it. Configuration names a credential and never holds one. The editor's
+it. Mural's sign in keeps three there: `mural-client-id`, `mural-client-secret`
+and `mural-refresh-token`, bound to `app.mural.co`; its access token, which
+lasts fifteen minutes, is held in memory only. Configuration names a credential and never holds one. The editor's
 credentials page is write only: it shows each name, whether it is stored and its
 host, never the value. A test runs the whole composition against a GitHub that
 refuses the token and fails if the token reaches the log.
@@ -162,6 +173,16 @@ login link, valid once within two minutes; `the-front-buttons -open-editor`
 reads the address and token from the state folder, asks the running daemon for
 such a link with the token as a header, and opens it, so the token never appears
 in a command line another account could see (`internal/editor/session.go`).
+
+One page needs no session: `/mural/callback`, where Mural returns after the
+person allows their app, as that return comes from Mural's site and so carries
+no SameSite Strict cookie. It acts only on a state the editor minted when the
+person, with a session, chose Connect to Mural: 32 random bytes, taken once,
+within ten minutes. Only then is Mural's code traded. The page it shows holds
+no editor token and no secret, and repeats only an OAuth error code. Connect to
+Mural is a link rather than a form, as the editor's content security policy
+lets forms go only to the editor itself, redirects included
+(`internal/editor/muralsignin.go`).
 
 ## What it does not protect against
 

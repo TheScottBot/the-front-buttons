@@ -5023,6 +5023,57 @@ any host and a bare host failed a test. On this MacBook the writer put text
 with a tick on the clipboard, read back intact, and the clipboard was then put
 back as it was.
 
+### Mural: signing in
+
+The timer keys need Mural's API, which signs in with OAuth's authorisation
+code grant. Mural's developer documentation, read first, gave the
+authorisation and token addresses, the client ID and secret sent in the token
+request's form, a fifteen minute access token, and a refresh token reusable
+as often as needed, perhaps replaced on refresh; it says nothing on loopback
+redirect addresses beyond allowing http while an app is built and tested, and
+no admin approval. The sign in was built ahead of the timer keys, so it can be
+tried against a real Mural app first.
+
+A core package, `internal/murals`, names the three credentials, the one host
+they may go to and the ways using Mural fails. The adapter,
+`internal/muralapi`, builds the authorisation address with the one scope the
+timer needs, `murals:write`; trades the code, storing the refresh token bound
+to app.mural.co and holding the access token in memory; and refreshes the
+access token a minute before it runs out, keeping a new refresh token when
+Mural sends one. It refuses to send a credential bound to any other host,
+bounds answers to 64 KB, and repeats only an OAuth error code from a refusal,
+as the rest may echo a token. It is an adapter like the GitHub client, built
+only in the composition root, which the import rules now say.
+
+The editor's credentials page has a Mural section: the state, Not set up, Set
+up, not connected, or Connected; the redirect URL to register, the editor's
+own callback; and a form storing the client ID and secret, bound to Mural,
+never shown again. Connect to Mural is a link, as the content security policy
+lets forms go only to the editor, redirects included: it mints a state, 32
+random bytes kept beside the login codes, and goes to Mural. Mural's return
+carries no session cookie, which is SameSite Strict, so the callback is the
+one page the guard lets through without a session; it takes the state once,
+within ten minutes, before trading the code, and shows a page with no token,
+saying it is connected or why not, repeating only an OAuth error code.
+
+Tests first, failing to build before the change: the client's authorisation
+address and scope, and none before set up; the code traded with the ID and
+secret in the form, the refresh token stored and bound, the access token
+reused; a refresh with the stored token, a new one kept, the old kept when
+none is sent, and refreshing only near the end; not connected without a
+refresh token or with one refused, a refused code by its reason, and no
+secret in any error; nothing sent for a secret bound elsewhere; an answer
+without a refresh token refused. The editor's section before and after set
+up, a blank secret refused, connecting and the callback taken once without a
+session with no token on its page, a made up state refused, a decline said,
+every other page still needing a session, the connected state, and states
+used once and running out. Planting each of the callback taking any state,
+reusable states, states never running out, no page needing a session, set up
+not bound to Mural, a blank set up taken, never saying connected, secrets sent
+whatever their binding, a new refresh token not kept, the access token never
+refreshed, the answer repeated in errors, a sign in without a refresh token
+kept and a wider scope failed a test.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

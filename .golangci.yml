@@ -79,6 +79,7 @@ linters:
             - "!**/internal/deck/hidtransport/**"
             - "!**/internal/platform/systemadapter/**"
             - "!**/internal/githubactions/**"
+            - "!**/internal/muralapi/**"
             - "!**/internal/editor/**"
           deny:
             - pkg: github.com/TheScottBot/the-front-buttons/internal/deck/hidtransport
@@ -87,6 +88,8 @@ linters:
               desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the ports in internal/platform
             - pkg: github.com/TheScottBot/the-front-buttons/internal/githubactions
               desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the PipelineProvider port
+            - pkg: github.com/TheScottBot/the-front-buttons/internal/muralapi
+              desc: an adapter; only cmd/the-front-buttons may import it, everything else uses the editor's MuralConnector port
             - pkg: github.com/TheScottBot/the-front-buttons/internal/editor
               desc: the editor drives the core; only cmd/the-front-buttons may import it
 

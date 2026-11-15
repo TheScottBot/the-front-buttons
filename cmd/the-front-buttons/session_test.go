@@ -104,6 +104,7 @@ func TestOpenEditor_AsksTheDaemonForALoginLink(t *testing.T) {
 		Address: address, Token: token, Store: nil, Registry: nil, Presets: presets.Table{}, Grid: layout.Grid{},
 		Renderer: nil, Icons: nil, IconFiles: nil, AppIcons: nil, Apps: nil, Credentials: nil, Platform: "",
 		Sessions: nil, Counters: diagnostics.NewCounters(), Logger: slog.New(slog.DiscardHandler), Mirror: nil,
+		Mural: nil,
 	}))
 
 	link, linkError := requestLoginLink(t.Context(), http.DefaultClient, address, token)

@@ -104,7 +104,7 @@ func savedMessages() map[string]string {
 		"key": savedMessage, removedQuery: removedMessage, "credential": credentialMessage,
 		copiedQuery: copiedMessage, clocksQuery: clocksMessage, movedQuery: movedMessage,
 		reorderedQuery: reorderedMessage, colouredQuery: colouredMessage, undoneQuery: undoneMessage,
-		redoneQuery: redoneMessage,
+		redoneQuery: redoneMessage, muralQuery: muralMessage,
 	}
 }
 
@@ -1138,6 +1138,8 @@ type credentialsView struct {
 
 	Credentials []credentialRow
 	Error       string
+	// Mural is the Mural section: its state and the address to register.
+	Mural muralView
 }
 
 func (pages *pageHandlers) showCredentials(writer http.ResponseWriter, request *http.Request) {
@@ -1151,7 +1153,10 @@ func (pages *pageHandlers) renderCredentials(
 	message string,
 ) {
 	configuration, problems := pages.configuration()
-	view := credentialsView{baseView: pages.base("Credentials", request, problems), Credentials: nil, Error: message}
+	view := credentialsView{
+		baseView: pages.base("Credentials", request, problems), Credentials: nil, Error: message,
+		Mural: pages.muralView(),
+	}
 
 	for _, credentialName := range pages.credentialNames(configuration) {
 		state := "Missing"

@@ -1,0 +1,6 @@
+{{template "head" .}}
+<h1>Mural</h1>
+{{if .Connected}}<p role="status">Connected to Mural. The timer keys can now use it.</p>
+{{else}}<p class="error" role="alert">Mural did not connect: {{.Reason}}</p>
+{{end}}<p><a href="/credentials">Back to the credentials page</a></p>
+{{template "foot" .}}

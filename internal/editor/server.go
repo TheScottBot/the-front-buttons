@@ -100,6 +100,9 @@ type Options struct {
 	// Mirror is what the editor may see of the deck as it runs, for Render
 	// like deck; nil shows only the editor's own previews.
 	Mirror *deckmirror.Mirror
+	// Mural signs in to Mural for the timer keys; nil leaves the credentials
+	// page's Mural section unable to connect.
+	Mural MuralConnector
 }
 
 // Listen opens the editor's loopback listener on the preferred port, or, if
@@ -173,6 +176,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("POST /group", pages.saveGroup)
 	mux.HandleFunc("GET /preview.png", pages.preview)
 	routeDashboard(mux, pages)
+	routeMural(mux, pages)
 	mux.HandleFunc("GET /events", pages.events)
 	mux.HandleFunc("GET /icons", pages.showIcons)
 	mux.HandleFunc("GET /icon.png", pages.iconPreview)
@@ -182,6 +186,14 @@ func NewHandler(options Options) http.Handler {
 	mux.Handle("GET /static/", http.FileServerFS(embeddedFiles))
 
 	return guard{options: options, next: mux}
+}
+
+// routeMural adds the Mural sign in's routes: setting it up, connecting, and
+// Mural's return.
+func routeMural(mux *http.ServeMux, pages *pageHandlers) {
+	mux.HandleFunc("POST /credentials/mural", pages.setUpMural)
+	mux.HandleFunc("GET /mural/connect", pages.connectMural)
+	mux.HandleFunc("GET "+muralCallbackPath, pages.muralCallback)
 }
 
 // routeDashboard adds the Dashboard section's routes: its page, its keys'
@@ -271,6 +283,10 @@ func (requestGuard guard) answeredForSession(writer http.ResponseWriter, request
 
 		return true
 	case request.URL.Path == loginPath || strings.HasPrefix(request.URL.Path, staticPrefix):
+		return false
+	// Mural's return carries no session cookie, which is SameSite Strict; its
+	// one time state shows the editor started the sign in (muralsignin.go).
+	case request.URL.Path == muralCallbackPath && request.Method == http.MethodGet:
 		return false
 	case !sessions.hasSession(request):
 		requestGuard.options.Counters.Increment("editor.rejected." + refusedSession)

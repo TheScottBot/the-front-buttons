@@ -460,6 +460,26 @@ button:hover {
   box-shadow: 5px 5px 0 var(--accent-2);
 }
 
+/* A link that does what a button would, such as Connect to Mural, which
+   leaves the editor for Mural's own page, drawn as a button. */
+a.button {
+  display: inline-block;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  padding: 0.55rem 1.1rem;
+  color: var(--on-block);
+  text-decoration: none;
+  background: var(--block);
+  border: 3px solid var(--rule);
+  box-shadow: 5px 5px 0 var(--accent);
+}
+
+a.button:hover {
+  box-shadow: 5px 5px 0 var(--accent-2);
+}
+
 button:active {
   transform: translate(3px, 3px);
   box-shadow: 2px 2px 0 var(--accent-2);

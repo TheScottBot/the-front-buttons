@@ -194,6 +194,27 @@ already need.
           label: Retro
 ```
 
+### Signing in to Mural
+
+The Mural timer keys use Mural's API, through an app of your own, signed in
+once from the editor:
+
+1. In Mural, choose your avatar, then **Create and manage apps**, and
+   **New app**. Name it as you like. Give it the redirect URL the editor's
+   credentials page shows, `http://127.0.0.1:48080/mural/callback`, and tick
+   the scope `murals:write`. Mural shows the client secret once, so keep it to
+   hand.
+2. On the editor's credentials page, under **Mural**, enter the client ID and
+   client secret and store them. They go to the Keychain, or Credential
+   Manager on Windows, are sent only to app.mural.co, and are never shown again.
+3. Choose **Connect to Mural**, and allow the app on Mural's page. Mural
+   returns to the editor, which says it is connected.
+
+The sign in lasts until Mural ends it; connect again if a key says it is not
+connected. If the editor had to use another port than 48080, the redirect URL
+the credentials page shows changes with it, and the app's redirect URL must
+match.
+
 ## Icons
 
 `icon` names one of the 5,000 or so bundled Tabler icons; the editor's **Icons**

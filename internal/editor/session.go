@@ -25,8 +25,12 @@ const (
 	staticPrefix      = "/static/"
 	loginCodeBytes    = 16
 	loginCodeLifetime = 2 * time.Minute
-	bearerPrefix      = "Bearer "
-	refusedSession    = "session"
+	// stateLifetime is how long a sign in elsewhere, such as Mural's, may
+	// take before the editor no longer expects its return.
+	stateLifetime  = 10 * time.Minute
+	stateBytes     = 32
+	bearerPrefix   = "Bearer "
+	refusedSession = "session"
 )
 
 // noSessionMessage is what a page without a session says.
@@ -41,6 +45,9 @@ type Sessions struct {
 
 	mutex sync.Mutex
 	codes map[string]time.Time
+	// states are the sign ins elsewhere the editor started and expects back,
+	// each with when it stops expecting it.
+	states map[string]time.Time
 }
 
 // NewSessions returns the sessions for the editor's token.
@@ -50,44 +57,76 @@ func NewSessions(token string) *Sessions {
 
 // NewSessionsAt returns sessions reading the time from now.
 func NewSessionsAt(token string, now func() time.Time) *Sessions {
-	return &Sessions{token: token, now: now, mutex: sync.Mutex{}, codes: map[string]time.Time{}}
+	return &Sessions{
+		token: token, now: now, mutex: sync.Mutex{}, codes: map[string]time.Time{}, states: map[string]time.Time{},
+	}
 }
 
 // LoginURL mints a one time link that gives a session on the editor at the
 // address.
 func (sessions *Sessions) LoginURL(address string) (string, error) {
-	codeBytes := make([]byte, loginCodeBytes)
-
-	_, readError := rand.Read(codeBytes)
-	if readError != nil {
-		return "", fmt.Errorf("minting a login code: %w", readError)
+	code, mintError := sessions.mint(sessions.codes, loginCodeBytes, loginCodeLifetime)
+	if mintError != nil {
+		return "", mintError
 	}
-
-	code := hex.EncodeToString(codeBytes)
-
-	sessions.mutex.Lock()
-	defer sessions.mutex.Unlock()
-
-	now := sessions.now()
-	for known, expires := range sessions.codes {
-		if now.After(expires) {
-			delete(sessions.codes, known)
-		}
-	}
-
-	sessions.codes[code] = now.Add(loginCodeLifetime)
 
 	return "http://" + address + loginPath + "?code=" + code, nil
+}
+
+// NewState mints the state a sign in elsewhere carries there and back, such
+// as Mural's, usable once within stateLifetime. Mural's return carries no
+// session cookie, as the cookie is SameSite Strict, so the state alone shows
+// the editor started it.
+func (sessions *Sessions) NewState() (string, error) {
+	return sessions.mint(sessions.states, stateBytes, stateLifetime)
+}
+
+// TakeState reports whether a state is one minted and not yet used or
+// expired, and uses it.
+func (sessions *Sessions) TakeState(state string) bool {
+	return sessions.take(sessions.states, state)
 }
 
 // Redeem reports whether a code is one minted and not yet used or expired,
 // and uses it.
 func (sessions *Sessions) Redeem(code string) bool {
+	return sessions.take(sessions.codes, code)
+}
+
+// mint makes a random one time value, kept until its lifetime runs out, and
+// drops any kept past theirs.
+func (sessions *Sessions) mint(kept map[string]time.Time, length int, lifetime time.Duration) (string, error) {
+	valueBytes := make([]byte, length)
+
+	_, readError := rand.Read(valueBytes)
+	if readError != nil {
+		return "", fmt.Errorf("minting a one time value: %w", readError)
+	}
+
+	value := hex.EncodeToString(valueBytes)
+
 	sessions.mutex.Lock()
 	defer sessions.mutex.Unlock()
 
-	expires, known := sessions.codes[code]
-	delete(sessions.codes, code)
+	now := sessions.now()
+	for known, expires := range kept {
+		if now.After(expires) {
+			delete(kept, known)
+		}
+	}
+
+	kept[value] = now.Add(lifetime)
+
+	return value, nil
+}
+
+// take reports whether a one time value is kept and not expired, and uses it.
+func (sessions *Sessions) take(kept map[string]time.Time, value string) bool {
+	sessions.mutex.Lock()
+	defer sessions.mutex.Unlock()
+
+	expires, known := kept[value]
+	delete(kept, value)
 
 	return known && !sessions.now().After(expires)
 }

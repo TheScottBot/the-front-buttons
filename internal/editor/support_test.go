@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
@@ -66,6 +67,7 @@ type editorHarness struct {
 	counters    *diagnostics.Counters
 	sessions    *editor.Sessions
 	mirror      *deckmirror.Mirror
+	mural       *muralConnectorFake
 }
 
 // noIcons is an icon set with no icons; the editor's tests are not about icons.
@@ -165,6 +167,7 @@ func newHarnessFor(
 		counters:    diagnostics.NewCounters(),
 		sessions:    editor.NewSessions(testToken),
 		mirror:      deckmirror.New(harnessMirrorSubscribers),
+		mural:       &muralConnectorFake{mutex: sync.Mutex{}, codes: nil, redirects: nil, failure: nil},
 	}
 
 	harness.handler = editor.NewHandler(harnessOptions(harness, store, registry, presetTable, grid, renderer,
@@ -204,6 +207,7 @@ func harnessOptions(
 		Counters:    harness.counters,
 		Logger:      slog.New(slog.DiscardHandler),
 		Mirror:      harness.mirror,
+		Mural:       harness.mural,
 	}
 }
 
