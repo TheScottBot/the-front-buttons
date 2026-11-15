@@ -6,47 +6,53 @@ import (
 	"testing"
 )
 
-// TestEditor_PageFormsSitInAPageDrawer: renaming, moving, copying and
-// deleting the page, and adding one, sit together in the Page drawer, whose
-// tab the script shows; without the script they stay on the page, open.
-func TestEditor_PageFormsSitInAPageDrawer(t *testing.T) {
+// TestEditor_PageFormsSitInPageMaintenance: renaming, moving, copying and
+// deleting the page, and adding one, sit together in a Page maintenance
+// drawer under the grid, a plain disclosure that opens in place without the
+// script, closed while there is a page and open while there are none.
+func TestEditor_PageFormsSitInPageMaintenance(t *testing.T) {
 	t.Parallel()
 
-	body := newCopyKeysHarness(t).get(t, "/page?page=0").Body.String()
+	harness := newCopyKeysHarness(t)
+	body := harness.get(t, "/page?page=0").Body.String()
 
-	drawer := regexp.MustCompile(`(?s)<aside id="page-drawer".*?</aside>`).FindString(body)
+	start := strings.Index(body, `<details class="maintenance" id="page-maintenance">`)
+	if start < 0 {
+		t.Fatal("want a page maintenance drawer, closed")
+	}
+
+	drawer := body[start:strings.Index(body, `<p class="shortcuts-help"`)]
 	for _, want := range []string{
-		`<button type="button" class="drawer-toggle page-drawer-toggle" aria-expanded="true" ` +
-			`aria-controls="page-tools" hidden>Page</button>`,
-		`<div id="page-tools" class="page-tools">`,
+		`<summary>Page maintenance</summary>`,
+		`<div class="maintenance-body">`,
 		`action="/page/rename"`, `action="/page/reorder"`, `action="/page/copy/new"`, `action="/page/delete"`,
 		`action="/page/add"`,
 	} {
 		if !strings.Contains(drawer, want) {
-			t.Errorf("page drawer: want %s", want)
+			t.Errorf("page maintenance: want %s", want)
 		}
 	}
 
-	// With no pages, adding one is still on offer.
+	if strings.Index(body, `<table class="grid">`) > strings.Index(body, `id="page-maintenance"`) {
+		t.Error("want page maintenance under the grid")
+	}
+
 	empty := newHarness(t, nil)
 	empty.replaceFile(t, "schema_version: 1\npages: []\n")
 
-	if !regexp.MustCompile(`(?s)<aside id="page-drawer".*There are no pages yet.*action="/page/add"`).
-		MatchString(empty.get(t, firstPagePath).Body.String()) {
-		t.Error("want the drawer to offer a new page when there are none")
+	if !regexp.MustCompile(`(?s)<details class="maintenance" id="page-maintenance" open>.*There are no pages yet.*` +
+		`action="/page/add"`).MatchString(empty.get(t, firstPagePath).Body.String()) {
+		t.Error("want page maintenance open, offering a new page, when there are none")
 	}
 
-	harness := newCopyKeysHarness(t)
-
-	script := harness.get(t, "/static/editor.js").Body.String()
-	for _, want := range []string{"page-drawer", "page-tools", "drawer-ready"} {
-		if !strings.Contains(script, want) {
-			t.Errorf("script: want %s", want)
+	stylesheet := harness.get(t, "/static/editor.css").Body.String()
+	for _, want := range []string{
+		".maintenance[open] > summary::before {",
+		".maintenance-body {\n  padding: 0.25rem 1rem 1rem;\n  background: var(--group);",
+	} {
+		if !strings.Contains(stylesheet, want) {
+			t.Errorf("stylesheet: want %s", want)
 		}
-	}
-
-	if !strings.Contains(harness.get(t, "/static/editor.css").Body.String(), ".page-drawer.drawer-ready {") {
-		t.Error("stylesheet: want the page drawer fixed to the right edge once the script has it")
 	}
 }
 

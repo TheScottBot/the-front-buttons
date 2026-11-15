@@ -1385,41 +1385,6 @@
     });
   }
 
-  // internal/editor/web/pagedrawer.ts
-  var readyClass = "drawer-ready";
-  function enablePageDrawer() {
-    const drawer = document.getElementById("page-drawer");
-    const toggle = drawer?.querySelector(".page-drawer-toggle") ?? null;
-    const tools = document.getElementById("page-tools");
-    if (drawer === null || toggle === null || tools === null) {
-      return;
-    }
-    const setOpen2 = (open) => {
-      toggle.setAttribute("aria-expanded", String(open));
-      tools.hidden = !open;
-    };
-    drawer.classList.add(readyClass);
-    toggle.hidden = false;
-    setOpen2(false);
-    toggle.addEventListener("click", () => {
-      setOpen2(tools.hidden);
-      if (!tools.hidden) {
-        tools.querySelector('input:not([type="hidden"]), select, button')?.focus();
-      }
-    });
-    document.addEventListener("keydown", (event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
-      const typingElsewhere = target !== null && !tools.contains(target) && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
-      if (event.key !== "Escape" || event.defaultPrevented || tools.hidden || typingElsewhere || document.querySelector("dialog[open]") !== null) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      setOpen2(false);
-      toggle.focus();
-    }, true);
-  }
-
   // internal/editor/web/pagedrag.ts
   var pageType = "application/x-front-buttons-page";
   var pageAttribute2 = "data-page";
@@ -1808,7 +1773,6 @@
     enableGridKeys(grid);
     enableClipboard();
     enableHistory();
-    enablePageDrawer();
     enableShortcuts();
     enableKeyDialog(grid);
     enableDrawer(grid);

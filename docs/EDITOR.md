@@ -39,13 +39,13 @@ not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
 
-## The page drawer and the shortcuts
+## Page maintenance and the shortcuts
 
-The **Page** tab on the right opens the drawer of the page's own forms:
-**Rename this page**, **Move this page to**, **Copy this page's keys**,
-**Delete this page and its keys**, **Add another screen** on an app screen,
-and **New page name** to add one. Escape closes it. Without the script these
-forms sit on the page, open.
+**Page maintenance**, under the grid, opens in place to the page's own forms,
+grouped on a darker ground: **Rename this page**, **Move this page to**,
+**Copy this page's keys**, **Delete this page and its keys**, **Add another
+screen** on an app screen, and **New page name** to add one. It is closed while
+there is a page, and open while there are none.
 
 Press ? for a sheet of every shortcut, or use the button at the foot of the
 page; Escape closes it.
@@ -114,7 +114,7 @@ the key focused.
 Double-click the name of the page you are on in the page list to rename it in
 place: Enter saves, and Escape or clicking away leaves it as it was. A single
 click on that name does nothing, as the page is already open. **Rename this
-page**, in the Page drawer, does the same from the keyboard.
+page**, in Page maintenance, does the same from the keyboard.
 
 ## Reordering pages
 
@@ -124,7 +124,7 @@ place. Anywhere past the last name counts as the last place, and letting go
 outside the list puts the names back. Regular pages and app screens are
 listed apart, and each moves only within its own list: the regular pages' order
 is the order the deck pages through, and an application's screens are paged
-between in theirs. **Move this page to**, in the Page drawer, does the same from
+between in theirs. **Move this page to**, in Page maintenance, does the same from
 the keyboard. The deck stays on the page it was showing, wherever that went.
 
 A page marker's **Page number** box, ticked for a new marker, shows the page's

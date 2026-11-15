@@ -78,10 +78,9 @@
 </details>
 {{end}}</div>
 </aside>
-{{end}}<aside id="page-drawer" class="page-drawer" aria-labelledby="page-drawer-title">
-<button type="button" class="drawer-toggle page-drawer-toggle" aria-expanded="true" aria-controls="page-tools" hidden>Page</button>
-<div id="page-tools" class="page-tools">
-<h2 id="page-drawer-title">{{if .HasPage}}This page{{else}}Pages{{end}}</h2>
+{{end}}<details class="maintenance" id="page-maintenance"{{if not .HasPage}} open{{end}}>
+<summary>Page maintenance</summary>
+<div class="maintenance-body">
 {{if .HasPage}}{{if .ScreenTitle}}<form method="post" action="/page/screen/add" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
@@ -139,7 +138,7 @@
 <button type="submit">Add page</button>
 </form>
 </div>
-</aside>
+</details>
 {{if .HasPage}}<p class="shortcuts-help" hidden>Press ? for every shortcut, or <button type="button" class="shortcuts-open">show them</button>.</p>
 <dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title">
 <div class="dialog-head"><h2 id="shortcuts-title">Shortcuts</h2><button type="button" class="dialog-close">Close</button></div>
@@ -160,7 +159,7 @@
 <tr><th scope="row">Reorder pages</th><td>Drag a page's name along the list</td></tr>
 <tr><th scope="row">Rename the page</th><td>Double-click its name in the list</td></tr>
 <tr><th scope="row">Add a key</th><td>Drag a brick from the Bricks drawer onto an empty tile</td></tr>
-<tr><th scope="row">Rename, move, copy or delete the page, or add one</th><td>Open the Page drawer</td></tr>
+<tr><th scope="row">Rename, move, copy or delete the page, or add one</th><td>Open Page maintenance, under the grid</td></tr>
 <tr><th scope="row">Close a drawer or this sheet</th><td>Escape</td></tr>
 <tr><th scope="row">See these</th><td>?</td></tr>
 </tbody>

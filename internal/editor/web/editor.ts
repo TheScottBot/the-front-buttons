@@ -12,7 +12,6 @@ import { enableGridKeys } from "./gridkeys";
 import { enableGroupOrder } from "./group";
 import { enableHistory } from "./history";
 import { enablePlatformSwitch } from "./platform";
-import { enablePageDrawer } from "./pagedrawer";
 import { enablePageReorder } from "./pagedrag";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
@@ -42,7 +41,6 @@ if (grid !== null) {
   enableGridKeys(grid);
   enableClipboard();
   enableHistory();
-  enablePageDrawer();
   enableShortcuts();
   enableKeyDialog(grid);
   enableDrawer(grid);

@@ -4430,6 +4430,18 @@ now read the sheet. Driven in a browser against the harness: the Page tab sat
 on the right edge, opened the drawer with focus in the rename field and every
 form in it, and closed on Escape back to the tab; ? opened the sheet.
 
+The author had meant a drawer in the page around those forms, not a tab on the
+window's edge: a row with a chevron that opens in place, its contents grouped
+on a ground a little darker than the page. The forms now sit in a disclosure,
+Page maintenance, under the grid, its chevron turning down as it opens and its
+body on a new grouped colour in each palette, so it opens and closes without
+the script and without loading the page; the tab and its script are gone. It
+is closed while there is a page and open while there are none. The author also
+found the g of Done selecting left out of its underline, which browsers skip
+around such letters; links now underline unbroken. Driven in a browser against
+the harness: Page maintenance sat as one row under the grid, opened in place
+with the page unloaded, and showed every form on the darker ground.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

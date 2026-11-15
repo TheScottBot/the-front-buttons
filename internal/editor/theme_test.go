@@ -315,3 +315,14 @@ func TestEditor_EveryControlHasTheFocusOutline(t *testing.T) {
 		t.Error("stylesheet: want one focus rule for links, buttons, fields and the main part")
 	}
 }
+
+// TestEditor_LinkUnderlinesRunUnbroken: a link's underline runs under
+// letters that drop below the line, rather than breaking around them.
+func TestEditor_LinkUnderlinesRunUnbroken(t *testing.T) {
+	t.Parallel()
+
+	stylesheet := newHarness(t, nil).get(t, "/static/editor.css").Body.String()
+	if !regexp.MustCompile(`(?s)\na \{[^}]*text-decoration-skip-ink: none;`).MatchString(stylesheet) {
+		t.Error("stylesheet: want links underlined without breaks")
+	}
+}

@@ -237,8 +237,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
 - The editor's page forms, renaming, moving, copying and deleting the page and
-  adding one, sit in a Page drawer on the right, mirroring the Bricks drawer;
-  without the script they stay on the page.
+  adding one, sit in a Page maintenance drawer under the grid, which opens in
+  place to show them grouped on a darker ground.
 - Pressing ? in the editor opens a sheet of every shortcut, which replaces the
   long hints at the foot of the pages screen.
 - The editor's select mode colours the ticked keys' background, or clears it,
@@ -283,6 +283,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- Links in the editor are underlined unbroken, under letters that drop below
+  the line too, such as the g of Done selecting.
 - Shift and a click on a paging tile or an empty tile in the editor's grid
   opened it in a new window, as browsers do for links; it now acts as a plain
   click, while Shift and a click on a key still opens select mode.
