@@ -1035,6 +1035,20 @@
     });
   }
 
+  // internal/editor/web/drawers.ts
+  function closeOtherDrawers(opening) {
+    for (const toggle of document.querySelectorAll('.drawer-toggle[aria-expanded="true"]')) {
+      if (toggle === opening) {
+        continue;
+      }
+      toggle.setAttribute("aria-expanded", "false");
+      const panel = document.getElementById(toggle.getAttribute("aria-controls") ?? "");
+      if (panel !== null) {
+        panel.hidden = true;
+      }
+    }
+  }
+
   // internal/editor/web/drawer.ts
   var brickType = "application/x-front-buttons-brick";
   var placingClass = "placing";
@@ -1126,6 +1140,9 @@
     }, true);
   }
   function setOpen(toggle, panel, open) {
+    if (open) {
+      closeOtherDrawers(toggle);
+    }
     toggle.setAttribute("aria-expanded", String(open));
     panel.hidden = !open;
   }
@@ -1381,6 +1398,9 @@
       return;
     }
     const setOpen2 = (open) => {
+      if (open) {
+        closeOtherDrawers(toggle);
+      }
       toggle.setAttribute("aria-expanded", String(open));
       panel.hidden = !open;
     };

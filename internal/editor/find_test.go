@@ -129,3 +129,21 @@ pages:
 		t.Errorf("want the marker named once, got %s", results)
 	}
 }
+
+// TestEditor_SideDrawersOpenOneAtATime: opening Bricks or In use closes the
+// other, and both mark focus with the press's dotted line.
+func TestEditor_SideDrawersOpenOneAtATime(t *testing.T) {
+	t.Parallel()
+
+	harness := newCopyKeysHarness(t)
+
+	if !strings.Contains(harness.get(t, "/static/editor.js").Body.String(), "closeOtherDrawers") {
+		t.Error("script: want opening a drawer to close the other")
+	}
+
+	if !regexp.MustCompile(`\.drawer-toggle:focus-visible,\s*\.drawer-panel input\[type="search"\]:focus-visible \{\s*` +
+		`outline: 3px dotted var\(--accent\);\s*outline-offset: 3px;\s*box-shadow: none;`).
+		MatchString(harness.get(t, "/static/editor.css").Body.String()) {
+		t.Error("stylesheet: want the drawers' focus dotted, as a pressed key is marked")
+	}
+}

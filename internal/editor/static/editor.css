@@ -1167,6 +1167,16 @@ label[for$="-picker"] {
   display: none;
 }
 
+/* The drawers' tabs and search boxes, focused, are marked as a pressed key
+   is on the grid, a dotted line, not the halo other controls have, which
+   swamps the narrow tabs and the panels. */
+.drawer-toggle:focus-visible,
+.drawer-panel input[type="search"]:focus-visible {
+  outline: 3px dotted var(--accent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
 /* The In use drawer: once the script has it, a second tab fixed to the
    window's left edge, under Bricks, opening into a panel to find keys in
    use. Without the script its search sits on the page. */

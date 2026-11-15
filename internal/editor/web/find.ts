@@ -7,6 +7,8 @@
 // the box, or empty, closes the drawer; and / anywhere but a field opens it
 // with the box ready.
 
+import { closeOtherDrawers } from "./drawers";
+
 const readyClass = "drawer-ready";
 const waitMilliseconds = 200;
 
@@ -50,6 +52,10 @@ export function enableFind(): void {
   }
 
   const setOpen = (open: boolean): void => {
+    if (open) {
+      closeOtherDrawers(toggle);
+    }
+
     toggle.setAttribute("aria-expanded", String(open));
     panel.hidden = !open;
   };

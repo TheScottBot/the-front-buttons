@@ -245,7 +245,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - In use, a drawer on the left of the editor under Bricks, finds a key in use:
   it lists every key on any page or app screen matching the words typed, as
   you type, and opens a result's page with the key outlined; / opens it from
-  anywhere but a field.
+  anywhere but a field. Opening it or Bricks closes the other, and both mark
+  focus with the dotted line a pressed key has rather than the halo.
 - The editor's select mode sits in a Select keys drawer under the grid, its
   Edit mode box switching the grid in and out of select mode in place, as do
   Shift and a click, Escape and select mode's own buttons, without loading the

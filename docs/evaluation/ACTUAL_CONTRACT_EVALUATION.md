@@ -4522,6 +4522,13 @@ page. Driven in a browser against the harness: the tab sat under Bricks, / opene
 panel with the box focused and typing listed the matches, and Escape cleared
 the box, then closed the drawer back to its tab.
 
+The author then found the focus on the two drawers' tabs and boxes too heavy,
+and both drawers open at once untidy. The tabs and the drawers' search boxes,
+focused, now show the dotted line a pressed key has on the grid, and opening
+either drawer, by its tab or by /, closes the other. Driven in a browser
+against the harness: each drawer closed the other every time, / among them,
+and the focused tab showed the dotted line without the halo.
+
 ### The deck's page across restarts
 
 The author found every restart and install put the deck back on the first

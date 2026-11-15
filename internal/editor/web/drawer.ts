@@ -9,6 +9,7 @@
 // this way. The grid's empty tiles stay the way to add a key from the keyboard.
 
 import { openKeyDialog } from "./dialog";
+import { closeOtherDrawers } from "./drawers";
 
 const brickType = "application/x-front-buttons-brick";
 const placingClass = "placing";
@@ -156,6 +157,10 @@ function enableEscapeToClose(toggle: HTMLButtonElement, panel: HTMLElement, clea
 }
 
 function setOpen(toggle: HTMLButtonElement, panel: HTMLElement, open: boolean): void {
+  if (open) {
+    closeOtherDrawers(toggle);
+  }
+
   toggle.setAttribute("aria-expanded", String(open));
   panel.hidden = !open;
 }

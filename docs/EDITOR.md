@@ -58,8 +58,9 @@ its kind is known by, or page holds every word typed, case aside, as its page
 and tile, and the list follows the box as you type. Choose one, or press Enter
 for the first, and its page opens with the key outlined and brought into view,
 the drawer still open. Press / anywhere but a field to open it with the box
-ready; Escape clears the box, then closes the drawer. Without the script the
-search sits on the page, sent with its Find button.
+ready; Escape clears the box, then closes the drawer. Opening In use closes
+Bricks, and opening Bricks closes In use. Without the script the search sits
+on the page, sent with its Find button.
 
 ## Page maintenance and the shortcuts
 
