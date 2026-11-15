@@ -83,6 +83,21 @@ func (launcher ApplicationLauncherTestDouble) LaunchApplication(_ context.Contex
 	return launcher.Recorder.launch(identifier)
 }
 
+// QuittedPrefix marks an application a quitter double was asked to quit, in
+// its recorder's list, so launches and quits read in the order they came.
+const QuittedPrefix = "quit "
+
+// ApplicationQuitterTestDouble is a fake ApplicationQuitter over a
+// LaunchRecorder, recording each quit as QuittedPrefix and the identifier.
+type ApplicationQuitterTestDouble struct {
+	Recorder *LaunchRecorder
+}
+
+// QuitApplication records the identifier, or fails when told to.
+func (quitter ApplicationQuitterTestDouble) QuitApplication(_ context.Context, identifier string) error {
+	return quitter.Recorder.launch(QuittedPrefix + identifier)
+}
+
 // BadgesTestDouble is a fake ApplicationBadges: the badges it is given, or the
 // failure, counting each read.
 type BadgesTestDouble struct {

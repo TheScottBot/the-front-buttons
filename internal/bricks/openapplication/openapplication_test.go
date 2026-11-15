@@ -2,7 +2,10 @@ package openapplication_test
 
 import (
 	"errors"
+	"slices"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/bricks/openapplication"
@@ -144,6 +147,7 @@ func TestParameters_OfferTheAppScreenWhenTicked(t *testing.T) {
 		parameters := &openapplication.Parameters{
 			Appearance:  unlabelled,
 			Application: "com.jetbrains.goland", UseAppIcon: false, AppScreen: ticked, ShowNotifications: false,
+			TriplePressToClose: false,
 		}
 
 		source, isSource := any(parameters).(brick.ApplicationScreenSource)
@@ -154,6 +158,161 @@ func TestParameters_OfferTheAppScreenWhenTicked(t *testing.T) {
 		application, wanted := source.ApplicationScreen()
 		if application != "com.jetbrains.goland" || wanted != wantWanted {
 			t.Errorf("ticked %v: want %v for GoLand, got %v for %q", ticked, wantWanted, wanted, application)
+		}
+	}
+}
+
+const signalID = "org.whispersystems.signal-desktop"
+
+// unlabelledAppearance is a key's appearance with nothing set.
+func unlabelledAppearance() brick.Appearance {
+	return brick.Appearance{Label: "", Icon: "", Background: "", IconFile: ""}
+}
+
+// constructClosing returns the brick for Signal with Triple press to close
+// ticked or not, launching and quitting through doubles over the recorder.
+//
+//nolint:ireturn // the brick is exercised through the interface the daemon uses
+func constructClosing(t *testing.T, recorder *testsupport.LaunchRecorder, ticked bool) brick.Pressable {
+	t.Helper()
+
+	parameters := &openapplication.Parameters{
+		Appearance:  unlabelledAppearance(),
+		Application: signalID, UseAppIcon: false, AppScreen: false, ShowNotifications: false,
+		TriplePressToClose: ticked,
+	}
+
+	constructed, constructError := kindOf(t).Construct(parameters, brick.Ports{
+		ApplicationLauncher: testsupport.ApplicationLauncherTestDouble{Recorder: recorder},
+		ApplicationQuitter:  testsupport.ApplicationQuitterTestDouble{Recorder: recorder},
+	})
+	if constructError != nil {
+		t.Fatalf("constructing: %v", constructError)
+	}
+
+	pressable, _ := constructed.(brick.Pressable)
+
+	return pressable
+}
+
+// pressAt presses the key once after each pause, failing on any press's error.
+func pressAt(t *testing.T, key brick.Pressable, pauses ...time.Duration) {
+	t.Helper()
+
+	for _, pause := range pauses {
+		time.Sleep(pause)
+
+		pressError := key.Press(t.Context())
+		if pressError != nil {
+			t.Fatalf("pressing: %v", pressError)
+		}
+	}
+}
+
+// TestOpenApplication_TriplePressToCloseQuitsTheApplication: with the box
+// ticked, the first press opens the application as ever, and the third
+// within moments of the last quits it; the second does nothing more.
+func TestOpenApplication_TriplePressToCloseQuitsTheApplication(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		recorder := testsupport.NewLaunchRecorder()
+		pressAt(t, constructClosing(t, recorder, true), 0, 200*time.Millisecond, 200*time.Millisecond)
+
+		want := []string{signalID, testsupport.QuittedPrefix + signalID}
+		if got := recorder.Launched(); !slices.Equal(got, want) {
+			t.Fatalf("want %v, got %v", want, got)
+		}
+	})
+}
+
+// TestOpenApplication_PressesJustAfterClosingDoNothing: a fourth press, or
+// more, straight after the quit is ignored rather than opening the
+// application again, until the key has been left alone a moment; then a
+// press opens it as ever.
+func TestOpenApplication_PressesJustAfterClosingDoNothing(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		recorder := testsupport.NewLaunchRecorder()
+		key := constructClosing(t, recorder, true)
+
+		pressAt(t, key, 0, 200*time.Millisecond, 200*time.Millisecond, // opens, then quits
+			300*time.Millisecond, time.Second, time.Second) // each within the quiet of the last
+
+		quitted := testsupport.QuittedPrefix + signalID
+
+		if got := recorder.Launched(); !slices.Equal(got, []string{signalID, quitted}) {
+			t.Fatalf("want only the open and the quit, got %v", got)
+		}
+
+		pressAt(t, key, 2*time.Second)
+
+		if got := recorder.Launched(); !slices.Equal(got, []string{signalID, quitted, signalID}) {
+			t.Fatalf("want a press after a pause to open it again, got %v", got)
+		}
+	})
+}
+
+// TestOpenApplication_SlowPressesOrAnUntickedBoxOnlyOpen: presses further
+// apart than a triple press, or quick ones with the box unticked, each open
+// the application and never quit it.
+func TestOpenApplication_SlowPressesOrAnUntickedBoxOnlyOpen(t *testing.T) {
+	t.Parallel()
+
+	for name, check := range map[string]struct {
+		ticked bool
+		pause  time.Duration
+	}{
+		"slow presses": {ticked: true, pause: time.Second},
+		"unticked":     {ticked: false, pause: 100 * time.Millisecond},
+	} {
+		synctest.Test(t, func(t *testing.T) {
+			recorder := testsupport.NewLaunchRecorder()
+			pressAt(t, constructClosing(t, recorder, check.ticked), 0, check.pause, check.pause, check.pause)
+
+			if got := recorder.Launched(); !slices.Equal(got, []string{signalID, signalID, signalID, signalID}) {
+				t.Errorf("%s: want four opens and no quit, got %v", name, got)
+			}
+		})
+	}
+}
+
+// TestOpenApplication_ShowsQuitFailed_WhenTheApplicationWillNotQuit: a quit
+// that fails shows on the key by its own reason.
+func TestOpenApplication_ShowsQuitFailed_WhenTheApplicationWillNotQuit(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		recorder := testsupport.NewLaunchRecorder()
+		key := constructClosing(t, recorder, true)
+		pressAt(t, key, 0, 100*time.Millisecond)
+		recorder.FailNext()
+
+		pressError := key.Press(t.Context())
+		if category := brick.ReasonCategoryOf(pressError); category != "quit_failed" {
+			t.Fatalf("want quit_failed, got %q (%v)", category, pressError)
+		}
+	})
+}
+
+// TestOpenApplication_RefusesToConstructWithoutAQuitter_WhenClosingIsTicked:
+// the box ticked needs the quitting port; unticked, the key does without it.
+func TestOpenApplication_RefusesToConstructWithoutAQuitter_WhenClosingIsTicked(t *testing.T) {
+	t.Parallel()
+
+	for ticked, wantMissing := range map[bool]bool{true: true, false: false} {
+		parameters := &openapplication.Parameters{
+			Appearance:  unlabelledAppearance(),
+			Application: signalID, UseAppIcon: false, AppScreen: false, ShowNotifications: false,
+			TriplePressToClose: ticked,
+		}
+
+		_, constructError := kindOf(t).Construct(parameters, brick.Ports{
+			ApplicationLauncher: testsupport.ApplicationLauncherTestDouble{Recorder: testsupport.NewLaunchRecorder()},
+		})
+		if errors.Is(constructError, brick.ErrPortMissing) != wantMissing {
+			t.Errorf("ticked %v: want missing %v, got %v", ticked, wantMissing, constructError)
 		}
 	}
 }

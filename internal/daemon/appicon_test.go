@@ -63,7 +63,8 @@ func appIconKey(column int, application string, background string) config.Key {
 		Kind:     openapplication.KindName,
 		Parameters: &openapplication.Parameters{
 			Appearance: openAppAppearance(background), Application: application, UseAppIcon: true, AppScreen: false,
-			ShowNotifications: false,
+			ShowNotifications:  false,
+			TriplePressToClose: false,
 		},
 		Preset: nil,
 	}

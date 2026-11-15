@@ -563,6 +563,7 @@ func daemonOptions(
 		Ports: brick.Ports{
 			URLOpener:           systemadapter.NewURLOpener(),
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
+			ApplicationQuitter:  systemadapter.NewApplicationQuitter(),
 			PipelineProvider:    pipelineProvider,
 			EditorAddress:       editorLogin,
 			KeyPresser:          keyPresser,

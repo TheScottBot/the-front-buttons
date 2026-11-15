@@ -16,7 +16,10 @@ import (
 type Ports struct {
 	URLOpener           platform.URLOpener
 	ApplicationLauncher platform.ApplicationLauncher
-	PipelineProvider    pipeline.Provider
+	// ApplicationQuitter quits an application, for an open_application key
+	// with Triple press to close ticked.
+	ApplicationQuitter platform.ApplicationQuitter
+	PipelineProvider   pipeline.Provider
 	// EditorAddress returns the local editor's address, known only once the
 	// editor's port is open.
 	EditorAddress func() string

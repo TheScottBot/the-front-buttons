@@ -236,6 +236,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- An `open_application` key with Triple press to close ticked quits its
+  application outright on three quick presses, each within half a second of
+  the last; the first still opens it. After the quit the key ignores presses
+  until left alone for a second and a half, so a fourth press does not open
+  the application again. Not available on Windows yet.
 - The daemon remembers the regular page the deck last showed, in its state
   folder, and opens on it after a restart or an install, rather than on the
   first page.

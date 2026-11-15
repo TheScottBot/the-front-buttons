@@ -181,7 +181,8 @@ func (pages *pageHandlers) kindTitle(kind brick.Kind) string {
 	}
 
 	constructed, constructError := kind.Construct(kind.Schema().NewParameters(), brick.Ports{
-		URLOpener: nil, ApplicationLauncher: nil, PipelineProvider: nil, EditorAddress: nil, KeyPresser: nil,
+		URLOpener: nil, ApplicationLauncher: nil, ApplicationQuitter: nil, PipelineProvider: nil,
+		EditorAddress: nil, KeyPresser: nil,
 		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil,
 	})
 	if labelled, isLabelled := constructed.(brick.DefaultLabelled); isLabelled && constructError == nil {

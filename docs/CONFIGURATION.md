@@ -117,6 +117,18 @@ It follows the Dock within a couple of seconds. Reading the Dock needs the
 Accessibility permission key presses already need. Not available on Windows
 yet.
 
+## Triple press to close
+
+Tick Triple press to close on an `open_application` key,
+`triple_press_to_close: true` in the file, and pressing the key three times
+quickly quits its application outright, as its own Quit command does, rather
+than closing its window. The first press still opens the application, the
+second does nothing, and each must come within half a second of the one
+before. After the quit the key does nothing until it has been left alone for
+a second and a half, so a fourth press does not open the application again.
+An application with unsaved work may still ask about it before it quits. Not
+available on Windows yet.
+
 ## Icons
 
 `icon` names one of the 5,000 or so bundled Tabler icons; the editor's **Icons**

@@ -4708,6 +4708,33 @@ date key closer to its word than to the same key without one. Planting the
 word below the key's foot failed the first. A rendered world view showed
 month fitting with room to spare.
 
+### Triple press to close
+
+The author asked for a Triple press to close check box on application keys,
+quitting the application outright rather than closing its window, with Signal
+in mind, and a pause after so a fourth press does not quit it and then open it
+again. The open_application brick gained `triple_press_to_close`, shown in the
+key's form as a check box like its others. Ticked, the first press opens the
+application as before, the second does nothing, and a third within half a
+second of the second quits it; after the quit, the key ignores presses until
+it has gone a second and a half without one, each ignored press starting that
+wait again. The second press opens nothing because the application is already
+coming forward from the first. Unticked, the key is as it was.
+
+Quitting is a new platform port. On macOS it asks AppKit's running
+application to terminate, as its own Quit command does, which needs no
+permission and lets an application ask about unsaved work; the application is
+found by bundle identifier, or by name with or without .app, as the launcher
+reads it, and one not running is left alone. Windows reports it unavailable
+for now. Tests first, failing to build before the change: three quick presses
+open then quit; a fourth, and presses a second apart after it, do nothing,
+and a press two seconds on opens again; slow presses, or quick ones unticked,
+only open; a refused quit shows quit_failed; the key ticked refuses to
+construct without the port. Planting each of no quiet period, no limit on the
+gap between presses, and a second press that opens failed those tests. On
+this MacBook the real quitter quit Calculator by bundle identifier and by
+name, and quietly did nothing when it was not running.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

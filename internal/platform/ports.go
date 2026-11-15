@@ -67,6 +67,17 @@ type ApplicationLauncher interface {
 	LaunchApplication(launchContext context.Context, identifier string) error
 }
 
+// ApplicationQuitter quits a running application outright, as its own Quit
+// command does, rather than closing its window. The identifier is read as the
+// ApplicationLauncher on this system reads it. An application not running is
+// left alone without an error.
+type ApplicationQuitter interface {
+	QuitApplication(quitContext context.Context, identifier string) error
+}
+
+// ErrQuitUnavailable reports a system whose adapter cannot quit applications.
+var ErrQuitUnavailable = errors.New("quitting applications is not available on this system")
+
 // ConfigLocation gives the per machine configuration file and state directory
 // (TD1).
 type ConfigLocation interface {

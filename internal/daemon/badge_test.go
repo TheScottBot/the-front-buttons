@@ -25,7 +25,8 @@ func badgeKey(showNotifications bool) config.Key {
 		Kind:     openapplication.KindName,
 		Parameters: &openapplication.Parameters{
 			Appearance: openAppAppearance(""), Application: badgedApplication, UseAppIcon: false, AppScreen: false,
-			ShowNotifications: showNotifications,
+			ShowNotifications:  showNotifications,
+			TriplePressToClose: false,
 		},
 		Preset: nil,
 	}

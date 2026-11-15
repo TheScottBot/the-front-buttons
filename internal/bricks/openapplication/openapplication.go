@@ -33,6 +33,9 @@ type Parameters struct {
 	// ShowNotifications draws the badge the application shows on its Dock
 	// icon, such as a count of unread messages, top right on the key.
 	ShowNotifications bool `brick:"show_notifications" description:"Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows yet."`
+
+	// TriplePressToClose quits the application on a third quick press.
+	TriplePressToClose bool `brick:"triple_press_to_close" description:"Press the key three times quickly to quit the application outright, not just close its window. The first press still opens it. After the quit the key does nothing until it has been left alone for a second and a half, so a fourth press does not open it again. Not available on Windows yet."`
 }
 
 // ApplicationScreen offers the application's screen to the daemon when the
@@ -64,6 +67,15 @@ func construct(parameters Parameters, ports brick.Ports) (any, error) {
 	}
 
 	launch := ports.ApplicationLauncher.LaunchApplication
+	opening := launching.New(parameters.Application, launch, "launching the key's application")
 
-	return launching.New(parameters.Application, launch, "launching the key's application"), nil
+	if !parameters.TriplePressToClose {
+		return opening, nil
+	}
+
+	if ports.ApplicationQuitter == nil {
+		return nil, fmt.Errorf("%w: %s needs its quitting port to close on a triple press", brick.ErrPortMissing, KindName)
+	}
+
+	return newClosing(parameters.Application, opening, ports.ApplicationQuitter), nil
 }

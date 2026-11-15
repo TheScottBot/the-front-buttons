@@ -35,7 +35,8 @@ func appKeyFor(application string, appScreen bool) config.Key {
 		Kind:     openapplication.KindName,
 		Parameters: &openapplication.Parameters{
 			Appearance: openAppAppearance(""), Application: application, UseAppIcon: true, AppScreen: appScreen,
-			ShowNotifications: false,
+			ShowNotifications:  false,
+			TriplePressToClose: false,
 		},
 		Preset: nil,
 	}

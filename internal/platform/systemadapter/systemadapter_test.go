@@ -220,3 +220,23 @@ func TestShutdownSignals_IncludeInterruptAndTerminate(t *testing.T) {
 		t.Fatalf("want interrupt and terminate, got %v", signals)
 	}
 }
+
+// signalName is an application named by name rather than bundle identifier.
+const signalName = "Signal"
+
+// TestMacOSQuitTarget_ReadsTheIdentifierAsTheLauncherDoes: the quitter finds
+// a bundle identifier by bundle, and a name, with or without .app, by name,
+// so a key quits the application it opens.
+func TestMacOSQuitTarget_ReadsTheIdentifierAsTheLauncherDoes(t *testing.T) {
+	t.Parallel()
+
+	for identifier, want := range map[string]systemadapter.QuitTarget{
+		"org.whispersystems.signal-desktop": {Name: "org.whispersystems.signal-desktop", ByBundle: true},
+		signalName:                          {Name: signalName, ByBundle: false},
+		signalName + ".app":                 {Name: signalName, ByBundle: false},
+	} {
+		if got := systemadapter.MacOSQuitTarget(identifier); got != want {
+			t.Errorf("%q: want %+v, got %+v", identifier, want, got)
+		}
+	}
+}
