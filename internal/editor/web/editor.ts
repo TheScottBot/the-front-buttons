@@ -8,6 +8,7 @@ import { enableDrag } from "./drag";
 import { enableDrawer } from "./drawer";
 import { enableKeepPlace } from "./keepplace";
 import { enableLive } from "./live";
+import { enableFind } from "./find";
 import { enableGridKeys } from "./gridkeys";
 import { enableGroupOrder } from "./group";
 import { enableHistory } from "./history";
@@ -42,6 +43,7 @@ if (grid !== null) {
   enableClipboard();
   enableHistory();
   enableShortcuts();
+  enableFind();
   enableKeyDialog(grid);
   enableDrawer(grid);
 

@@ -236,6 +236,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- Find a key, a drawer under the editor's grid, lists every key on any page or
+  app screen matching the words typed, as you type, and opens a result's page
+  with the key outlined; / opens it from anywhere but a field.
 - The editor's select mode sits in a Select keys drawer under the grid, its
   Edit mode box switching the grid in and out of select mode in place, as do
   Shift and a click, Escape and select mode's own buttons, without loading the

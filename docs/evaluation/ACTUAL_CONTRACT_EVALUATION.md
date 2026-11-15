@@ -4459,6 +4459,32 @@ select mode in place with the drawer still open; Command-Z put them back;
 Shift and a click opened select mode with the key ticked, and Escape left it,
 all with the page never loaded.
 
+### Finding a key on any page
+
+The author asked to find a key without hunting through pages. Find a key, a
+drawer under the grid with the others, is a plain search form on the pages
+route: the words are matched, case aside, against every key on every page and
+app screen, by what the grid calls it, its kind, the name the registry gives
+the kind, and its page's name, a key holding every word being listed, at most
+fifty, as its page and tile, linking to its page with the key marked found and
+the search kept open. An unlabelled key is named by its kind's name where it
+has one, and its kind only once. With the script the results follow the box as
+it is typed in, fetched without loading the page; Enter opens the first, the
+page opened brings the key into view, Escape clears then closes, and / opens
+the drawer from anywhere but a field. Nothing new is stored; the search rides
+in the page's address on this machine only.
+
+Tests first, failing before the change: a search across pages, case aside; all
+words needed, a kind and a page's name; no match said; the key found marked
+alone with the search kept; the form, its place first of the drawers, the
+script and the mark; an unlabelled key named once. A planted violation, any key
+listed whatever the words, failed a test. Driven in a browser against the
+harness: / opened the drawer with the box focused, typing listed twenty two
+Spotify keys across pages and screens, and Enter on a narrower search opened
+the first's page with the key outlined. A first version left the key found
+scrolled away, as the page was put back where it was after the find ran; it is
+now brought into view once that is done.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

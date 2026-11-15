@@ -422,7 +422,7 @@
         swapping = null;
       }
     };
-    let shownPage2 = "";
+    let shownPage3 = "";
     let opened = false;
     let dropped = false;
     let armed = null;
@@ -443,12 +443,12 @@
       const page = link.getAttribute(pageAttribute) ?? "";
       armTimer = window.setTimeout(() => {
         disarm();
-        const before = shownPage2;
-        shownPage2 = page;
+        const before = shownPage3;
+        shownPage3 = page;
         void openPageDuringDrag(page).then((done) => {
           opened || (opened = done);
           if (!done) {
-            shownPage2 = before;
+            shownPage3 = before;
           }
         });
       }, holdMilliseconds);
@@ -486,7 +486,7 @@
       }
       source = parseTile(cell.getAttribute(tileAttribute2));
       group = groupOf(cell, source);
-      shownPage2 = source?.page ?? "";
+      shownPage3 = source?.page ?? "";
       opened = false;
       dropped = false;
       event.dataTransfer.effectAllowed = "copyMove";
@@ -522,7 +522,7 @@
         hideBin(bin);
       }
       if (opened && !dropped) {
-        window.location.assign(`/page?page=${shownPage2}`);
+        window.location.assign(`/page?page=${shownPage3}`);
       }
     });
     root.addEventListener("dragover", (event) => {
@@ -530,7 +530,7 @@
         return;
       }
       const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage2) {
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage3) {
         clearGhosts(root);
         ghostedAt = "";
         event.preventDefault();
@@ -586,7 +586,7 @@
         return;
       }
       const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage2) {
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage3) {
         event.preventDefault();
         disarm();
         dropped = true;
@@ -1309,6 +1309,77 @@
     window.addEventListener("pagehide", () => stream.close());
   }
 
+  // internal/editor/web/find.ts
+  var waitMilliseconds = 200;
+  function shownPage() {
+    return document.querySelector("table.grid:not(.grid-left-behind) td[data-tile]")?.getAttribute("data-tile")?.split(".")[0] ?? "0";
+  }
+  async function showResults(search) {
+    const results = document.getElementById("find-results");
+    if (results === null) {
+      return;
+    }
+    if (search.trim() === "") {
+      results.replaceChildren();
+      return;
+    }
+    try {
+      const address = `/page?${new URLSearchParams({ page: shownPage(), find: search }).toString()}`;
+      const response = await fetch(address, { credentials: "same-origin" });
+      const incoming = new DOMParser().parseFromString(await response.text(), "text/html").getElementById("find-results");
+      if (response.ok && incoming !== null) {
+        results.replaceChildren(...[...incoming.childNodes].map((node) => document.importNode(node, true)));
+      }
+    } catch {
+    }
+  }
+  function enableFind() {
+    const drawer = document.getElementById("find-drawer");
+    const box = document.getElementById("find-box");
+    if (!(drawer instanceof HTMLDetailsElement) || !(box instanceof HTMLInputElement)) {
+      return;
+    }
+    for (const button of document.querySelectorAll(".find-submit")) {
+      button.hidden = true;
+    }
+    const found = document.querySelector("table.grid td.found");
+    if (found !== null) {
+      window.setTimeout(() => found.scrollIntoView({ block: "center" }), 0);
+    }
+    let timer;
+    box.addEventListener("input", () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void showResults(box.value), waitMilliseconds);
+    });
+    box.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        const first = document.querySelector("#find-results a");
+        event.preventDefault();
+        first?.click();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (box.value !== "") {
+          box.value = "";
+          void showResults("");
+        } else {
+          drawer.open = false;
+          drawer.querySelector("summary")?.focus();
+        }
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key !== "/" || typing || event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      drawer.open = true;
+      box.focus();
+      box.select();
+    });
+  }
+
   // internal/editor/web/gridkeys.ts
   var tileAttribute4 = "data-tile";
   var focusableSelector = 'a[href], input[type="checkbox"]';
@@ -1654,7 +1725,7 @@
   function selecting() {
     return document.querySelector("table.grid:not(.grid-left-behind) .select-key") !== null;
   }
-  function shownPage() {
+  function shownPage2() {
     return document.querySelector(`table.grid:not(.grid-left-behind) td[${tileAttribute5}]`)?.getAttribute(tileAttribute5)?.split(".")[0] ?? "0";
   }
   function showHints() {
@@ -1677,7 +1748,7 @@
     window.location.assign(address);
   }
   function modeAddress(on, tile = null) {
-    const address = new URLSearchParams({ page: shownPage() });
+    const address = new URLSearchParams({ page: shownPage2() });
     if (on) {
       address.set("select", "1");
     }
@@ -1811,6 +1882,7 @@
     enableClipboard();
     enableHistory();
     enableShortcuts();
+    enableFind();
     enableKeyDialog(grid);
     enableDrawer(grid);
     enableKeepPlace(grid);

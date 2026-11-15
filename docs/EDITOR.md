@@ -39,6 +39,16 @@ not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
 
+## Finding a key
+
+**Find a key**, the first drawer under the grid, lists every key on any page
+or app screen whose label, kind, the name its kind is known by, or page holds
+every word typed, case aside, as its page and tile. The list follows the box as
+you type. Choose one, or press Enter for the first, and its page opens with the
+key outlined and brought into view. Press / anywhere but a field to open the
+drawer with the box ready; Escape clears the box, then closes the drawer.
+Without the script, the Find button sends the search.
+
 ## Page maintenance and the shortcuts
 
 **Page maintenance**, under the grid, opens in place to the page's own forms,

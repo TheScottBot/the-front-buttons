@@ -237,6 +237,8 @@ type cellView struct {
 	Select     string
 	SelectID   string
 	Checked    bool
+	// Found marks the key a find result opened the page to show.
+	Found bool
 }
 
 // The states a grid cell can be in, for the drag script.
@@ -279,6 +281,9 @@ type pageView struct {
 	// CanUndo and CanRedo turn the Undo and Redo buttons on.
 	CanUndo bool
 	CanRedo bool
+	// Find is the search in Find a key, and FindResults the keys it found.
+	Find        string
+	FindResults []findResult
 	// Types are the bricks and presets the drawer offers to drag onto an
 	// empty tile, the same list the key form chooses from.
 	Types []typeOption
@@ -388,7 +393,7 @@ func (pages *pageHandlers) pageViewFor(
 		AppGroups:   pages.appGroupViews(page),
 
 		Selecting: false, SelectTargets: nil, ReorderPlaces: reorderPlaces(configuration.Pages, pageIndex),
-		FixedGroups: fixedGroupViews(), DrawerChars: 0, CanUndo: false, CanRedo: false,
+		FixedGroups: fixedGroupViews(), DrawerChars: 0, CanUndo: false, CanRedo: false, Find: "", FindResults: nil,
 	}
 
 	view.CanUndo, view.CanRedo = pages.history.can()
@@ -409,6 +414,8 @@ func (pages *pageHandlers) pageViewFor(
 			view.ScreenCaption = pages.screenCaption(configuration.Pages, pageIndex)
 		}
 	}
+
+	pages.applyFind(&view, request, configuration.Pages)
 
 	return view
 }
@@ -457,7 +464,7 @@ func (pages *pageHandlers) gridRows(allPages []config.Page, pageIndex int) [][]c
 					Name:     place + "reserved for the application's icon, which goes back to the regular pages",
 					Text:     "Back to the regular pages", Kind: "", Href: "", Tile: tile, State: tileIsReserve,
 					Image:      fmt.Sprintf("/preview.png?page=%d&row=%d&column=%d", pageIndex, row, column),
-					Selectable: false, Select: "", SelectID: "", Checked: false, Face: "",
+					Selectable: false, Select: "", SelectID: "", Checked: false, Face: "", Found: false,
 				})
 			default:
 				cell := pages.keyCell(page, pageIndex, position, place, tile)
@@ -510,6 +517,7 @@ func (pages *pageHandlers) keyCell(
 		Select:     fmt.Sprintf("%d.%d", position.Row, position.Column),
 		SelectID:   fmt.Sprintf("%d-%d", position.Row, position.Column),
 		Checked:    false,
+		Found:      false,
 	}
 }
 
@@ -535,7 +543,7 @@ func pagingCell(allPages []config.Page, pageIndex int, step int, text string) fu
 		cell := cellView{
 			Reserved: true, Name: place + "reserved for paging " + strings.ToLower(text), Text: text, Kind: "",
 			Href: "", Tile: tile, State: tileIsReserve, Image: "",
-			Selectable: false, Select: "", SelectID: "", Checked: false, Face: "",
+			Selectable: false, Select: "", SelectID: "", Checked: false, Face: "", Found: false,
 		}
 
 		if screen, named, stepsScreens := screenStep(allPages, pageIndex, step); stepsScreens {
