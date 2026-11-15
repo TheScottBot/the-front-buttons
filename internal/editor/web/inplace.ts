@@ -155,20 +155,20 @@ export async function refreshOverview(answer: string): Promise<boolean> {
   try {
     const response = await fetch("/overview", { credentials: "same-origin" });
     const incoming = new DOMParser().parseFromString(await response.text(), "text/html");
-    const tiles = incoming.querySelectorAll<HTMLTableCellElement>(`td[${tileAttribute}]`);
-
-    if (!response.ok || tiles.length !== document.querySelectorAll(`td[${tileAttribute}]`).length) {
+    if (!response.ok) {
       window.location.reload();
 
       return true;
     }
 
+    // Every small grid on show, all of All pages or the few a zoomed out
+    // pages screen shows, is brought up to date from the overview's own.
     const changed: [HTMLTableCellElement, HTMLTableCellElement][] = [];
 
-    for (const next of tiles) {
-      const now = document.querySelector<HTMLTableCellElement>(
-        `td[${tileAttribute}="${next.getAttribute(tileAttribute)}"]`);
-      if (now === null) {
+    for (const now of document.querySelectorAll<HTMLTableCellElement>(`[data-overview-page] td[${tileAttribute}]`)) {
+      const next = incoming.querySelector<HTMLTableCellElement>(
+        `td[${tileAttribute}="${now.getAttribute(tileAttribute)}"]`);
+      if (next === null) {
         window.location.reload();
 
         return true;

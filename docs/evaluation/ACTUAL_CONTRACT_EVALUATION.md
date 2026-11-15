@@ -4535,6 +4535,29 @@ search ready, closing In use, and the shortcuts sheet names both. Driven in a
 browser against the harness: B opened Bricks over In use with the search
 focused, and B typed in the search stayed in the box.
 
+### Zooming out from the pages screen
+
+The author asked for a zoom out from the pages screen, distinct from All
+pages: the pages around the one on show, side by side, as many as the window
+allows. - or a Zoom out button puts the grid aside and, without loading the
+page, draws in its place All pages' own grids for the pages around it, in the
+deck's paging order, an app screen's among its application's screens, which
+the overview now marks on each grid: this page in the middle, outlined as a
+pressed key is, and as many either side as fit, measured from the window and
+fitted again as it is resized. The arrows, or buttons either side of Zoom in,
+move along, wrapping round. A drop between the pages shown refreshes the small
+grids on show from the overview, which now updates whichever small grids are on
+show rather than expecting all of them. A page's name zooms into it; Escape or
++ puts the grid back, brought up to date in place.
+
+Tests first, failing before the change: the Zoom out button and its row in the
+shortcuts, the overview's grids marked with their application, and the script
+and styles. Driven in a browser against the harness: - drew Two, outlined, and
+Three, as many as a 1024 pixel window held, without loading the page; the
+arrows moved along to Three and four, four and One, One and Two, and back;
+Main dragged from Two to Three moved with the mural in place; Escape put the
+grid back showing the move, and Command-Z undid it, the page never loaded.
+
 ### Keys shifting as select mode opens
 
 The author found that turning on edit mode moved every key's icon and words up a few

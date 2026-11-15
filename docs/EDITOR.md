@@ -39,6 +39,16 @@ not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
 
+## Zooming out
+
+Press - on the pages screen, or **Zoom out** beside Undo, to see the pages
+around the one you are on, side by side and small, without loading the page:
+yours in the middle, outlined, with as many either side as the window holds,
+in the order the deck pages through, or on an app screen, its application's
+screens. The arrows, or the buttons beside **Zoom in**, move along a page at a
+time, wrapping round. Drag keys between the pages shown, as on All pages.
+Choose a page's name to zoom into it; Escape or + zooms back into yours.
+
 ## All pages
 
 **All pages**, in the editor's sections, draws every page's grid small, side

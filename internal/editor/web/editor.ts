@@ -8,6 +8,7 @@ import { enableDrag } from "./drag";
 import { enableDrawer } from "./drawer";
 import { enableKeepPlace } from "./keepplace";
 import { enableLive } from "./live";
+import { enableMural } from "./mural";
 import { enableFind } from "./find";
 import { enableGridKeys } from "./gridkeys";
 import { enableGroupOrder } from "./group";
@@ -52,6 +53,7 @@ if (grid !== null && overview) {
   enableHistory();
   enableShortcuts();
   enableFind();
+  enableMural(grid);
   enableKeyDialog(grid);
   enableDrawer(grid);
 

@@ -99,17 +99,16 @@
     try {
       const response = await fetch("/overview", { credentials: "same-origin" });
       const incoming = new DOMParser().parseFromString(await response.text(), "text/html");
-      const tiles = incoming.querySelectorAll(`td[${tileAttribute}]`);
-      if (!response.ok || tiles.length !== document.querySelectorAll(`td[${tileAttribute}]`).length) {
+      if (!response.ok) {
         window.location.reload();
         return true;
       }
       const changed = [];
-      for (const next of tiles) {
-        const now = document.querySelector(
-          `td[${tileAttribute}="${next.getAttribute(tileAttribute)}"]`
+      for (const now of document.querySelectorAll(`[data-overview-page] td[${tileAttribute}]`)) {
+        const next = incoming.querySelector(
+          `td[${tileAttribute}="${now.getAttribute(tileAttribute)}"]`
         );
-        if (now === null) {
+        if (next === null) {
           window.location.reload();
           return true;
         }
@@ -460,7 +459,7 @@
         swapping = null;
       }
     };
-    let shownPage3 = "";
+    let shownPage4 = "";
     let opened = false;
     let dropped = false;
     let armed = null;
@@ -481,12 +480,12 @@
       const page = link.getAttribute(pageAttribute) ?? "";
       armTimer = window.setTimeout(() => {
         disarm();
-        const before = shownPage3;
-        shownPage3 = page;
+        const before = shownPage4;
+        shownPage4 = page;
         void openPageDuringDrag(page).then((done) => {
           opened || (opened = done);
           if (!done) {
-            shownPage3 = before;
+            shownPage4 = before;
           }
         });
       }, holdMilliseconds);
@@ -524,7 +523,7 @@
       }
       source = parseTile(cell.getAttribute(tileAttribute2));
       group = groupOf(cell, source);
-      shownPage3 = source?.page ?? "";
+      shownPage4 = source?.page ?? "";
       opened = false;
       dropped = false;
       event.dataTransfer.effectAllowed = "copyMove";
@@ -560,7 +559,7 @@
         hideBin(bin);
       }
       if (opened && !dropped) {
-        window.location.assign(`/page?page=${shownPage3}`);
+        window.location.assign(`/page?page=${shownPage4}`);
       }
     });
     root.addEventListener("dragover", (event) => {
@@ -568,7 +567,7 @@
         return;
       }
       const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage3) {
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage4) {
         clearGhosts(root);
         ghostedAt = "";
         event.preventDefault();
@@ -624,7 +623,7 @@
         return;
       }
       const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage3) {
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage4) {
         event.preventDefault();
         disarm();
         dropped = true;
@@ -798,19 +797,19 @@
   }
   function enableGroupOrder(root) {
     root.addEventListener("click", (event) => {
-      const button = event.target instanceof Element ? event.target.closest(".move-up, .move-down") : null;
-      const part = button?.closest(partSelector);
+      const button2 = event.target instanceof Element ? event.target.closest(".move-up, .move-down") : null;
+      const part = button2?.closest(partSelector);
       const list = part?.parentElement;
-      if (button === null || button === void 0 || part === null || part === void 0 || list === null || list === void 0) {
+      if (button2 === null || button2 === void 0 || part === null || part === void 0 || list === null || list === void 0) {
         return;
       }
-      if (button.classList.contains("move-up") && part.previousElementSibling !== null) {
+      if (button2.classList.contains("move-up") && part.previousElementSibling !== null) {
         list.insertBefore(part, part.previousElementSibling);
-      } else if (button.classList.contains("move-down") && part.nextElementSibling !== null) {
+      } else if (button2.classList.contains("move-down") && part.nextElementSibling !== null) {
         list.insertBefore(part.nextElementSibling, part);
       }
       renumber(list);
-      button.focus();
+      button2.focus();
     });
     showGroupMoves(root);
   }
@@ -820,8 +819,8 @@
     for (const label of root.querySelectorAll("label[data-mac][data-windows]")) {
       label.textContent = (platform === "mac" ? label.dataset.mac : label.dataset.windows) ?? label.textContent;
     }
-    for (const button of root.querySelectorAll("button.platform-choice")) {
-      button.setAttribute("aria-pressed", String(button.dataset.platform === platform));
+    for (const button2 of root.querySelectorAll("button.platform-choice")) {
+      button2.setAttribute("aria-pressed", String(button2.dataset.platform === platform));
     }
   }
   function showPlatformSwitch(root) {
@@ -831,8 +830,8 @@
   }
   function enablePlatformSwitch(root) {
     root.addEventListener("click", (event) => {
-      const button = event.target instanceof Element ? event.target.closest("button.platform-choice") : null;
-      const platform = button?.dataset.platform;
+      const button2 = event.target instanceof Element ? event.target.closest("button.platform-choice") : null;
+      const platform = button2?.dataset.platform;
       if (platform === "mac" || platform === "windows") {
         choose(root, platform);
       }
@@ -1374,10 +1373,158 @@
     window.addEventListener("pagehide", () => stream.close());
   }
 
+  // internal/editor/web/mural.ts
+  var currentClass = "mural-current";
+  var mural = null;
+  function shownPage(grid2) {
+    return grid2.querySelector("td[data-tile]")?.getAttribute("data-tile")?.split(".")[0] ?? "0";
+  }
+  function pageOf2(section) {
+    return section.querySelector("table[data-overview-page]")?.getAttribute("data-overview-page") ?? "";
+  }
+  function fit(shown) {
+    const strip = shown.element.querySelector(".mural-strip");
+    if (strip === null) {
+      return;
+    }
+    for (const section of shown.pages) {
+      section.hidden = false;
+    }
+    const width = shown.pages[0]?.getBoundingClientRect().width ?? 1;
+    const gap = Number.parseFloat(getComputedStyle(strip).columnGap) || 0;
+    const count = Math.max(1, Math.min(shown.pages.length, Math.floor((strip.clientWidth + gap) / (width + gap))));
+    for (const section of shown.pages) {
+      section.hidden = true;
+    }
+    for (let offset = 0; offset < count; offset++) {
+      const section = shown.pages[(shown.start + offset) % shown.pages.length];
+      section.hidden = false;
+      strip.append(section);
+    }
+  }
+  function centre(shown) {
+    const index = Math.max(0, shown.pages.findIndex((section) => pageOf2(section) === shown.from));
+    shown.start = 0;
+    fit(shown);
+    const count = shown.pages.filter((section) => !section.hidden).length;
+    shown.start = (index - Math.floor((count - 1) / 2) + shown.pages.length * 2) % shown.pages.length;
+    fit(shown);
+  }
+  function move(step) {
+    if (mural === null) {
+      return;
+    }
+    mural.start = (mural.start + step + mural.pages.length) % mural.pages.length;
+    fit(mural);
+  }
+  function button(label, text, action) {
+    const made = document.createElement("button");
+    made.type = "button";
+    made.textContent = text;
+    made.setAttribute("aria-label", label);
+    made.addEventListener("click", action);
+    return made;
+  }
+  async function zoomIn(page) {
+    if (mural === null) {
+      return;
+    }
+    const shown = mural;
+    if (page !== shown.from) {
+      window.location.assign(`/page?page=${page}`);
+      return;
+    }
+    mural = null;
+    shown.element.replaceWith(shown.grid);
+    document.body.classList.remove("zoomed-out");
+    try {
+      const response = await fetch(window.location.href, { credentials: "same-origin" });
+      if (response.ok) {
+        await updateInPlace(await response.text(), window.location.href);
+      }
+    } catch {
+    }
+    shown.grid.querySelector("td a, td input")?.focus();
+  }
+  async function zoomOut(grid2) {
+    if (mural !== null || grid2.querySelector(".select-key") !== null || !grid2.isConnected) {
+      return;
+    }
+    const response = await fetch("/overview", { credentials: "same-origin" });
+    if (!response.ok) {
+      return;
+    }
+    const incoming = new DOMParser().parseFromString(await response.text(), "text/html");
+    const from = shownPage(grid2);
+    const application = incoming.querySelector(`table[data-overview-page="${from}"]`)?.getAttribute("data-application") ?? "";
+    const pages = [...incoming.querySelectorAll("section.overview-page")].filter((section) => section.querySelector("table")?.getAttribute("data-application") === application).map((section) => document.importNode(section, true));
+    if (pages.length === 0) {
+      return;
+    }
+    const element = document.createElement("div");
+    element.className = "mural";
+    element.setAttribute("role", "region");
+    element.setAttribute("aria-label", "The pages around this one");
+    element.tabIndex = -1;
+    const strip = document.createElement("div");
+    strip.className = "mural-strip";
+    const head = document.createElement("div");
+    head.className = "mural-head";
+    head.append(
+      button("Earlier pages", "‹", () => move(-1)),
+      button("Back to this page", "Zoom in", () => void zoomIn(from)),
+      button("Later pages", "›", () => move(1))
+    );
+    for (const section of pages) {
+      section.classList.toggle(currentClass, pageOf2(section) === from);
+      section.querySelector("h2 a")?.addEventListener("click", (event) => {
+        event.preventDefault();
+        void zoomIn(pageOf2(section));
+      });
+    }
+    element.append(head, strip);
+    strip.append(...pages);
+    grid2.replaceWith(element);
+    document.body.classList.add("zoomed-out");
+    mural = { element, grid: grid2, pages, from, start: 0 };
+    centre(mural);
+    element.focus();
+  }
+  function enableMural(grid2) {
+    const zoom = document.querySelector(".zoom-out");
+    if (zoom === null) {
+      return;
+    }
+    zoom.hidden = false;
+    zoom.addEventListener("click", () => void (mural === null ? zoomOut(grid2) : zoomIn(mural.from)));
+    document.addEventListener("keydown", (event) => {
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (typing || event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      const inTile = event.target instanceof Element && event.target.closest("td[data-tile]") !== null;
+      if (event.key === "-" && mural === null) {
+        event.preventDefault();
+        void zoomOut(grid2);
+      } else if (mural !== null && (event.key === "Escape" || event.key === "+" || event.key === "=")) {
+        event.preventDefault();
+        void zoomIn(mural.from);
+      } else if (mural !== null && !inTile && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+        event.preventDefault();
+        move(event.key === "ArrowLeft" ? -1 : 1);
+      }
+    });
+    window.addEventListener("resize", () => {
+      if (mural !== null) {
+        fit(mural);
+      }
+    });
+  }
+
   // internal/editor/web/find.ts
   var readyClass = "drawer-ready";
   var waitMilliseconds = 200;
-  function shownPage() {
+  function shownPage2() {
     return document.querySelector("table.grid:not(.grid-left-behind) td[data-tile]")?.getAttribute("data-tile")?.split(".")[0] ?? "0";
   }
   async function showResults(search) {
@@ -1390,7 +1537,7 @@
       return;
     }
     try {
-      const address = `/page?${new URLSearchParams({ page: shownPage(), find: search }).toString()}`;
+      const address = `/page?${new URLSearchParams({ page: shownPage2(), find: search }).toString()}`;
       const response = await fetch(address, { credentials: "same-origin" });
       const incoming = new DOMParser().parseFromString(await response.text(), "text/html").getElementById("find-results");
       if (response.ok && incoming !== null) {
@@ -1417,8 +1564,8 @@
     drawer.classList.add(readyClass);
     toggle.hidden = false;
     setOpen2(toggle.getAttribute("aria-expanded") === "true");
-    for (const button of document.querySelectorAll(".find-submit")) {
-      button.hidden = true;
+    for (const button2 of document.querySelectorAll(".find-submit")) {
+      button2.hidden = true;
     }
     toggle.addEventListener("click", () => {
       setOpen2(panel.hidden);
@@ -1568,7 +1715,7 @@
   function itemsOf(list) {
     return [...list.children].filter((child) => child instanceof HTMLLIElement);
   }
-  function pageOf2(item) {
+  function pageOf3(item) {
     return item.querySelector(`a[${pageAttribute2}]`)?.getAttribute(pageAttribute2) ?? "";
   }
   function showingPage2() {
@@ -1644,7 +1791,7 @@
     slide(carried.list, () => carried.list.insertBefore(carried.item, spot));
   }
   function putBack(carried) {
-    const byPage = new Map(itemsOf(carried.list).map((item) => [pageOf2(item), item]));
+    const byPage = new Map(itemsOf(carried.list).map((item) => [pageOf3(item), item]));
     slide(carried.list, () => {
       for (const page of carried.order) {
         const item = byPage.get(page);
@@ -1664,10 +1811,10 @@
       if (link === null || !(item instanceof HTMLLIElement) || !(list instanceof HTMLElement) || event.dataTransfer === null) {
         return;
       }
-      carried = { item, list, order: itemsOf(list).map(pageOf2) };
+      carried = { item, list, order: itemsOf(list).map(pageOf3) };
       dropped = false;
       event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData(pageType, pageOf2(item));
+      event.dataTransfer.setData(pageType, pageOf3(item));
       window.setTimeout(() => item.classList.add(movingClass), 0);
     });
     root.addEventListener("dragover", (event) => {
@@ -1687,7 +1834,7 @@
       }
       event.preventDefault();
       dropped = true;
-      const from = pageOf2(carried.item);
+      const from = pageOf3(carried.item);
       const to = carried.order[itemsOf(carried.list).indexOf(carried.item)] ?? from;
       if (to !== from) {
         void send("/page/reorder", { page: from, to, showing: showingPage2() });
@@ -1815,7 +1962,7 @@
   function selecting() {
     return document.querySelector("table.grid:not(.grid-left-behind) .select-key") !== null;
   }
-  function shownPage2() {
+  function shownPage3() {
     return document.querySelector(`table.grid:not(.grid-left-behind) td[${tileAttribute5}]`)?.getAttribute(tileAttribute5)?.split(".")[0] ?? "0";
   }
   function showHints() {
@@ -1838,7 +1985,7 @@
     window.location.assign(address);
   }
   function modeAddress(on, tile = null) {
-    const address = new URLSearchParams({ page: shownPage2() });
+    const address = new URLSearchParams({ page: shownPage3() });
     if (on) {
       address.set("select", "1");
     }
@@ -1978,6 +2125,7 @@
     enableHistory();
     enableShortcuts();
     enableFind();
+    enableMural(grid);
     enableKeyDialog(grid);
     enableDrawer(grid);
     enableKeepPlace(grid);

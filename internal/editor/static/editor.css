@@ -926,6 +926,53 @@ input[type="search"] {
   margin: 0 auto;
 }
 
+/* The pages screen zoomed out: the pages around this one side by side, as
+   many as fit, this one outlined as a pressed key is, with buttons to move
+   along either side of Zoom in. */
+.mural {
+  margin: 0 0 2rem;
+}
+
+.mural:focus {
+  outline: none;
+}
+
+.mural-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mural-head button {
+  margin: 0;
+}
+
+.mural-strip {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+}
+
+.mural-strip .overview-page {
+  flex: none;
+}
+
+.mural-strip .overview-page[hidden] {
+  display: none;
+}
+
+.mural-strip .mural-current .grid.mini {
+  outline: 3px dotted var(--accent);
+  outline-offset: 6px;
+}
+
+.zoom-out {
+  margin: 0;
+}
+
 /* The edit mode box and its words on one line. */
 .select-mode {
   display: flex;

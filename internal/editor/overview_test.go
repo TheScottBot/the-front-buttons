@@ -28,7 +28,7 @@ func TestEditor_OverviewShowsEveryPageAtOnce(t *testing.T) {
 	for _, want := range []string{
 		`<div class="overview">`,
 		`<h2 id="overview-0"><a href="/page?page=0">Work</a></h2>`,
-		`<table class="grid mini" data-overview-page="0">`,
+		`<table class="grid mini" data-overview-page="0" data-application="">`,
 		`<td data-tile="0.0.1" data-state="key"><a href="/page?page=0&amp;found=0.1" ` +
 			`aria-label="Row 1, column 2: Cut (open_url)" draggable="true">`,
 		`<td data-tile="3.0.0" data-state="empty">`,

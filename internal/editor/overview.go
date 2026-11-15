@@ -22,6 +22,9 @@ type overviewPage struct {
 	Name    string
 	Caption string
 	Rows    [][]cellView
+	// Application is an app screen's application, empty for a regular
+	// page, so the zoomed out pages screen keeps to a screen's own kind.
+	Application string
 }
 
 // overviewView is the overview: every page, in the order shown.
@@ -76,5 +79,5 @@ func (pages *pageHandlers) overviewPageOf(allPages []config.Page, regular []int,
 		name = pages.screenName(allPages, pageIndex) + " screen"
 	}
 
-	return overviewPage{Index: pageIndex, Name: name, Caption: caption, Rows: rows}
+	return overviewPage{Index: pageIndex, Name: name, Caption: caption, Rows: rows, Application: page.Application}
 }

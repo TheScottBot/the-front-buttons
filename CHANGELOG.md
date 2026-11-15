@@ -239,6 +239,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - The daemon remembers the regular page the deck last showed, in its state
   folder, and opens on it after a restart or an install, rather than on the
   first page.
+- Pressing - on the editor's pages screen, or Zoom out, shows the pages around
+  the one on show side by side, as many as the window holds, without loading
+  the page; the arrows move along, keys drag between them, and Escape or +
+  zooms back in.
 - All pages, in the editor's sections, draws every page's grid small, side by
   side, to drag keys between any of them, moving, copying, swapping or
   removing, each updating the grids in place.
