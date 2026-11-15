@@ -97,29 +97,24 @@ func chosenTheme(request *http.Request) string {
 	}
 }
 
-func (pages *pageHandlers) base(title string, request *http.Request, problems []string) baseView {
-	message, undo := "", false
+// savedMessages is what the live region announces after each kind of change,
+// by the saved query a change's redirect carries.
+func savedMessages() map[string]string {
+	return map[string]string{
+		"key": savedMessage, removedQuery: removedMessage, "credential": credentialMessage,
+		copiedQuery: copiedMessage, clocksQuery: clocksMessage, movedQuery: movedMessage,
+		reorderedQuery: reorderedMessage, colouredQuery: colouredMessage, undoneQuery: undoneMessage,
+		redoneQuery: redoneMessage,
+	}
+}
 
-	switch request.URL.Query().Get("saved") {
-	case "key":
-		message = savedMessage
-	case removedQuery:
-		message = removedMessage
+func (pages *pageHandlers) base(title string, request *http.Request, problems []string) baseView {
+	saved := request.URL.Query().Get("saved")
+	message, undo := savedMessages()[saved], false
+
+	// A removal can be undone from its announcement.
+	if saved == removedQuery {
 		undo, _ = pages.history.can()
-	case "credential":
-		message = credentialMessage
-	case copiedQuery:
-		message = copiedMessage
-	case movedQuery:
-		message = movedMessage
-	case reorderedQuery:
-		message = reorderedMessage
-	case colouredQuery:
-		message = colouredMessage
-	case undoneQuery:
-		message = undoneMessage
-	case redoneQuery:
-		message = redoneMessage
 	}
 
 	return baseView{

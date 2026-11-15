@@ -4865,6 +4865,41 @@ and no section link failed a test. On this MacBook the section drew the
 author's own configuration: the marker, four pages, four app screens by their
 icons, and the four default clocks with the date.
 
+### Setting the world clocks in the editor
+
+When the world clocks moved into the configuration, the author wanted no
+editor form for them. With the dashboard preview in place, the author asked
+for one after all, from the same list of ideas.
+
+The Dashboard section now has a form under the preview: a row for each of
+four clocks, a label and a zone, filled in from the file, or with the
+defaults when the file names none, which the page says. Saving trims each
+field, leaves out a blank row and puts the rest in the file in order,
+through the editor's usual change, so the store checks the clocks exactly as
+it checks a hand edit, by encoding and decoding, and undo can take the save
+back. A refused save shows the form again with what was typed, each problem
+beside its row's label or zone, counted back to the row shown though a blank
+row came first; a problem with the list as a whole, such as every row left
+blank, is listed above the form. Use the defaults takes the clocks out of
+the file. A save is announced, and the deck shows it the next time its world
+clocks open.
+
+Tests first, failing before the change: the form shows the file's clocks
+with blank rows after them, and the defaults with word of them when the file
+has none; a save writes the rows in order, a blank one left out and a zone's
+spaces trimmed, leaves the pages alone, is announced, and is undone; a bad
+zone and a five letter label are refused with the file unchanged, what was
+typed kept and each problem beside the right row's field; every row blank is
+refused with why; and Use the defaults takes the clocks out. Planting each
+of keeping blank rows, counting rows without the blanks, not trimming, ignoring
+Use the defaults, no word of the defaults, not filling them in, losing a
+zone's problem, saving every row blank as the defaults, and no announcement
+failed a test. Tried on this MacBook with a zone of Mars/Base, the form was
+refused with the problem beside the zone and the file left as it was; that
+showed the word that the file names no clocks lost on a refusal, now kept,
+with a test. The announcements moved from a switch to a table, as one more
+case took the switch past the complexity limit.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

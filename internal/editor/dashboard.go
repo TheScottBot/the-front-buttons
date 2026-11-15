@@ -50,11 +50,23 @@ type dashboardView struct {
 	Views []dashboardPreview
 	// HasMarker reports a page marker to open the dashboard by.
 	HasMarker bool
+	// Clocks is the world clocks form.
+	Clocks clocksForm
 }
 
-// showDashboard draws the dashboard preview page.
+// showDashboard draws the dashboard preview page, its clocks form filled in
+// from the file.
 func (pages *pageHandlers) showDashboard(writer http.ResponseWriter, request *http.Request) {
 	configuration, problems := pages.configuration()
+	pages.renderDashboard(writer, request, http.StatusOK, configuration, problems, clocksFormFor(configuration))
+}
+
+// renderDashboard draws the dashboard preview page with its clocks form as
+// given.
+func (pages *pageHandlers) renderDashboard(
+	writer http.ResponseWriter, request *http.Request, status int,
+	configuration config.Configuration, problems []string, form clocksForm,
+) {
 	grid := pages.options.Grid
 	_, _, hasMarker := firstMarker(configuration.Pages)
 
@@ -66,13 +78,14 @@ func (pages *pageHandlers) showDashboard(writer http.ResponseWriter, request *ht
 		}
 	}
 
-	pages.render(writer, http.StatusOK, "dashboard.html", dashboardView{
+	pages.render(writer, status, "dashboard.html", dashboardView{
 		baseView: pages.base("Dashboard", request, problems),
 		Views: []dashboardPreview{
 			{Name: pagesViewName, Heading: "Pages", Rows: keyRows},
 			{Name: worldViewName, Heading: "World clocks", Rows: keyRows},
 		},
 		HasMarker: hasMarker,
+		Clocks:    form,
 	})
 }
 

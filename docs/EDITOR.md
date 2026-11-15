@@ -71,6 +71,14 @@ page with a page marker, that marker in its top left; with none, the page says
 the deck cannot open the dashboard yet. The clocks show the time the page was
 loaded.
 
+Beneath it, **Set the world clocks** has a row for each of up to four clocks,
+a label and a zone, filled in from the file, or with the defaults the deck
+shows when the file names none. **Save clocks** saves the rows in order,
+leaving out a blank row; a label or zone the file would refuse is not saved,
+and the form comes back with what was typed and the problem beside its field.
+**Use the defaults** takes the clocks out of the file. Undo puts the last
+clocks back.
+
 ## Finding a key
 
 The **In use** tab, on the left under Bricks, opens a drawer to find a key in

@@ -174,6 +174,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("GET /preview.png", pages.preview)
 	mux.HandleFunc("GET /dashboard", pages.showDashboard)
 	mux.HandleFunc("GET /dashboard/key.png", pages.dashboardKey)
+	mux.HandleFunc("POST /dashboard/clocks", pages.saveClocks)
 	mux.HandleFunc("GET /events", pages.events)
 	mux.HandleFunc("GET /icons", pages.showIcons)
 	mux.HandleFunc("GET /icon.png", pages.iconPreview)

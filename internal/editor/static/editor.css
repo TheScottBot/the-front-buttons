@@ -961,6 +961,37 @@ input[type="search"] {
   height: 3.6rem;
 }
 
+/* The world clocks form: a row of label and zone for each clock. */
+.clocks {
+  margin-top: 2.5rem;
+}
+
+.clock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--rule);
+}
+
+.clock-row legend {
+  padding: 0 0.4rem;
+  font-weight: 700;
+}
+
+.clock-row .field {
+  margin-bottom: 0.5rem;
+}
+
+.clock-row input[name^="label."] {
+  width: 6rem;
+}
+
+.clock-row input[name^="zone."] {
+  width: 18rem;
+}
+
 /* The pages screen zoomed out: the pages around this one side by side, as
    many as fit, this one outlined as a pressed key is, with buttons to move
    along either side of Zoom in. */

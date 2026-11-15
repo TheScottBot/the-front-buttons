@@ -236,6 +236,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The world clocks can be set from the editor's Dashboard section: a row of
+  label and zone for each of up to four clocks, checked as a hand edit is,
+  each problem shown beside its field, with Use the defaults to take them
+  out of the file.
 - The editor's Dashboard section shows the page dashboard as the deck draws
   it, its pages and its world clocks side by side, opened from the first page
   with a page marker, or saying the deck cannot open it without one. The deck

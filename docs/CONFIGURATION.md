@@ -140,8 +140,9 @@ available on Windows yet.
 
 ## World clocks
 
-The world clocks are set in the file only; the editor has no form for them,
-but keeps them as written when it saves. Add `world_clocks` beside `pages`,
+The world clocks are set on the editor's Dashboard section, under the preview
+of the world clocks, or by hand in the file; the editor keeps them as written
+when it saves anything else. Add `world_clocks` beside `pages`,
 in `~/Library/Application Support/the-front-buttons/config.yaml` on macOS,
 listing each clock's label and zone:
 

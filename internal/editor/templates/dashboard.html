@@ -10,4 +10,27 @@
 {{end}}</table>
 </section>
 {{end}}</div>
+<section class="clocks" aria-labelledby="clocks-heading">
+<h2 id="clocks-heading">Set the world clocks</h2>
+<p class="help">Up to four clocks, a row each from the top. A label is one to four letters or digits, no two the same; a zone is a name from the <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones" target="_blank" rel="noopener">zone database</a>, such as Europe/Berlin or Asia/Tokyo; a city without a zone of its own takes its region's. A blank row is left out. The deck shows the change the next time its world clocks open.{{if .Clocks.UsingDefaults}} The file names no clocks, so the deck shows the defaults, filled in below.{{end}}</p>
+{{if .Clocks.Errors}}<div class="errors" role="alert"><ul>{{range .Clocks.Errors}}<li>{{.}}</li>{{end}}</ul></div>
+{{end}}<form method="post" action="/dashboard/clocks" class="clocks-form">
+<input type="hidden" name="token" value="{{.Token}}">
+{{range .Clocks.Rows}}<fieldset class="clock-row">
+<legend>Clock {{.Number}}</legend>
+<div class="field">
+<label for="clock-label-{{.Index}}">Label</label>
+<input id="clock-label-{{.Index}}" name="label.{{.Index}}" type="text" value="{{.Label}}" maxlength="4"{{if .LabelError}} aria-invalid="true" aria-describedby="clock-label-{{.Index}}-error"{{end}} autocomplete="off">
+{{if .LabelError}}<p class="error" id="clock-label-{{.Index}}-error">{{.LabelError}}</p>
+{{end}}</div>
+<div class="field">
+<label for="clock-zone-{{.Index}}">Zone</label>
+<input id="clock-zone-{{.Index}}" name="zone.{{.Index}}" type="text" value="{{.Zone}}" maxlength="64"{{if .ZoneError}} aria-invalid="true" aria-describedby="clock-zone-{{.Index}}-error"{{end}} autocomplete="off">
+{{if .ZoneError}}<p class="error" id="clock-zone-{{.Index}}-error">{{.ZoneError}}</p>
+{{end}}</div>
+</fieldset>
+{{end}}<button type="submit">Save clocks</button>
+<button type="submit" name="defaults" value="on">Use the defaults</button>
+</form>
+</section>
 {{template "foot" .}}
