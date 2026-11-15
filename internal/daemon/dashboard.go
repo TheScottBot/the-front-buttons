@@ -62,6 +62,7 @@ const (
 	dashboardDigit
 	dashboardZoneLabel
 	dashboardWorld
+	dashboardDate
 )
 
 // dashboardView is which of the dashboard's views is showing: its pages, or
@@ -207,7 +208,8 @@ func (state *loopState) clockRowTile(position layout.Position) dashboardTile {
 }
 
 // worldTiles is the world clocks: a row each, its label and then its HHMMSS,
-// the rest empty but for the world icon in the top right.
+// the world icon in the top right and the local date, YY, MM and DD, down the
+// right column beneath it.
 func (state *loopState) worldTiles() []dashboardTile {
 	tiles := make([]dashboardTile, state.grid.KeyCount())
 	last := state.grid.Columns() - 1
@@ -218,23 +220,30 @@ func (state *loopState) worldTiles() []dashboardTile {
 
 	for row := range min(state.grid.Rows(), len(state.zones)) {
 		for column := range state.grid.Columns() {
-			keyIndex, onGrid := state.grid.KeyIndex(layout.Position{Row: row, Column: column})
-			if !onGrid {
-				continue
-			}
-
-			switch {
-			case column == 0:
-				tiles[keyIndex] = dashboardTile{role: dashboardZoneLabel, pageIndex: 0, zone: row, figure: 0}
-			case column <= clockFigures:
-				tiles[keyIndex] = dashboardTile{role: dashboardDigit, pageIndex: 0, zone: row, figure: column - 1}
-			case row == 0 && column == last:
-				tiles[keyIndex] = tile(dashboardWorld)
+			if keyIndex, onGrid := state.grid.KeyIndex(layout.Position{Row: row, Column: column}); onGrid {
+				tiles[keyIndex] = worldTileAt(row, column, last)
 			}
 		}
 	}
 
 	return tiles
+}
+
+// worldTileAt is what a key of the world clocks holds: its row's label, a
+// figure of its time, the world icon, or a part of the date.
+func worldTileAt(row int, column int, last int) dashboardTile {
+	switch {
+	case column == 0:
+		return dashboardTile{role: dashboardZoneLabel, pageIndex: 0, zone: row, figure: 0}
+	case column <= clockFigures:
+		return dashboardTile{role: dashboardDigit, pageIndex: 0, zone: row, figure: column - 1}
+	case row == 0 && column == last:
+		return tile(dashboardWorld)
+	case column == last && row <= len(dateParts()):
+		return dashboardTile{role: dashboardDate, pageIndex: 0, zone: localZone, figure: row - 1}
+	default:
+		return tile(dashboardEmpty)
+	}
 }
 
 // pagesRowTile: the regular pages, from the first.
@@ -283,7 +292,7 @@ func (state *loopState) paintDashboard(runContext context.Context) {
 			return
 		}
 
-		if shown.role == dashboardDigit {
+		if ticks(shown) {
 			state.dashboard.drawn[keyIndex] = state.figureOf(shown)
 		}
 	}
@@ -323,12 +332,8 @@ func (state *loopState) dashboardImage(runContext context.Context, shown dashboa
 			Number: state.dashboard.screenOffset/columns + 1, Count: (len(state.screenPages) + columns - 1) / columns,
 			CurrentName: "", PreviousName: "", NextName: "",
 		}, true)
-	case dashboardDigit:
-		return state.clockImage(shown, state.figureOf(shown))
-	case dashboardZoneLabel:
-		return renderer.RenderClockLabel(state.zones[shown.zone].label)
-	case dashboardWorld:
-		return renderer.RenderClockIcon(worldIcon)
+	case dashboardDigit, dashboardZoneLabel, dashboardWorld, dashboardDate:
+		return state.clockKeyImage(shown)
 	case dashboardEmpty, dashboardReserved:
 	}
 
@@ -377,7 +382,7 @@ func (state *loopState) pressDashboard(runContext context.Context, keyIndex int)
 		state.dashboard.screenOffset = ((state.dashboard.screenOffset/columns + step + rows) % rows) * columns
 	case dashboardWorld:
 		state.dashboard.view = dashboardWorldView - state.dashboard.view
-	case dashboardEmpty, dashboardReserved, dashboardDigit, dashboardZoneLabel:
+	case dashboardEmpty, dashboardReserved, dashboardDigit, dashboardZoneLabel, dashboardDate:
 		return
 	}
 

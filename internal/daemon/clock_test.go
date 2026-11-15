@@ -127,3 +127,28 @@ func TestDaemon_WorldIconShowsFourClocks(t *testing.T) {
 		running.stop(t)
 	})
 }
+
+// TestDaemon_WorldClocksShowTheDateDownTheRightColumn: under the world icon,
+// the world clocks' right column shows the local date, YY, MM and DD, a key
+// each, small in its key's top right.
+func TestDaemon_WorldClocksShowTheDateDownTheRightColumn(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		running, device := startDashboardHarness(t, 2)
+
+		holdMarker(device)
+		tap(device, worldKeyIndex)
+
+		now := time.Now()
+		for row, layout := range []string{"06", "01", "02"} {
+			part := now.Format(layout)
+			other := strconv.Itoa((int(part[0]-'0')+1)%10) + part[1:]
+
+			requireCloser(t, device, (row+1)*keysPerRow+worldKeyIndex,
+				running.renderer.RenderClockDate(part), running.renderer.RenderClockDate(other))
+		}
+
+		running.stop(t)
+	})
+}

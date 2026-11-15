@@ -81,10 +81,26 @@ func (state *loopState) startClock(runContext context.Context) chan struct{} {
 	return stop
 }
 
-// figureOf is the figure a clock key shows now: one of HHMMSS, local or in a
-// world clock's zone.
+// dateParts is how the local date is written down the world clocks' right
+// column: YY, MM and DD.
+func dateParts() []string {
+	return []string{"06", "01", "02"}
+}
+
+// ticks reports a key the clock draws again as time passes: a figure of a
+// time, or a part of the date.
+func ticks(tile dashboardTile) bool {
+	return tile.role == dashboardDigit || tile.role == dashboardDate
+}
+
+// figureOf is what a clock key shows now: one figure of HHMMSS, local or in
+// a world clock's zone, or a part of the local date.
 func (state *loopState) figureOf(tile dashboardTile) string {
 	now := time.Now()
+	if tile.role == dashboardDate {
+		return now.Format(dateParts()[tile.figure])
+	}
+
 	if tile.zone >= 0 && tile.zone < len(state.zones) {
 		now = now.In(state.zones[tile.zone].location)
 	}
@@ -103,6 +119,23 @@ func (state *loopState) clockImage(tile dashboardTile, figure string) image.Imag
 	return state.options.Renderer.RenderClockSecondDigit(figure, tile.figure < clockFigures-1)
 }
 
+// clockKeyImage draws a clock key: a figure of a time, a zone's label, the
+// world icon, or a part of the date.
+func (state *loopState) clockKeyImage(tile dashboardTile) image.Image {
+	renderer := state.options.Renderer
+
+	switch tile.role { //nolint:exhaustive // only clock keys are drawn here; a figure is the rest
+	case dashboardZoneLabel:
+		return renderer.RenderClockLabel(state.zones[tile.zone].label)
+	case dashboardWorld:
+		return renderer.RenderClockIcon(worldIcon)
+	case dashboardDate:
+		return renderer.RenderClockDate(state.figureOf(tile))
+	default:
+		return state.clockImage(tile, state.figureOf(tile))
+	}
+}
+
 // figuresPerPair is how many figures each of the hours, minutes and seconds
 // take.
 const figuresPerPair = 2
@@ -114,7 +147,7 @@ func (state *loopState) tickClock(runContext context.Context) {
 	}
 
 	for keyIndex, tile := range state.dashboardTiles() {
-		if tile.role != dashboardDigit {
+		if !ticks(tile) {
 			continue
 		}
 
@@ -123,7 +156,7 @@ func (state *loopState) tickClock(runContext context.Context) {
 			continue
 		}
 
-		writeError := state.connected.SetKeyImage(keyIndex, state.clockImage(tile, figure))
+		writeError := state.connected.SetKeyImage(keyIndex, state.clockKeyImage(tile))
 		if writeError != nil {
 			state.disconnect(runContext, "write failed")
 

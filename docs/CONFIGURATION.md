@@ -67,7 +67,9 @@ each other, with a small colon after the hours and the minutes, so the six keys
 read as 15:31:42. The top right key is a
 world icon, which shows the world clocks: UTC, London (LDN), Berlin (BER) and
 Sao Paulo (SAO), a row each, its label and then its HHMMSS, with the world icon
-kept in the top right to go back to the dashboard. Both tick each second. The
+kept in the top right to go back to the dashboard, and the local date, YY, MM
+and DD, down the right column beneath it, small in each key's top right corner
+in Thyme's date colour. Both tick each second. The
 second row holds your regular pages, each by its number and name,
 the page you came from marked; the third holds the app screens, each by its
 application's icon and name. Pressing a page or screen shows it. With more app

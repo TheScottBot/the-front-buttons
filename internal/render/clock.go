@@ -20,6 +20,11 @@ const (
 	clockBackgroundPacked = 0x12131c
 	clockForegroundPacked = 0xf894f8
 	clockLabelPacked      = 0xd583d7
+	// clockDatePacked is Thyme's date, a clear step dimmer than the time.
+	clockDatePacked = 0xe48be6
+	// clockDateInsetHundredths is how far a date part sits in from its key's
+	// top and right edges.
+	clockDateInsetHundredths = 10
 	// clockIconHundredths is a clock icon's size, as a share of the key.
 	clockIconHundredths = 60
 	// clockFigureWidthHundredths is the share of the key a figure is
@@ -67,6 +72,31 @@ func (renderer *Renderer) RenderClockSecondDigit(figure string, colon bool) imag
 	if colon {
 		drawClockText(key, renderer.faces.clockColon, ":", foreground, figureWidth, renderer.keyPixels, renderer.keyPixels)
 	}
+
+	return key
+}
+
+// RenderClockDate draws a part of a date, such as its year's two figures,
+// small and in the key's top right corner, in Thyme's date colour, so it sits
+// apart from the times beside it.
+func (renderer *Renderer) RenderClockDate(part string) image.Image {
+	if renderer.frame != nil {
+		return renderer.frame.place(renderer.frame.inner.RenderClockDate(part))
+	}
+
+	renderer.mutex.Lock()
+	defer renderer.mutex.Unlock()
+
+	key := renderer.newKey(rgb(clockBackgroundPacked))
+	face := renderer.faces.clockLabel
+	inset := renderer.scaled(clockDateInsetHundredths)
+	ink, _ := font.BoundString(face, part)
+
+	drawer := font.Drawer{
+		Dst: key, Src: image.NewUniform(rgb(clockDatePacked)), Face: face,
+		Dot: fixed.Point26_6{X: fixed.I(renderer.keyPixels-inset) - ink.Max.X, Y: fixed.I(inset) - ink.Min.Y},
+	}
+	drawer.DrawString(part)
 
 	return key
 }

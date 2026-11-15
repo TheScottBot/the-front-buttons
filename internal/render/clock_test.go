@@ -166,3 +166,28 @@ func TestRenderClock_DrawsAPairTogether_WithAColon(t *testing.T) {
 			second.Max.X)
 	}
 }
+
+// TestRenderClock_DrawsADatePartSmallInTheTopRight: a part of a date is
+// drawn in Thyme's date colour, smaller than a figure of the time, and in
+// its key's top right corner, apart from the times.
+func TestRenderClock_DrawsADatePartSmallInTheTopRight(t *testing.T) {
+	t.Parallel()
+
+	renderer := newTestRenderer(t)
+	date := renderer.RenderClockDate("26")
+
+	if !hasColour(date, color.RGBA{R: 0xe4, G: 0x8b, B: 0xe6, A: 0xff}) {
+		t.Error("want the date in Thyme's date colour")
+	}
+
+	ink := inkBounds(date, clockNavy())
+	figure := inkBounds(renderer.RenderClockDigit("2"), clockNavy())
+
+	if ink.Dy() >= figure.Dy()/2 {
+		t.Errorf("want the date well under half a figure's height, %d against %d", ink.Dy(), figure.Dy())
+	}
+
+	if ink.Min.X <= testKeyPixels/2 || ink.Max.Y >= testKeyPixels/2 || ink.Min.Y < 2 || ink.Max.X > testKeyPixels-2 {
+		t.Errorf("want the date in the top right corner, clear of the edges, got %v", ink)
+	}
+}

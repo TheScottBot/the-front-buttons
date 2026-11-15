@@ -4686,6 +4686,17 @@ between them; the seconds' second moves left too, without a colon. The test
 now has a pair one size, the first right of the middle and the second left of
 it.
 
+The author then asked for the world clocks' empty right column to hold the
+date, YY MM DD, noticeably smaller and in the top right of each key, for a
+clear break between the clocks and the date. The local date's year, month and
+day now sit in the three keys under the world icon, drawn small in the key's
+top right corner in Thyme's own date colour, #e48be6, a step dimmer than the
+time, and the clock's tick draws them again when they change, at midnight.
+Tests first, failing before the change: a date part in the date colour, under
+half a figure's height, in the top right clear of the edges; and the world
+clocks' right column showing the local YY, MM and DD. The whole world view
+rendered with the real font read as intended.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
