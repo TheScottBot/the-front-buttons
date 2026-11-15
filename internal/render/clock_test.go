@@ -136,3 +136,30 @@ func distanceBetween(first image.Image, second image.Image) int {
 
 	return differing
 }
+
+// TestRenderClock_DrawsAPairsSecondFigureSmaller_WithAColon: a pair's second
+// figure is drawn smaller than its first, so HH MM SS read as pairs, and with
+// a colon, a small one follows it at the key's right.
+func TestRenderClock_DrawsAPairsSecondFigureSmaller_WithAColon(t *testing.T) {
+	t.Parallel()
+
+	renderer := newTestRenderer(t)
+	first := inkBounds(renderer.RenderClockDigit("5"), clockNavy())
+	plain := renderer.RenderClockSecondDigit("5", false)
+	second := inkBounds(plain, clockNavy())
+
+	if second.Dy() >= first.Dy() {
+		t.Errorf("want the second figure smaller, %d high against %d", second.Dy(), first.Dy())
+	}
+
+	requireCentred(t, "second", plain)
+
+	colon := inkBounds(renderer.RenderClockSecondDigit("5", true), clockNavy())
+	if colon.Max.X <= second.Max.X+testKeyPixels/10 {
+		t.Errorf("want a colon at the right, ink ending at %d against %d without", colon.Max.X, second.Max.X)
+	}
+
+	if colon.Max.X >= testKeyPixels {
+		t.Error("want the colon within the key")
+	}
+}

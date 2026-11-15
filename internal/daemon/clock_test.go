@@ -32,13 +32,23 @@ func requireTime(t *testing.T, running *harness, device *testsupport.DeckDeviceT
 	figures := at.Format("150405")
 	for offset := range len(figures) {
 		drawn := drawnImage(t, device, first+offset)
-		right := running.renderer.RenderClockDigit(figures[offset : offset+1])
-		wrong := running.renderer.RenderClockDigit(otherFigure(figures[offset]))
+		right := figureImage(running, offset, figures[offset:offset+1])
+		wrong := figureImage(running, offset, otherFigure(figures[offset]))
 
 		if distance(drawn, right) >= distance(drawn, wrong) {
 			t.Errorf("key %d: want %s of %s", first+offset, figures[offset:offset+1], figures)
 		}
 	}
+}
+
+// figureImage is how a figure of HHMMSS is drawn at its place: a pair's first
+// large, its second smaller, a colon after the hours' and minutes'.
+func figureImage(running *harness, offset int, figure string) image.Image {
+	if offset%2 == 0 {
+		return running.renderer.RenderClockDigit(figure)
+	}
+
+	return running.renderer.RenderClockSecondDigit(figure, offset < 5)
 }
 
 // requireCloser fails unless a key is drawn closer to one picture than to

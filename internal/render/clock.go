@@ -20,6 +20,9 @@ const (
 	clockLabelPacked      = 0xd583d7
 	// clockIconHundredths is a clock icon's size, as a share of the key.
 	clockIconHundredths = 60
+	// clockSecondWidthHundredths is the share of the key a pair's second
+	// figure is centred in when a colon follows it in the rest.
+	clockSecondWidthHundredths = 76
 )
 
 // RenderClockDigit draws one figure of a time.
@@ -32,6 +35,32 @@ func (renderer *Renderer) RenderClockDigit(figure string) image.Image {
 	defer renderer.mutex.Unlock()
 
 	return renderer.clockText(figure, renderer.faces.clockDigit, rgb(clockForegroundPacked))
+}
+
+// RenderClockSecondDigit draws the second figure of a pair of a time, a
+// little smaller than the first so HH MM SS read as pairs, and with colon a
+// small colon beside it, at the key's right, as between hours and minutes.
+func (renderer *Renderer) RenderClockSecondDigit(figure string, colon bool) image.Image {
+	if renderer.frame != nil {
+		return renderer.frame.place(renderer.frame.inner.RenderClockSecondDigit(figure, colon))
+	}
+
+	renderer.mutex.Lock()
+	defer renderer.mutex.Unlock()
+
+	if !colon {
+		return renderer.clockText(figure, renderer.faces.clockSecond, rgb(clockForegroundPacked))
+	}
+
+	key := renderer.newKey(rgb(clockBackgroundPacked))
+	foreground := rgb(clockForegroundPacked)
+
+	// The figure is centred in the key's left part, the colon in its right.
+	figureWidth := renderer.scaled(clockSecondWidthHundredths)
+	drawClockText(key, renderer.faces.clockSecond, figure, foreground, 0, figureWidth, renderer.keyPixels)
+	drawClockText(key, renderer.faces.clockColon, ":", foreground, figureWidth, renderer.keyPixels, renderer.keyPixels)
+
+	return key
 }
 
 // RenderClockLabel draws a clock's short label, such as a time zone's.
@@ -74,10 +103,18 @@ func (renderer *Renderer) RenderClockIcon(iconName string) image.Image {
 // clockText draws text in the middle of a clock key, both ways, by its ink.
 func (renderer *Renderer) clockText(text string, face font.Face, colour color.RGBA) *image.RGBA {
 	key := renderer.newKey(rgb(clockBackgroundPacked))
-	ink, _ := font.BoundString(face, text)
-	baseline := (fixed.I(renderer.keyPixels) - ink.Min.Y - ink.Max.Y) / centringDivisor
-
-	drawCentredText(key, face, text, colour, baseline.Round())
+	drawClockText(key, face, text, colour, 0, renderer.keyPixels, renderer.keyPixels)
 
 	return key
+}
+
+// drawClockText draws text centred, by its ink, across the columns from left
+// to right and down the key's height.
+func drawClockText(key *image.RGBA, face font.Face, text string, colour color.RGBA, left int, right int, height int) {
+	ink, _ := font.BoundString(face, text)
+	baseline := (fixed.I(height) - ink.Min.Y - ink.Max.Y) / centringDivisor
+	start := (fixed.I(left+right) - ink.Min.X - ink.Max.X) / centringDivisor
+
+	drawer := font.Drawer{Dst: key, Src: image.NewUniform(colour), Face: face, Dot: fixed.Point26_6{X: start, Y: baseline}}
+	drawer.DrawString(text)
 }

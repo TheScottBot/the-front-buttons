@@ -324,7 +324,7 @@ func (state *loopState) dashboardImage(runContext context.Context, shown dashboa
 			CurrentName: "", PreviousName: "", NextName: "",
 		}, true)
 	case dashboardDigit:
-		return renderer.RenderClockDigit(state.figureOf(shown))
+		return state.clockImage(shown, state.figureOf(shown))
 	case dashboardZoneLabel:
 		return renderer.RenderClockLabel(state.zones[shown.zone].label)
 	case dashboardWorld:

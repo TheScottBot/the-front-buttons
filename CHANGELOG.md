@@ -243,7 +243,9 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   key, in the look of Thyme, the author's clock, from its own theme: its pink
   JetBrains Mono figures on its navy. Its world icon shows Thyme's four world
   clocks, UTC, LDN, BER and SAO, a row each, the world icon kept in the top
-  right to go back. Both tick each second.
+  right to go back. Both tick each second. Each pair's second figure is a
+  little smaller, with a small colon after the hours and minutes, so the time
+  reads in pairs.
 - Holding a page marker on the deck for half a second opens the page
   dashboard: the marker in the top left to come back, the rest of the top row
   kept for a clock to come, the regular pages on the second row and the app

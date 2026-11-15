@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"image"
 	"log/slog"
 	"time"
 
@@ -91,6 +92,21 @@ func (state *loopState) figureOf(tile dashboardTile) string {
 	return now.Format(timeFigures)[tile.figure : tile.figure+1]
 }
 
+// clockImage draws a clock key's figure: a pair's first figure large, and its
+// second a little smaller, with a small colon after the hours' and the
+// minutes', so HH MM SS read as pairs.
+func (state *loopState) clockImage(tile dashboardTile, figure string) image.Image {
+	if tile.figure%figuresPerPair == 0 {
+		return state.options.Renderer.RenderClockDigit(figure)
+	}
+
+	return state.options.Renderer.RenderClockSecondDigit(figure, tile.figure < clockFigures-1)
+}
+
+// figuresPerPair is how many figures each of the hours, minutes and seconds
+// take.
+const figuresPerPair = 2
+
 // tickClock draws again the clock keys whose figures changed.
 func (state *loopState) tickClock(runContext context.Context) {
 	if !state.dashboard.open || state.connected == nil {
@@ -107,7 +123,7 @@ func (state *loopState) tickClock(runContext context.Context) {
 			continue
 		}
 
-		writeError := state.connected.SetKeyImage(keyIndex, state.options.Renderer.RenderClockDigit(figure))
+		writeError := state.connected.SetKeyImage(keyIndex, state.clockImage(tile, figure))
 		if writeError != nil {
 			state.disconnect(runContext, "write failed")
 

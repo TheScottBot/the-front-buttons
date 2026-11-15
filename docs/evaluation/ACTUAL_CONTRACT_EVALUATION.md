@@ -4669,6 +4669,15 @@ back. A planted violation, a clock that never ticks, failed a test. A row of
 keys rendered with the real icon font, LDN 1 5 3 1 4 2 and the world icon,
 read as Thyme does.
 
+On the deck the author found six figures in a row hard to read, and asked to
+try each pair's second figure a little smaller with a small colon beside it.
+The second of the hours, minutes and seconds is now drawn smaller, and the
+hours' and minutes' with a small colon at the key's right, the figure centred
+in the rest; the seconds' has none, as nothing follows it. A test has the
+second figure smaller than the first, centred without a colon, and the colon
+at the right within the key with one; a row rendered with the real font read
+as 15:31:42.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);
