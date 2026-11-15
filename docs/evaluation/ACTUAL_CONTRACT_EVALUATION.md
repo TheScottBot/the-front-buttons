@@ -4507,6 +4507,21 @@ place, and Command-Z put it back. A first version drew the pictures at full
 size, as the grids' own tile size outranked a smaller one, and could not save a
 drop, the page carrying no token for the script to send.
 
+### In use
+
+The author asked for finding a key to be a side drawer like Bricks, under it,
+titled In use and saying what it is for. Its search now sits in an aside of its
+own after the brick drawer, with a title, In use, and a line saying what it
+finds and how; without the script it stays on the page, sent with its button,
+and the script makes it a second tab on the window's left edge under Bricks,
+opening into a panel, open already on a page opened from a result. Escape, with
+the drawer open and nothing typed elsewhere, clears the box, then closes it.
+Tests first, failing before the change: the aside, its title and line, after
+Bricks, the form, the script and styles, and the drawer open on a result's
+page. Driven in a browser against the harness: the tab sat under Bricks, / opened the
+panel with the box focused and typing listed the matches, and Escape cleared
+the box, then closed the drawer back to its tab.
+
 ### The deck's page across restarts
 
 The author found every restart and install put the deck back on the first

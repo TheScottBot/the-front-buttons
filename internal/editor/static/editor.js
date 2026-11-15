@@ -1348,6 +1348,7 @@
   }
 
   // internal/editor/web/find.ts
+  var readyClass = "drawer-ready";
   var waitMilliseconds = 200;
   function shownPage() {
     return document.querySelector("table.grid:not(.grid-left-behind) td[data-tile]")?.getAttribute("data-tile")?.split(".")[0] ?? "0";
@@ -1373,13 +1374,28 @@
   }
   function enableFind() {
     const drawer = document.getElementById("find-drawer");
+    const toggle = drawer?.querySelector(".find-toggle") ?? null;
+    const panel = document.getElementById("find-panel");
     const box = document.getElementById("find-box");
-    if (!(drawer instanceof HTMLDetailsElement) || !(box instanceof HTMLInputElement)) {
+    if (drawer === null || toggle === null || panel === null || !(box instanceof HTMLInputElement)) {
       return;
     }
+    const setOpen2 = (open) => {
+      toggle.setAttribute("aria-expanded", String(open));
+      panel.hidden = !open;
+    };
+    drawer.classList.add(readyClass);
+    toggle.hidden = false;
+    setOpen2(toggle.getAttribute("aria-expanded") === "true");
     for (const button of document.querySelectorAll(".find-submit")) {
       button.hidden = true;
     }
+    toggle.addEventListener("click", () => {
+      setOpen2(panel.hidden);
+      if (!panel.hidden) {
+        box.focus();
+      }
+    });
     const found = document.querySelector("table.grid td.found");
     if (found !== null) {
       window.setTimeout(() => found.scrollIntoView({ block: "center" }), 0);
@@ -1390,29 +1406,35 @@
       timer = window.setTimeout(() => void showResults(box.value), waitMilliseconds);
     });
     box.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        const first = document.querySelector("#find-results a");
-        event.preventDefault();
-        first?.click();
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (box.value !== "") {
-          box.value = "";
-          void showResults("");
-        } else {
-          drawer.open = false;
-          drawer.querySelector("summary")?.focus();
-        }
+      if (event.key !== "Enter") {
+        return;
       }
+      event.preventDefault();
+      document.querySelector("#find-results a")?.click();
     });
+    document.addEventListener("keydown", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const typingElsewhere = target !== null && !panel.contains(target) && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      if (event.key !== "Escape" || event.defaultPrevented || panel.hidden || typingElsewhere || document.querySelector("dialog[open]") !== null) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (box.value !== "") {
+        box.value = "";
+        void showResults("");
+      } else {
+        setOpen2(false);
+        toggle.focus();
+      }
+    }, true);
     document.addEventListener("keydown", (event) => {
       const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
       if (event.key !== "/" || typing || event.metaKey || event.ctrlKey || event.altKey || document.querySelector("dialog[open]") !== null) {
         return;
       }
       event.preventDefault();
-      drawer.open = true;
+      setOpen2(true);
       box.focus();
       box.select();
     });

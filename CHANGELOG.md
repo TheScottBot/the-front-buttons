@@ -242,9 +242,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 - All pages, in the editor's sections, draws every page's grid small, side by
   side, to drag keys between any of them, moving, copying, swapping or
   removing, each updating the grids in place.
-- Find a key, a drawer under the editor's grid, lists every key on any page or
-  app screen matching the words typed, as you type, and opens a result's page
-  with the key outlined; / opens it from anywhere but a field.
+- In use, a drawer on the left of the editor under Bricks, finds a key in use:
+  it lists every key on any page or app screen matching the words typed, as
+  you type, and opens a result's page with the key outlined; / opens it from
+  anywhere but a field.
 - The editor's select mode sits in a Select keys drawer under the grid, its
   Edit mode box switching the grid in and out of select mode in place, as do
   Shift and a click, Escape and select mode's own buttons, without loading the

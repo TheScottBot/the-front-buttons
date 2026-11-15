@@ -1167,6 +1167,38 @@ label[for$="-picker"] {
   display: none;
 }
 
+/* The In use drawer: once the script has it, a second tab fixed to the
+   window's left edge, under Bricks, opening into a panel to find keys in
+   use. Without the script its search sits on the page. */
+
+.find-drawer {
+  margin: 1.5rem 0;
+}
+
+.find-drawer.drawer-ready {
+  position: fixed;
+  top: 14.5rem;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.find-panel {
+  width: min(28rem, calc(100vw - 3rem));
+  max-height: calc(100vh - 16.5rem);
+}
+
+.find-drawer:not(.drawer-ready) .find-panel {
+  border-left: 3px solid var(--rule);
+}
+
+.find-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
 .brick-drawer.carrying {
   opacity: 0.35;
   pointer-events: none;

@@ -52,13 +52,14 @@ grids show the deck's pictures and live state, as the pages screen does.
 
 ## Finding a key
 
-**Find a key**, the first drawer under the grid, lists every key on any page
-or app screen whose label, kind, the name its kind is known by, or page holds
-every word typed, case aside, as its page and tile. The list follows the box as
-you type. Choose one, or press Enter for the first, and its page opens with the
-key outlined and brought into view. Press / anywhere but a field to open the
-drawer with the box ready; Escape clears the box, then closes the drawer.
-Without the script, the Find button sends the search.
+The **In use** tab, on the left under Bricks, opens a drawer to find a key in
+use. It lists every key on any page or app screen whose label, kind, the name
+its kind is known by, or page holds every word typed, case aside, as its page
+and tile, and the list follows the box as you type. Choose one, or press Enter
+for the first, and its page opens with the key outlined and brought into view,
+the drawer still open. Press / anywhere but a field to open it with the box
+ready; Escape clears the box, then closes the drawer. Without the script the
+search sits on the page, sent with its Find button.
 
 ## Page maintenance and the shortcuts
 

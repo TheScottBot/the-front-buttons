@@ -1,10 +1,13 @@
-// Find a key as one types: the drawer's search form works without the
-// script, sent with its button. With it, the results follow the box as it is
-// typed in, fetched as the server lists them, without loading the page; Enter
-// opens the first, and the page it opens brings the key found into view;
-// Escape clears the box, or empty, closes the drawer; and / anywhere but a
-// field opens the drawer with the box ready.
+// The In use drawer: finding a key in use on any page. Without the script it
+// is a plain search form on the page, sent with its button. The script makes
+// it a tab on the window's left edge under Bricks, opening into a panel whose
+// results follow the box as it is typed in, fetched as the server lists them,
+// without loading the page. Enter opens the first, and the page it opens
+// brings the key found into view with the drawer still open; Escape clears
+// the box, or empty, closes the drawer; and / anywhere but a field opens it
+// with the box ready.
 
+const readyClass = "drawer-ready";
 const waitMilliseconds = 200;
 
 function shownPage(): string {
@@ -39,14 +42,33 @@ async function showResults(search: string): Promise<void> {
 
 export function enableFind(): void {
   const drawer = document.getElementById("find-drawer");
+  const toggle = drawer?.querySelector<HTMLButtonElement>(".find-toggle") ?? null;
+  const panel = document.getElementById("find-panel");
   const box = document.getElementById("find-box");
-  if (!(drawer instanceof HTMLDetailsElement) || !(box instanceof HTMLInputElement)) {
+  if (drawer === null || toggle === null || panel === null || !(box instanceof HTMLInputElement)) {
     return;
   }
+
+  const setOpen = (open: boolean): void => {
+    toggle.setAttribute("aria-expanded", String(open));
+    panel.hidden = !open;
+  };
+
+  drawer.classList.add(readyClass);
+  toggle.hidden = false;
+  setOpen(toggle.getAttribute("aria-expanded") === "true");
 
   for (const button of document.querySelectorAll<HTMLElement>(".find-submit")) {
     button.hidden = true;
   }
+
+  toggle.addEventListener("click", () => {
+    setOpen(panel.hidden);
+
+    if (!panel.hidden) {
+      box.focus();
+    }
+  });
 
   // A page opened from a result brings the key found into view, after the
   // grid has been put back where it was.
@@ -63,23 +85,37 @@ export function enableFind(): void {
   });
 
   box.addEventListener("keydown", (event: KeyboardEvent) => {
-    if (event.key === "Enter") {
-      const first = document.querySelector<HTMLAnchorElement>("#find-results a");
-      event.preventDefault();
-      first?.click();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (box.value !== "") {
-        box.value = "";
-        void showResults("");
-      } else {
-        drawer.open = false;
-        drawer.querySelector("summary")?.focus();
-      }
+    if (event.key !== "Enter") {
+      return;
     }
+
+    event.preventDefault();
+    document.querySelector<HTMLAnchorElement>("#find-results a")?.click();
   });
+
+  // Escape, while the drawer is open and nothing is being typed elsewhere,
+  // clears the box first, then closes the drawer.
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const typingElsewhere = target !== null && !panel.contains(target) &&
+      target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+
+    if (event.key !== "Escape" || event.defaultPrevented || panel.hidden || typingElsewhere ||
+      document.querySelector("dialog[open]") !== null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (box.value !== "") {
+      box.value = "";
+      void showResults("");
+    } else {
+      setOpen(false);
+      toggle.focus();
+    }
+  }, true);
 
   document.addEventListener("keydown", (event: KeyboardEvent) => {
     const typing = event.target instanceof HTMLElement &&
@@ -91,7 +127,7 @@ export function enableFind(): void {
     }
 
     event.preventDefault();
-    drawer.open = true;
+    setOpen(true);
     box.focus();
     box.select();
   });

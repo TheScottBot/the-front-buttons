@@ -25,20 +25,6 @@
 <caption>{{if .ScreenTitle}}{{.ScreenCaption}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. {{if .Selecting}}Tick the keys to copy, move or remove.{{else}}Choose a key to edit it.{{end}}</caption>
 {{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}"{{if .Found}} class="found"{{end}}>{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</label></span><label class="select-hit" for="tile-{{.SelectID}}" aria-hidden="true" draggable="true"></label>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
-<details class="maintenance find-drawer" id="find-drawer"{{if .Find}} open{{end}}>
-<summary>Find a key</summary>
-<div class="maintenance-body">
-<form method="get" action="/page" class="find-form" role="search">
-<input type="hidden" name="page" value="{{.PageIndex}}">
-<label for="find-box">Words to find on any page</label>
-<input type="search" id="find-box" name="find" value="{{.Find}}" autocomplete="off" spellcheck="false">
-<button type="submit" class="find-submit">Find</button>
-</form>
-<div id="find-results" role="status">{{if .Find}}{{if .FindResults}}<ul class="find-results">{{range .FindResults}}
-<li><a href="{{.Href}}">{{.Label}}</a></li>{{end}}
-</ul>{{else}}<p>No keys match.</p>{{end}}{{end}}</div>
-</div>
-</details>
 <details class="maintenance select-drawer" id="select-drawer"{{if .Selecting}} open{{end}}>
 <summary>Select keys</summary>
 <div class="maintenance-body">
@@ -101,6 +87,22 @@
 </ul>
 </details>
 {{end}}</div>
+</aside>
+<aside id="find-drawer" class="find-drawer" aria-label="In use">
+<button type="button" class="drawer-toggle find-toggle" aria-expanded="{{if .Find}}true{{else}}false{{end}}" aria-controls="find-panel" hidden>In use</button>
+<div id="find-panel" class="drawer-panel find-panel">
+<h2 class="find-title">In use</h2>
+<p class="help">Every key in use, on any page or app screen. Type words from a key's label, its kind or its page's name to find it, and choose one to open its page with the key marked.</p>
+<form method="get" action="/page" class="find-form" role="search">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<label for="find-box">Words to find</label>
+<input type="search" id="find-box" name="find" value="{{.Find}}" autocomplete="off" spellcheck="false">
+<button type="submit" class="find-submit">Find</button>
+</form>
+<div id="find-results" role="status">{{if .Find}}{{if .FindResults}}<ul class="find-results">{{range .FindResults}}
+<li><a href="{{.Href}}">{{.Label}}</a></li>{{end}}
+</ul>{{else}}<p>No keys match.</p>{{end}}{{end}}</div>
+</div>
 </aside>
 {{end}}<details class="maintenance" id="page-maintenance"{{if not .HasPage}} open{{end}}>
 <summary>Page maintenance</summary>
@@ -186,7 +188,7 @@
 <tr><th scope="row">Rename, move, copy or delete the page, or add one</th><td>Open Page maintenance, under the grid</td></tr>
 <tr><th scope="row">Close a drawer or this sheet</th><td>Escape</td></tr>
 <tr><th scope="row">Move keys between any pages at once</th><td>All pages, in the editor's sections</td></tr>
-<tr><th scope="row">Find a key on any page</th><td>/, then type; Enter opens the first found</td></tr>
+<tr><th scope="row">Find a key on any page</th><td>/ opens In use; type, and Enter opens the first found</td></tr>
 <tr><th scope="row">See these</th><td>?</td></tr>
 </tbody>
 </table>

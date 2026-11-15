@@ -43,7 +43,7 @@ func TestEditor_FindsKeysOnEveryPage(t *testing.T) {
 }
 
 // TestEditor_MarksTheKeyFound: a page opened from a result marks the key
-// found, and keeps the search open with its results.
+// found, and keeps the In use drawer open with its results.
 func TestEditor_MarksTheKeyFound(t *testing.T) {
 	t.Parallel()
 
@@ -51,7 +51,7 @@ func TestEditor_MarksTheKeyFound(t *testing.T) {
 
 	for _, want := range []string{
 		`<td data-tile="0.0.2" data-state="key" class="found">`,
-		`<details class="maintenance find-drawer" id="find-drawer" open>`,
+		`<button type="button" class="drawer-toggle find-toggle" aria-expanded="true" aria-controls="find-panel" hidden>`,
 		`<input type="search" id="find-box" name="find" value="paste" autocomplete="off" spellcheck="false">`,
 	} {
 		if !strings.Contains(body, want) {
@@ -64,20 +64,25 @@ func TestEditor_MarksTheKeyFound(t *testing.T) {
 	}
 }
 
-// TestEditor_FindDrawerWorksWithoutTheScript: Find a key is a plain search
-// form, closed with no search, sent with its button; the script hides the
-// button, searches as one types, and opens it on /.
-func TestEditor_FindDrawerWorksWithoutTheScript(t *testing.T) {
+// TestEditor_InUseIsASideDrawerUnderBricks: finding a key sits in a side
+// drawer titled In use, after the Bricks drawer, saying what it is; without
+// the script its search form is on the page, sent with its button, and the
+// script makes it a tab on the left edge under Bricks, searching as one
+// types and opening on /.
+func TestEditor_InUseIsASideDrawerUnderBricks(t *testing.T) {
 	t.Parallel()
 
 	harness := newCopyKeysHarness(t)
 	body := harness.get(t, "/page?page=0").Body.String()
 
 	for _, want := range []string{
-		`<details class="maintenance find-drawer" id="find-drawer">`,
-		`<summary>Find a key</summary>`,
+		`<aside id="find-drawer" class="find-drawer" aria-label="In use">`,
+		`<button type="button" class="drawer-toggle find-toggle" aria-expanded="false" aria-controls="find-panel" hidden>` +
+			`In use</button>`,
+		`<h2 class="find-title">In use</h2>`,
+		`<p class="help">Every key in use, on any page or app screen.`,
 		`<form method="get" action="/page" class="find-form" role="search">`,
-		`<label for="find-box">Words to find on any page</label>`,
+		`<label for="find-box">Words to find</label>`,
 		`<button type="submit" class="find-submit">Find</button>`,
 	} {
 		if !strings.Contains(body, want) {
@@ -85,19 +90,22 @@ func TestEditor_FindDrawerWorksWithoutTheScript(t *testing.T) {
 		}
 	}
 
-	if strings.Index(body, `id="find-drawer"`) > strings.Index(body, `id="select-drawer"`) {
-		t.Error("want Find a key first of the drawers")
+	if strings.Index(body, `id="find-drawer"`) < strings.Index(body, `id="brick-drawer"`) {
+		t.Error("want In use after Bricks")
 	}
 
 	script := harness.get(t, "/static/editor.js").Body.String()
-	for _, want := range []string{"find-box", "find-results", `event.key !== "/"`} {
+	for _, want := range []string{"find-box", "find-results", "find-panel", `event.key !== "/"`} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script: want %s", want)
 		}
 	}
 
-	if !strings.Contains(harness.get(t, "/static/editor.css").Body.String(), ".grid td.found {") {
-		t.Error("stylesheet: want the key found marked")
+	stylesheet := harness.get(t, "/static/editor.css").Body.String()
+	for _, want := range []string{".grid td.found {", ".find-drawer.drawer-ready {"} {
+		if !strings.Contains(stylesheet, want) {
+			t.Errorf("stylesheet: want %s", want)
+		}
 	}
 }
 
