@@ -115,6 +115,8 @@ func (pages *pageHandlers) base(title string, request *http.Request, problems []
 		message = movedMessage
 	case reorderedQuery:
 		message = reorderedMessage
+	case colouredQuery:
+		message = colouredMessage
 	case undoneQuery:
 		message = undoneMessage
 	case redoneQuery:

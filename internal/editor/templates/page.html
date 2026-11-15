@@ -39,6 +39,13 @@
 <p class="help">Each key goes on the same tile it is on here; moving also takes it off this page. If any would land on a key, on any page ticked, nothing is copied or moved and every such tile is named.</p>
 <button type="submit" formaction="/keys/remove" formnovalidate>Remove the ticked keys</button>
 <p class="help">Removing needs no page ticked. Undo puts the keys back.</p>
+<div class="field select-colour">
+<label for="select-colour">Background colour</label>
+<input type="color" id="select-colour" name="background" value="#000000">
+</div>
+<button type="submit" formaction="/keys/colour" formnovalidate>Colour the ticked keys</button>
+<button type="submit" formaction="/keys/colour" formnovalidate name="clear" value="1">Clear their colour</button>
+<p class="help">Colouring needs no page ticked; each ticked key takes the colour as its background, or with Clear their colour goes back to the usual.</p>
 <p><a href="/page?page={{.PageIndex}}" class="select-done">Done selecting</a><span class="select-help" hidden>, or press Escape</span></p>
 </form>
 {{else}}<p class="select-link"><a href="/page?page={{.PageIndex}}&amp;select=1">Select keys to copy, move or remove</a></p>
@@ -84,6 +91,7 @@
 <input id="rename-name" name="name" type="text" value="{{.PageName}}" required minlength="1" maxlength="24">
 <button type="submit">Rename</button>
 </form>
+<p class="help rename-help" hidden>Or double-click the page's name in the list.</p>
 {{if gt (len .ReorderPlaces) 1}}<form method="post" action="/page/reorder" class="inline">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">

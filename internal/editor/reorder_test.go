@@ -158,3 +158,28 @@ func TestEditor_ScriptReordersPagesByDraggingTheirNames(t *testing.T) {
 		t.Error("want the drag hint to say pages can be reordered")
 	}
 }
+
+// TestEditor_ScriptRenamesAPageInTheList: the script turns the page on
+// show's name into a text box on a double-click, saving through the same
+// rename route, and its hint, hidden without the script, sits by the form.
+func TestEditor_ScriptRenamesAPageInTheList(t *testing.T) {
+	t.Parallel()
+
+	harness := newCopyKeysHarness(t)
+
+	script := harness.get(t, "/static/editor.js").Body.String()
+	for _, want := range []string{"dblclick", "/page/rename", "rename-input"} {
+		if !strings.Contains(script, want) {
+			t.Errorf("script: want %s", want)
+		}
+	}
+
+	if !strings.Contains(harness.get(t, firstPagePath).Body.String(),
+		`<p class="help rename-help" hidden>Or double-click the page's name in the list.</p>`) {
+		t.Error("want the rename hint hidden until the script shows it")
+	}
+
+	if !strings.Contains(harness.get(t, "/static/editor.css").Body.String(), ".pages input.rename-input {") {
+		t.Error("stylesheet: want the rename box styled as a page's tag")
+	}
+}

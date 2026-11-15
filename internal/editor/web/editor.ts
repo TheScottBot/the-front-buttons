@@ -15,6 +15,7 @@ import { enablePlatformSwitch } from "./platform";
 import { enablePageReorder } from "./pagedrag";
 import { enablePickers } from "./picker";
 import { enableReplacements } from "./replaces";
+import { enableRenamePage } from "./renamepage";
 import { enableRenderToggle } from "./render";
 import { enableSelecting } from "./select";
 import { enableSliders } from "./slider";
@@ -29,6 +30,7 @@ enableThemeToggle(document);
 enableRenderToggle(document);
 enableLive(document);
 enablePageReorder(document);
+enableRenamePage(document);
 
 const grid = document.querySelector<HTMLTableElement>("table.grid");
 

@@ -236,6 +236,10 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- The editor's select mode colours the ticked keys' background, or clears it,
+  at once; a preset key keeps the colour in its preset's fields.
+- Double-clicking the name of the page on show in the editor's page list
+  renames it in place.
 - Undo and Redo in the editor, beside the Render like deck switch, and
   Command-Z and Shift-Command-Z, Ctrl on Windows, undo and redo any of the last
   20 changes made in the editor, refusing if the file has since been changed

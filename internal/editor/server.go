@@ -161,6 +161,7 @@ func NewHandler(options Options) http.Handler {
 	mux.HandleFunc("POST /keys/copy", pages.copyTickedKeys)
 	mux.HandleFunc("POST /keys/move", pages.moveTickedKeys)
 	mux.HandleFunc("POST /keys/remove", pages.removeTickedKeys)
+	mux.HandleFunc("POST /keys/colour", pages.colourTickedKeys)
 	mux.HandleFunc("GET /key", pages.showKey)
 	mux.HandleFunc("POST /key", pages.saveKey)
 	mux.HandleFunc("POST /key/delete", pages.deleteKey)

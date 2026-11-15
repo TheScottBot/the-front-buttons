@@ -381,3 +381,27 @@ func TestDeriveSchema_ReadsACheckBoxsPlatformLabels(t *testing.T) {
 		t.Fatalf("want the Mac and Windows labels, got %+v", field)
 	}
 }
+
+// TestSchemaClear_EmptiesAnOptionalField: an optional field can be emptied,
+// as clearing a key's colour does, but a required one cannot.
+func TestSchemaClear_EmptiesAnOptionalField(t *testing.T) {
+	t.Parallel()
+
+	schema, deriveError := brick.DeriveSchemaOfType(reflect.TypeFor[requiredAndOptional]())
+	if deriveError != nil {
+		t.Fatal(deriveError)
+	}
+
+	parameters := &requiredAndOptional{Name: "kept", Note: "gone"}
+	note, _ := schema.Field("note")
+	name, _ := schema.Field("name")
+
+	clearError := schema.Clear(parameters, note)
+	if clearError != nil || parameters.Note != "" {
+		t.Fatalf("want the optional field emptied, got %q (%v)", parameters.Note, clearError)
+	}
+
+	if schema.Clear(parameters, name) == nil || parameters.Name != "kept" {
+		t.Fatal("want a required field refused and left alone")
+	}
+}

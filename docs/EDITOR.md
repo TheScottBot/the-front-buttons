@@ -98,6 +98,13 @@ cannot take focus, and Enter opens one. Delete, or Backspace, removes the key
 on a tile, and the page offers Undo to put it back. In select mode Space ticks
 the key focused.
 
+## Renaming a page
+
+Double-click the name of the page you are on in the page list to rename it in
+place: Enter saves, and Escape or clicking away leaves it as it was. A single
+click on that name does nothing, as the page is already open. **Rename this
+page**, under the grid, does the same from the keyboard.
+
 ## Reordering pages
 
 Drag a page's name along the page list and it moves as you go, the other
@@ -123,6 +130,8 @@ screen to put them on, and choose **Copy the ticked keys**. Each key lands on
 the same tile it is on, on every page ticked. **Move the ticked keys** does the
 same and takes them off the page they came from. **Remove the ticked keys**
 needs no page ticked; the page then offers Undo, which puts every one back.
+**Colour the ticked keys** gives each the background colour chosen above it,
+and **Clear their colour** takes it off again; neither needs a page ticked.
 
 In select mode, drag a key to carry every ticked key with it, ticking it if
 it was not. Drop it on a free tile and each key shifts as far as the one

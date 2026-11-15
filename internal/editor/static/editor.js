@@ -1553,6 +1553,68 @@
     });
   }
 
+  // internal/editor/web/renamepage.ts
+  var pageAttribute3 = "data-page";
+  var inputClass = "rename-input";
+  var maximumName = 24;
+  function currentLink(target) {
+    const link = target instanceof Element ? target.closest(`nav a[${pageAttribute3}][aria-current="page"]`) : null;
+    return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute3) ?? "") ? link : null;
+  }
+  function startRenaming(link) {
+    const box = document.createElement("input");
+    box.type = "text";
+    box.className = inputClass;
+    box.value = link.textContent ?? "";
+    box.maxLength = maximumName;
+    box.setAttribute("aria-label", `Rename page ${link.textContent ?? ""}`);
+    let finished = false;
+    const finish = (save2) => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      const name = box.value.trim();
+      box.remove();
+      link.hidden = false;
+      if (save2 && name !== "" && name !== link.textContent) {
+        link.textContent = name;
+        void send("/page/rename", { page: link.getAttribute(pageAttribute3) ?? "", name });
+      } else {
+        link.focus();
+      }
+    };
+    box.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        finish(event.key === "Enter");
+      }
+    });
+    box.addEventListener("blur", () => finish(false));
+    link.hidden = true;
+    link.after(box);
+    box.focus();
+    box.select();
+  }
+  function enableRenamePage(root) {
+    root.addEventListener("click", (event) => {
+      if (currentLink(event.target) !== null && event.button === 0 && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+      }
+    });
+    root.addEventListener("dblclick", (event) => {
+      const link = currentLink(event.target);
+      if (link !== null) {
+        event.preventDefault();
+        startRenaming(link);
+      }
+    });
+    for (const hint of root.querySelectorAll(".rename-help")) {
+      hint.hidden = false;
+    }
+  }
+
   // internal/editor/web/render.ts
   var oneYearSeconds = 60 * 60 * 24 * 365;
   function enableRenderToggle(page) {
@@ -1668,6 +1730,7 @@
   enableRenderToggle(document);
   enableLive(document);
   enablePageReorder(document);
+  enableRenamePage(document);
   var grid = document.querySelector("table.grid");
   if (grid !== null) {
     enableSelecting(grid);

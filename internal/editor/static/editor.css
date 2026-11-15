@@ -1419,6 +1419,23 @@ header .theme-switch {
   }
 }
 
+/* A page's name being renamed in the list: a text box the size of its tag. */
+
+.pages a[hidden] {
+  display: none;
+}
+
+.pages input.rename-input {
+  box-sizing: border-box;
+  width: 14ch;
+  padding: 0.3rem 0.8rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--field);
+  border: 3px solid var(--rule);
+}
+
 /* A page's name carried to reorder the pages moves along the list as it is
    carried, faded where it would land, while the others slide aside. The list
    is the names' offset parent, so the script reads where each sits. */

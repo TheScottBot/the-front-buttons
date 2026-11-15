@@ -4365,6 +4365,31 @@ kept after a new change, each failed a test. Driven in a browser against the
 harness: a swap, Command-Z and Shift-Command-Z each updated the grid in place,
 the buttons turning on and off, and the Undo button did the same.
 
+### Colouring ticked keys, and renaming a page in place
+
+Select mode's form gains a colour and two buttons, Colour the ticked keys and
+Clear their colour, posting to /keys/colour behind the editor's guard. Each
+ticked key's background is set through its kind's schema, so a colour not
+written #RRGGBB is refused like any other, and a preset key's colour is set in
+its preset's fields too, which is what the file records. Clearing needs the
+schema to empty an optional field, which it now can, refusing a required one.
+The page on show's name in the page list turns into a text box on a
+double-click, saving through the same rename route on Enter and putting the
+name back on Escape or leaving the box; a single click on it no longer reloads
+the page between the two clicks, which would otherwise have swallowed the
+double-click.
+
+Tests first, failing before the change: two ticked keys coloured and one
+cleared; a preset key coloured in its fields and parameters; a colour not
+written #RRGGBB and nothing ticked each refused, changing nothing; the select
+form's colour and buttons; the schema emptying an optional field and refusing a
+required one; and the script and hint for renaming. A planted violation, a
+preset key's fields left alone, failed a test. Driven in a browser against the
+harness: two ticked keys coloured green showed so on the grid; a real
+double-click on One gave a text box in place of its tag, and typing Main and
+Enter renamed it; Escape left it as it was. A first version left the name
+showing beside the box, as the page list's own style overrode hiding it.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

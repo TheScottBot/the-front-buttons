@@ -161,3 +161,8 @@ type platformLabelOnText struct {
 type macLabelAlone struct {
 	Command bool `brick:"command" mac:"Command" description:"A Mac label with no Windows one."`
 }
+
+type requiredAndOptional struct {
+	Name string `brick:"name,required" description:"Must be given."`
+	Note string `brick:"note"          description:"May be left out."`
+}

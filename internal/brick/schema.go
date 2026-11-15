@@ -517,6 +517,23 @@ func (schema Schema) Assign(parameters any, field Field, value any) error {
 	return nil
 }
 
+// Clear empties an optional field, as a key's colour is cleared; a required
+// field is refused, as it must always have a value.
+func (schema Schema) Clear(parameters any, field Field) error {
+	if field.Required {
+		return &FieldError{Field: field.Name, Reason: ReasonMissing, Detail: "is required, so cannot be cleared"}
+	}
+
+	target, targetError := schema.fieldTarget(parameters, field)
+	if targetError != nil {
+		return targetError
+	}
+
+	target.SetZero()
+
+	return nil
+}
+
 // Read returns a field's value from the parameters, in the same Go type
 // ValidateValue accepts.
 func (schema Schema) Read(parameters any, field Field) any {
