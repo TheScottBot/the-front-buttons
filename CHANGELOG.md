@@ -236,6 +236,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- A key held down on the deck is drawn pressed, dimmed and a little smaller,
+  until it is let go, whatever it does. A page marker or an app key held
+  towards its dashboard or screen shows a pink bar filling along its bottom
+  from a moment in. A Triple press to close key shows three dots top left,
+  one filled for each press made, until the next is no longer awaited.
 - The world clocks can be set in the configuration file, `world_clocks`: one
   to four, each a label of up to four letters or digits and a zone from the
   zone database, checked as the file loads. Left out, they are UTC, London,

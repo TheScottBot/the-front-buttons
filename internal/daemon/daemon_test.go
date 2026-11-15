@@ -163,6 +163,7 @@ func startHarness(t *testing.T) *harness {
 		Ports: brick.Ports{
 			URLOpener:           nil,
 			ApplicationLauncher: testsupport.ApplicationLauncherTestDouble{Recorder: running.launches},
+			ApplicationQuitter:  testsupport.ApplicationQuitterTestDouble{Recorder: running.launches},
 			PipelineProvider:    nil,
 		},
 		Logger:          slog.New(slog.NewJSONHandler(logs, nil)),
@@ -442,8 +443,10 @@ func TestDaemon_RedrawsAKeyInError_WhenItsPressFails(t *testing.T) {
 
 		tap(device, 1)
 
-		if drawnAfter := device.DrawnKeys()[1]; drawnAfter != drawnBefore+1 {
-			t.Fatalf("want key 1 redrawn once in its error state, drawn %d then %d", drawnBefore, drawnAfter)
+		// Drawn pressed as it goes down, in its error state while still down,
+		// and in its error state as it is let go.
+		if drawnAfter := device.DrawnKeys()[1]; drawnAfter != drawnBefore+3 {
+			t.Fatalf("want key 1 redrawn pressed, in error, and let go, drawn %d then %d", drawnBefore, drawnAfter)
 		}
 
 		if !strings.Contains(running.logs.String(), `"reason":"failed"`) {

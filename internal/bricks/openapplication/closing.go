@@ -8,6 +8,7 @@ import (
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
+	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
 // The timings of a triple press: each press comes within pressGap of the one
@@ -59,6 +60,21 @@ func (key *closing) Press(pressContext context.Context) error {
 	}
 
 	return nil
+}
+
+// PressCount says how many of the three presses have been made and until when
+// the next is awaited: none before a press, once the gap has passed, or after
+// the quit.
+func (key *closing) PressCount(now time.Time) (render.PressCount, time.Time) {
+	key.mutex.Lock()
+	defer key.mutex.Unlock()
+
+	until := key.lastPress.Add(pressGap)
+	if key.presses == 0 || !now.Before(until) {
+		return render.PressCount{Done: 0, Of: pressesToClose}, time.Time{}
+	}
+
+	return render.PressCount{Done: key.presses, Of: pressesToClose}, until
 }
 
 // count notes a press at now and returns its place in the run of quick

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"image"
 	"log/slog"
+	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/brick"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
@@ -36,10 +37,7 @@ func (state *loopState) repaintAll(runContext context.Context) {
 	state.slots = state.arrangeCurrentPage(runContext)
 
 	for keyIndex, slot := range state.slots {
-		writeError := state.connected.SetKeyImage(keyIndex, state.imageFor(runContext, slot))
-		if writeError != nil {
-			state.disconnect(runContext, "write failed")
-
+		if !state.writeKey(runContext, keyIndex, state.imageFor(runContext, slot)) {
 			return
 		}
 	}
@@ -87,12 +85,7 @@ func (state *loopState) repaintKey(runContext context.Context, position layout.P
 		return
 	}
 
-	keyImage := state.options.Renderer.Render(state.appearanceFor(runContext, configured))
-
-	writeError := state.connected.SetKeyImage(keyIndex, keyImage)
-	if writeError != nil {
-		state.disconnect(runContext, "write failed")
-	}
+	state.writeKey(runContext, keyIndex, state.options.Renderer.Render(state.appearanceFor(runContext, configured)))
 }
 
 func (state *loopState) imageFor(runContext context.Context, slot layout.Slot) image.Image {
@@ -168,6 +161,10 @@ func (state *loopState) appearanceFor(runContext context.Context, configured con
 
 	state.drawLive(configured, &appearance)
 	appearance.Badge = state.badgeFor(configured)
+
+	if counter, counts := configured.instance.(brick.PressCounter); counts {
+		appearance.Presses, _ = counter.PressCount(time.Now())
+	}
 
 	return appearance
 }

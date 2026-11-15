@@ -37,6 +37,10 @@ pages:
           label: Build
 ```
 
+A key held down on the deck is drawn pressed, dimmed and a little smaller,
+until it is let go, so every press is seen whether or not it changes anything
+else.
+
 Rows count from 0 at the top and columns from 0 at the left, on the XL's 4 by 8
 grid. Row 3, columns 0 and 7 are the navigation keys and cannot be assigned. A
 key names exactly one of `kind` with `parameters`, or `preset` with `fields`.
@@ -47,7 +51,8 @@ the editor rewrites the file and drops hand written comments.
 
 An app screen is a page of one application's keys. Tick App screen on an
 `open_application` key: a tap still just opens the application, and holding the
-key for half a second opens it and shows that page as well. The editor creates
+key for half a second opens it and shows that page as well; a pink bar fills
+along the key's bottom as the half second passes. The editor creates
 the page the first time. The application's
 icon is top left on its screen, and pressing it goes back to the regular page.
 Paging never reaches an app screen, and back and forward leave one.
@@ -59,7 +64,7 @@ between the application's screens, wrapping round, and their tiles show which
 screen it is, such as 1/2. With a single screen they leave it, as before.
 
 Holding a `page_marker` key for half a second opens the page dashboard on the
-deck, in place of the page. Its top left key is the marker you held, and
+deck, in place of the page, with the same bar filling towards it. Its top left key is the marker you held, and
 pressing it goes back to the page. The next six keys of the top row show the
 local time as HHMMSS, a figure to a key, in the look of Thyme, the author's
 clock: its pink JetBrains Mono figures on its navy. Each pair is drawn towards
@@ -125,7 +130,9 @@ Tick Triple press to close on an `open_application` key,
 quickly quits its application outright, as its own Quit command does, rather
 than closing its window. The first press still opens the application, the
 second does nothing, and each must come within half a second of the one
-before. After the quit the key does nothing until it has been left alone for
+before. Three dots top left on the key show the count, one filled for each
+press made, until the next press is no longer awaited. After the quit the key
+does nothing until it has been left alone for
 a second and a half, so a fourth press does not open the application again.
 An application with unsaved work may still ask about it before it quits. Not
 available on Windows yet.

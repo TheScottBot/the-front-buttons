@@ -316,3 +316,49 @@ func TestOpenApplication_RefusesToConstructWithoutAQuitter_WhenClosingIsTicked(t
 		}
 	}
 }
+
+// TestOpenApplication_SaysHowFarATriplePressHasGone: with the box ticked,
+// the key says how many of the three presses have been made, and until when
+// the next must come; it says none before a press, once the gap has passed,
+// and after the quit. Unticked, it counts nothing.
+func TestOpenApplication_SaysHowFarATriplePressHasGone(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		recorder := testsupport.NewLaunchRecorder()
+		key := constructClosing(t, recorder, true)
+
+		counter, counts := key.(brick.PressCounter)
+		if !counts {
+			t.Fatal("want a ticked key to count its presses")
+		}
+
+		requireCount := func(when string, want int) {
+			t.Helper()
+
+			count, _ := counter.PressCount(time.Now())
+			if count.Done != want || (want > 0 && count.Of != 3) {
+				t.Errorf("%s: want %d of 3, got %+v", when, want, count)
+			}
+		}
+
+		requireCount("before a press", 0)
+		pressAt(t, key, 0)
+		requireCount("after the first", 1)
+
+		if _, until := counter.PressCount(time.Now()); !until.Equal(time.Now().Add(500 * time.Millisecond)) {
+			t.Errorf("want the next press awaited for half a second, until %v", until)
+		}
+
+		pressAt(t, key, 200*time.Millisecond)
+		requireCount("after the second", 2)
+		time.Sleep(600 * time.Millisecond)
+		requireCount("once the gap has passed", 0)
+		pressAt(t, key, 0, 100*time.Millisecond, 100*time.Millisecond)
+		requireCount("after the quit", 0)
+
+		if _, untickedCounts := constructClosing(t, recorder, false).(brick.PressCounter); untickedCounts {
+			t.Error("want an unticked key to count nothing")
+		}
+	})
+}

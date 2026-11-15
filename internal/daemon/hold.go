@@ -22,6 +22,8 @@ type pendingHold struct {
 	brickIndex              int
 	configurationGeneration int
 	token                   int
+	// started is when the key went down, for the bar drawn towards the hold.
+	started time.Time
 }
 
 // holdEvent says an app key has been held for holdThreshold.
@@ -58,15 +60,27 @@ func (state *loopState) startHold(runContext context.Context, keyIndex int, page
 	token := state.holds.tokens
 	state.holds.pending[keyIndex] = pendingHold{
 		pageIndex: pageIndex, brickIndex: brickIndex,
-		configurationGeneration: state.configurationGeneration, token: token,
+		configurationGeneration: state.configurationGeneration, token: token, started: time.Now(),
 	}
 	deckGeneration := state.deckGeneration
 
 	go func() {
-		select {
-		case <-time.After(holdThreshold):
-			state.send(runContext, holdEvent{deckGeneration: deckGeneration, keyIndex: keyIndex, token: token})
-		case <-runContext.Done():
+		ticker := time.NewTicker(holdBarStep)
+		defer ticker.Stop()
+
+		reached := time.After(holdThreshold)
+
+		for {
+			select {
+			case <-ticker.C:
+				state.send(runContext, holdTickEvent{deckGeneration: deckGeneration, keyIndex: keyIndex, token: token})
+			case <-reached:
+				state.send(runContext, holdEvent{deckGeneration: deckGeneration, keyIndex: keyIndex, token: token})
+
+				return
+			case <-runContext.Done():
+				return
+			}
 		}
 	}()
 }

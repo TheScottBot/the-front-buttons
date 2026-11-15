@@ -4784,6 +4784,49 @@ clone sharing the list, an encoder without the clocks, the old row loop, a
 reload keeping the old zones, a clone dropping the clocks, and a five letter
 label failed the matching test.
 
+### Seeing a press
+
+The author asked for three things on the deck from a list of ideas: a key
+showing it was pressed, the triple press count, and a hold's progress. A key
+that only sends key presses had given no sign of a press, so a press missed
+by the deck and one ignored by the application looked alike; a triple press
+gave none of how far it had gone; and the half second hold for an app screen
+or the dashboard gave none until it happened.
+
+A key of the page held down is now drawn pressed the moment it goes down,
+whatever it does: its picture scaled to 92 hundredths about the content's
+middle, black showing round it as if pushed in, and dimmed to 60 hundredths.
+Let go, it is drawn as it is now. The pressed look is applied as a key's
+picture is sent, so a key redrawn while down, by its press's error or a page
+change under a paging tile, stays pressed. The dashboard's keys are not drawn
+pressed, as each press there changes the view.
+
+A key held towards a hold shows a bar along the bottom of its content, a
+rounded track in grey filled from the left in the clock's pink, as far as
+the half second has gone, redrawn every 50 milliseconds from 150 in, so a
+quick tap never flashes it.
+
+A brick may count quick presses, a new `PressCounter`: it says how far the
+count has gone and until when its next press is awaited. Triple press to
+close is the first. Its key shows three dots top left, filled for each press
+made and rings for the rest, from the moment the press is made; the daemon
+redraws the key after each press and again when the count lapses.
+
+Tests first, each failing before its change: a key down is drawn pressed and
+let go as it was; a triple press key shows a dot while its first press is
+still down, more after the second, and none once the gap has passed; a page
+marker held shows no bar at 100 milliseconds, the bar pink from the left
+only at 300, and none once let go early. The renderer dims and pushes in a
+pressed key, draws the bar to its fraction and no bar at none, and lights
+more dots for more presses, none for no count; the brick reports its count,
+the gap and none after the quit. Planting each of no pressed look, no redraw
+on release, no delay before the bar, no bar ticks, no redraw after a counted
+press, a count that never lapses, no dots, every dot filled, a full bar, no
+dimming and no shrinking failed a test. One planted fault, the redraw after
+a counted press, first survived, the release redrawing the key anyway, so
+the test now looks while the key is still down; another showed a check in
+the count that a quit already made redundant, which was removed.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

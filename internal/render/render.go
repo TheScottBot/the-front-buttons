@@ -115,6 +115,9 @@ type Appearance struct {
 	// Badge is the label an application shows on its Dock icon, such as a
 	// count of unread messages, drawn top right on a plain key.
 	Badge string
+	// Presses is how far a count of quick presses has gone, such as the
+	// three that quit an application, drawn as dots top left on a plain key.
+	Presses PressCount
 }
 
 // IconSet supplies bundled icons by name as masks, so the renderer can draw
@@ -346,6 +349,7 @@ func (renderer *Renderer) Render(appearance Appearance) image.Image {
 	default:
 		renderer.renderPlain(key, appearance, foreground)
 		renderer.drawBadge(key, appearance.Badge)
+		renderer.drawPressCount(key, appearance.Presses, foreground)
 
 		return key
 	}

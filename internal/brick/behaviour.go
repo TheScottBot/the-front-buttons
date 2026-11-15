@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"time"
+
+	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
 // DefaultReasonCategory is shown on a key whose brick failed without naming why.
@@ -13,6 +16,14 @@ const DefaultReasonCategory = "failed"
 // (specification section 2). A brick implements only the interfaces it uses.
 type Pressable interface {
 	Press(pressContext context.Context) error
+}
+
+// PressCounter is a brick that counts quick presses towards an action, such
+// as the three that quit an application, and says at a moment how far the
+// count has gone and until when its next press is awaited, so its key can
+// show the count and be redrawn when it lapses.
+type PressCounter interface {
+	PressCount(now time.Time) (render.PressCount, time.Time)
 }
 
 // ReasonCategorised is an error that names its own short reason category, such

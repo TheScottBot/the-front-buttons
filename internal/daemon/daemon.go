@@ -267,6 +267,8 @@ type loopState struct {
 	// pressedTiles is the tile each key held down was pressed on, so its
 	// release is reported for that tile though paging changed the page.
 	pressedTiles map[int]deckmirror.Tile
+	// held is the keys of the page down now, by key index, drawn pressed.
+	held map[int]bool
 }
 
 func newLoopState(options Options) *loopState {
@@ -303,6 +305,7 @@ func newLoopState(options Options) *loopState {
 		badges:       newBadgeState(),
 		holds:        newHoldState(),
 		pressedTiles: map[int]deckmirror.Tile{},
+		held:         map[int]bool{},
 	}
 }
 
@@ -342,8 +345,8 @@ func (state *loopState) handle(runContext context.Context, received any) {
 		}
 	case badgesEvent:
 		state.handleBadges(runContext, typed)
-	case holdEvent:
-		state.handleHold(runContext, typed)
+	case holdEvent, holdTickEvent, pressCountEvent:
+		state.handleFeedback(runContext, typed)
 	case clockTickEvent:
 		state.tickClock(runContext)
 	}
@@ -707,6 +710,7 @@ func (state *loopState) disconnect(runContext context.Context, reason string) {
 	state.slots = nil
 	state.deckGeneration++
 	state.releaseAllPressed()
+	clear(state.held)
 	state.closeDashboard()
 	state.options.Counters.Increment("deck.disconnects")
 	state.logState(runContext, stateDisconnected, slog.String("reason", reason))
@@ -731,6 +735,7 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 		if !change.Pressed {
 			state.mirrorRelease(change.KeyIndex)
 			state.releaseHold(runContext, change)
+			state.keyWentUp(runContext, change.KeyIndex)
 
 			continue
 		}
@@ -756,7 +761,7 @@ func (state *loopState) handleKeyChanges(runContext context.Context, changes []d
 		}
 
 		state.mirrorPress(change.KeyIndex)
-
+		state.keyWentDown(runContext, change.KeyIndex)
 		state.pressDown(runContext, change.KeyIndex, slot)
 	}
 }
@@ -1027,8 +1032,13 @@ func (state *loopState) handlePressResult(runContext context.Context, result pre
 		state.mirrorKey(runContext, result.pageIndex, *configured)
 	}
 
+	counter, counts := configured.instance.(brick.PressCounter)
+	if counts {
+		state.awaitPressCount(runContext, result, counter)
+	}
+
 	showingIndex, showing := state.showingPage()
-	if configured.errorReason != previousReason && showing && result.pageIndex == showingIndex {
+	if (configured.errorReason != previousReason || counts) && showing && result.pageIndex == showingIndex {
 		state.repaintKey(runContext, configured.key.Position, *configured)
 	}
 }
