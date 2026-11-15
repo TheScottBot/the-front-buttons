@@ -117,7 +117,8 @@ func TestEditor_PasteReturnsToThePageItWentOnto(t *testing.T) {
 }
 
 // TestEditor_ScriptSwapsAndPastesKeys: the script swaps a key dropped on
-// another and copies, cuts and pastes keys with Command and C, X and V,
+// another, sliding the two into each other's tiles while it is carried, and
+// copies, cuts and pastes keys with Command and C, X and V,
 // through the same routes as the forms, and the hints say so.
 func TestEditor_ScriptSwapsAndPastesKeys(t *testing.T) {
 	t.Parallel()
@@ -126,15 +127,15 @@ func TestEditor_ScriptSwapsAndPastesKeys(t *testing.T) {
 
 	script := harness.get(t, "/static/editor.js").Body.String()
 	for _, want := range []string{
-		`action: "swap"`, "swap-target", "front-buttons-keys", "Command-V", copyKeysPath, moveKeysPath,
+		`action: "swap"`, "swap-ghost", "swap-hidden", "front-buttons-keys", "Command-V", copyKeysPath, moveKeysPath,
 	} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script: want %s", want)
 		}
 	}
 
-	if !strings.Contains(harness.get(t, "/static/editor.css").Body.String(), ".grid td.swap-target::after {") {
-		t.Error("stylesheet: want the swap marked on the key it would trade with")
+	if !strings.Contains(harness.get(t, "/static/editor.css").Body.String(), ".grid td .swap-ghost {") {
+		t.Error("stylesheet: want the keys of a swap drawn sliding into each other's tiles")
 	}
 
 	if !strings.Contains(harness.get(t, firstPagePath).Body.String(), "Drop a key on another key to swap the two.") {

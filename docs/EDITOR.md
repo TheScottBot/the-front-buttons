@@ -59,8 +59,8 @@ stays that width however its sections open.
 
 Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you
 drop to copy it instead. Drop it on another key, here or on a page a held
-drag opened, to swap the two; the key it would swap with shows the swap's
-arrows. A key's form offers the same swap from the keyboard, with any key on
+drag opened, to swap the two; carried over a key, the two slide into each
+other's tiles as they would land, and slide back when it moves on. A key's form offers the same swap from the keyboard, with any key on
 any page. Option (Alt) copies too. Drop a key on a page's or app screen's name in the page list
 to move it to the same tile there. Hold it over the name for a moment instead
 and that page opens in place, the name filling as it counts down, so you can

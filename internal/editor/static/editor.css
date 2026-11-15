@@ -573,27 +573,32 @@ input[type="search"] {
   outline-offset: -4px;
 }
 
-/* A key a carried key would swap with: outlined, and the arrows of a swap
-   over it. */
+/* A swap shown as it would happen: copies of the two keys slide into each
+   other's tiles over the real keys, which are hidden meanwhile. A key whose
+   own tile is on a page no longer on show is outlined instead. */
 
-.grid td.swap-target {
+.grid td.swap-hidden {
   position: relative;
-  outline: 5px dashed var(--accent);
-  outline-offset: -5px;
 }
 
-.grid td.swap-target::after {
-  content: "\21C4";
+.grid td.swap-hidden > a:not(.swap-ghost) {
+  visibility: hidden;
+}
+
+.grid td .swap-ghost {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 2.6rem;
-  font-weight: 700;
-  color: var(--on-block-accent);
+  inset: -3px;
+  z-index: 3;
+  box-sizing: border-box;
   background: var(--block);
-  opacity: 0.85;
+  border: 3px solid var(--rule);
+  box-shadow: 4px 4px 0 var(--lift);
   pointer-events: none;
+}
+
+.grid td.swap-target {
+  outline: 5px dashed var(--accent);
+  outline-offset: -5px;
 }
 
 .grid td.drop-target {

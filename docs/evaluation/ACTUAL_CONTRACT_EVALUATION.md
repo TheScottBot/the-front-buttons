@@ -4306,6 +4306,19 @@ Main dropped on Yeku traded places, the swap marked as it was carried; Main
 copied and pasted onto another page on its own tile, then from a focused tile;
 and cut and pasted beside itself, moved, with the copy forgotten.
 
+The author asked for a swap to look like the page list's reorder, the keys
+sliding to their new places rather than a mark on the key in the way, and for
+the hints above the grid, grown long, to move below everything. Carried over
+another key, copies of the two keys now slide into each other's tiles over the
+real keys, hidden meanwhile, and slide back when the key moves on; a key whose
+own tile is on a page no longer on show is outlined instead. The hints now sit
+under the new page form, the page lists leading straight into the caption and
+the grid, which a test holds, failing on the old layout. Driven in a browser
+against the harness: Main carried over Yeku slid into its tile as Yeku slid
+into Main's, moving on to an empty tile slid them back, and a drop while they
+showed swapped the two; the pages screen read pages, app screens, caption and
+grid, with the hints at the bottom.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

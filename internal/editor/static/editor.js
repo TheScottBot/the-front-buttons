@@ -65,6 +65,64 @@
     });
   }
   var swapClass = "swap-target";
+  var swapGhostClass = "swap-ghost";
+  var swapHiddenClass = "swap-hidden";
+  var swapSlideMilliseconds = 150;
+  function reducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  function slideGhost(from, to) {
+    const key = from.querySelector("a");
+    if (key === null) {
+      return null;
+    }
+    const ghost = key.cloneNode(true);
+    ghost.removeAttribute("href");
+    ghost.removeAttribute("draggable");
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.tabIndex = -1;
+    ghost.classList.add(swapGhostClass);
+    to.append(ghost);
+    if (!reducedMotion()) {
+      const start = from.getBoundingClientRect();
+      const end = to.getBoundingClientRect();
+      ghost.animate(
+        [{ transform: `translate(${start.left - end.left}px, ${start.top - end.top}px)` }, { transform: "none" }],
+        { duration: swapSlideMilliseconds, easing: "ease-out" }
+      );
+    }
+    return ghost;
+  }
+  function showSwap(source, target) {
+    const ghosts = [slideGhost(target, source), slideGhost(source, target)].filter((ghost) => ghost !== null);
+    source.classList.add(swapHiddenClass);
+    target.classList.add(swapHiddenClass);
+    return { target, source, ghosts };
+  }
+  function hideSwap(preview) {
+    const back = (ghost, home) => {
+      if (reducedMotion()) {
+        return Promise.resolve();
+      }
+      const here = ghost.getBoundingClientRect();
+      const there = home.getBoundingClientRect();
+      return ghost.animate(
+        [{ transform: "none" }, { transform: `translate(${there.left - here.left}px, ${there.top - here.top}px)` }],
+        { duration: swapSlideMilliseconds, easing: "ease-in" }
+      ).finished.then(() => void 0, () => void 0);
+    };
+    const homes = [preview.target, preview.source];
+    void Promise.all(preview.ghosts.map((ghost, index) => back(ghost, homes[index]))).then(() => {
+      for (const ghost of preview.ghosts) {
+        ghost.remove();
+      }
+      for (const cell of homes) {
+        if (cell.querySelector(`.${swapGhostClass}`) === null) {
+          cell.classList.remove(swapHiddenClass);
+        }
+      }
+    });
+  }
   function relocate(source, destination, copying2) {
     return send("/key/move", {
       page: source.page,
@@ -261,6 +319,13 @@
     let pictures = /* @__PURE__ */ new Map();
     let ghostedAt = "";
     let ghostFits = false;
+    let swapping = null;
+    const stopSwapping = () => {
+      if (swapping !== null) {
+        hideSwap(swapping);
+        swapping = null;
+      }
+    };
     let shownPage = "";
     let opened = false;
     let dropped = false;
@@ -353,6 +418,7 @@
       clearDropTargets(root);
       clearGhosts(root);
       ghostedAt = "";
+      stopSwapping();
       disarm();
       source = null;
       group = null;
@@ -394,9 +460,18 @@
       }
       if (cell !== null && swapsWith(cell)) {
         event.preventDefault();
-        cell.classList.add(swapClass);
+        const home = source === null ? null : shownGrid()?.querySelector(
+          `td[${tileAttribute}="${source.page}.${source.row}.${source.column}"]`
+        ) ?? null;
+        if (home === null) {
+          cell.classList.add(swapClass);
+        } else if (swapping?.target !== cell) {
+          stopSwapping();
+          swapping = showSwap(home, cell);
+        }
         return;
       }
+      stopSwapping();
       if (cell === null || !accepts(cell)) {
         return;
       }
@@ -1204,14 +1279,14 @@
   function showingPage() {
     return document.querySelector(`nav a[${pageAttribute2}][aria-current="page"]`)?.getAttribute(pageAttribute2) ?? "";
   }
-  function reducedMotion() {
+  function reducedMotion2() {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
   function slide(list, change) {
     const items = itemsOf(list);
     const before = new Map(items.map((item) => [item, item.getBoundingClientRect()]));
     change();
-    if (reducedMotion()) {
+    if (reducedMotion2()) {
       return;
     }
     for (const item of items) {

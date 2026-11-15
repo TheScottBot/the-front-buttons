@@ -104,8 +104,94 @@ function swap(source: Tile, destination: string): Promise<boolean> {
   });
 }
 
-// swapClass marks the key a carried key would trade places with.
+// swapClass marks the key a carried key would trade places with, when the
+// key carried is on a page no longer on show and so cannot slide.
 const swapClass = "swap-target";
+
+// A swap shown as it would happen: carried over another key, the two keys
+// slide into each other's tiles, as the page list's names do, and slide back
+// when the key moves on. Copies of the two keys do the sliding, over the real
+// ones, hidden meanwhile, so the drag itself is never disturbed.
+const swapGhostClass = "swap-ghost";
+const swapHiddenClass = "swap-hidden";
+const swapSlideMilliseconds = 150;
+
+interface SwapPreview {
+  readonly target: HTMLTableCellElement;
+  readonly source: HTMLTableCellElement;
+  readonly ghosts: readonly HTMLElement[];
+}
+
+function reducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// slideGhost draws a copy of one tile's key in another tile, sliding there
+// from where the key is.
+function slideGhost(from: HTMLTableCellElement, to: HTMLTableCellElement): HTMLElement | null {
+  const key = from.querySelector("a");
+  if (key === null) {
+    return null;
+  }
+
+  const ghost = key.cloneNode(true) as HTMLElement;
+  ghost.removeAttribute("href");
+  ghost.removeAttribute("draggable");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.tabIndex = -1;
+  ghost.classList.add(swapGhostClass);
+  to.append(ghost);
+
+  if (!reducedMotion()) {
+    const start = from.getBoundingClientRect();
+    const end = to.getBoundingClientRect();
+    ghost.animate(
+      [{ transform: `translate(${start.left - end.left}px, ${start.top - end.top}px)` }, { transform: "none" }],
+      { duration: swapSlideMilliseconds, easing: "ease-out" },
+    );
+  }
+
+  return ghost;
+}
+
+function showSwap(source: HTMLTableCellElement, target: HTMLTableCellElement): SwapPreview {
+  const ghosts = [slideGhost(target, source), slideGhost(source, target)]
+    .filter((ghost): ghost is HTMLElement => ghost !== null);
+  source.classList.add(swapHiddenClass);
+  target.classList.add(swapHiddenClass);
+
+  return { target, source, ghosts };
+}
+
+// hideSwap slides the two keys back to their own tiles.
+function hideSwap(preview: SwapPreview): void {
+  const back = (ghost: HTMLElement, home: HTMLTableCellElement): Promise<void> => {
+    if (reducedMotion()) {
+      return Promise.resolve();
+    }
+
+    const here = ghost.getBoundingClientRect();
+    const there = home.getBoundingClientRect();
+
+    return ghost.animate(
+      [{ transform: "none" }, { transform: `translate(${there.left - here.left}px, ${there.top - here.top}px)` }],
+      { duration: swapSlideMilliseconds, easing: "ease-in" },
+    ).finished.then(() => undefined, () => undefined);
+  };
+
+  const homes = [preview.target, preview.source];
+  void Promise.all(preview.ghosts.map((ghost, index) => back(ghost, homes[index]))).then(() => {
+    for (const ghost of preview.ghosts) {
+      ghost.remove();
+    }
+
+    for (const cell of homes) {
+      if (cell.querySelector(`.${swapGhostClass}`) === null) {
+        cell.classList.remove(swapHiddenClass);
+      }
+    }
+  });
+}
 
 function relocate(source: Tile, destination: string, copying: boolean): Promise<boolean> {
   return send("/key/move", {
@@ -404,6 +490,14 @@ export function enableDrag(grid: HTMLTableElement): void {
   let pictures = new Map<string, HTMLElement>();
   let ghostedAt = "";
   let ghostFits = false;
+  let swapping: SwapPreview | null = null;
+
+  const stopSwapping = (): void => {
+    if (swapping !== null) {
+      hideSwap(swapping);
+      swapping = null;
+    }
+  };
   let shownPage = "";
   let opened = false;
   let dropped = false;
@@ -525,6 +619,7 @@ export function enableDrag(grid: HTMLTableElement): void {
     clearDropTargets(root);
     clearGhosts(root);
     ghostedAt = "";
+    stopSwapping();
     disarm();
     source = null;
     group = null;
@@ -578,10 +673,22 @@ export function enableDrag(grid: HTMLTableElement): void {
 
     if (cell !== null && swapsWith(cell)) {
       event.preventDefault();
-      cell.classList.add(swapClass);
+
+      // The key carried slides only where its own tile is on show.
+      const home = source === null ? null :
+        shownGrid()?.querySelector<HTMLTableCellElement>(
+          `td[${tileAttribute}="${source.page}.${source.row}.${source.column}"]`) ?? null;
+      if (home === null) {
+        cell.classList.add(swapClass);
+      } else if (swapping?.target !== cell) {
+        stopSwapping();
+        swapping = showSwap(home, cell);
+      }
 
       return;
     }
+
+    stopSwapping();
 
     if (cell === null || !accepts(cell)) {
       return;

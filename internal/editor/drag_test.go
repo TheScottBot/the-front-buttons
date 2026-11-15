@@ -170,3 +170,25 @@ func TestEditor_KeepsTheGridInPlaceAcrossReloads(t *testing.T) {
 		t.Error("stylesheet: want room below the page for a grid kept in place")
 	}
 }
+
+// TestEditor_HintsSitBelowEverythingElse: the page lists lead straight into
+// the caption and the grid; the script's hints on dragging and keys sit at
+// the bottom, under the new page form, out of the way.
+func TestEditor_HintsSitBelowEverythingElse(t *testing.T) {
+	t.Parallel()
+
+	body := newHarness(t, nil).get(t, firstPagePath).Body.String()
+
+	grid := strings.Index(body, `<table class="grid">`)
+	addPage := strings.Index(body, `<button type="submit">Add page</button>`)
+
+	for _, hint := range []string{`id="drag-help"`, `id="grid-keys-help"`} {
+		if at := strings.Index(body, hint); at < addPage || at < grid {
+			t.Errorf("want %s after the grid and the new page form", hint)
+		}
+	}
+
+	if between := body[strings.Index(body, `aria-label="Pages"`):grid]; strings.Contains(between, `<p class=`) {
+		t.Errorf("want nothing but the caption between the page lists and the grid, got %s", between)
+	}
+}
