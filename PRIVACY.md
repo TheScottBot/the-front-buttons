@@ -24,7 +24,9 @@ There is no telemetry, analytics or crash reporting.
   grid is drawn like the deck (`deck_render`). The display choices hold nothing
   else.
 - Where the grid sat in the window, in the tab's session storage, as a page of
-  the grid is left, removed as soon as the next page reads it.
+  the grid is left, removed as soon as the next page reads it; and the tiles of
+  keys copied or cut with Command-C or Command-X, there too, until the tab
+  closes. Neither reaches the system's clipboard.
 
 ## What the editor shows
 

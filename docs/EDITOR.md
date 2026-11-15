@@ -58,13 +58,24 @@ stays that width however its sections open.
 ## Moving keys between pages
 
 Drag a key onto a free tile to move it; hold Command (Ctrl on Windows) as you
-drop to copy it instead. Option (Alt) copies too. Drop a key on a page's or app screen's name in the page list
+drop to copy it instead. Drop it on another key, here or on a page a held
+drag opened, to swap the two; the key it would swap with shows the swap's
+arrows. A key's form offers the same swap from the keyboard, with any key on
+any page. Option (Alt) copies too. Drop a key on a page's or app screen's name in the page list
 to move it to the same tile there. Hold it over the name for a moment instead
 and that page opens in place, the name filling as it counts down, so you can
 drop the key on any free tile of it. Let go anywhere else and you stay on that
 page with nothing moved. Each key's form does the same from the keyboard.
 
 ## Moving around the grid
+
+Command-C, Ctrl-C on Windows, copies the key on the tile focused, or in select
+mode the ticked keys; Command-X cuts them instead. Command-V pastes them onto
+the page open, each on the tile it came from, or with a tile focused, shifted
+so their top left lands there. A paste that would land on anything in the way
+pastes nothing and names the tiles; pasting a cut moves the keys, once. What
+is copied lasts while the tab is open and never reaches the system's
+clipboard, and text being typed or selected keeps its usual Command-C and V.
 
 Every change on the pages screen, from a drop, the key dialog, Undo, or going
 into select mode and out of it, keeps the grid where it was in the window.

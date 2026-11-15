@@ -236,6 +236,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- A key dropped on another in the editor swaps the two, on one page or across
+  pages; a key's form offers the same swap from the keyboard.
+- Command-C and Command-X, Ctrl on Windows, copy or cut the key focused or the
+  ticked keys, and Command-V pastes them onto the page open, on the same
+  tiles or from a tile focused, refusing the whole paste if anything is in
+  the way.
 - Every change on the editor's pages screen, a drop, a save from the key
   dialog, Undo, or entering and leaving select mode, keeps the grid where it
   was in the window rather than opening the page at the top.

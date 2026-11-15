@@ -141,7 +141,9 @@ func TestEditor_ArrowKeysMoveAroundTheGrid(t *testing.T) {
 	}
 
 	if !regexp.MustCompile(`<p class="grid-keys-help" id="grid-keys-help" hidden>On the grid, the arrow keys move ` +
-		`between tiles and Enter opens one; Delete removes the key on a tile, which Undo puts back.</p>`).
+		`between tiles and Enter opens one; Delete removes the key on a tile, which Undo puts back. ` +
+		`Command-C, Ctrl-C on Windows, copies the key on a tile, or the ticked keys, and Command-X cuts them; ` +
+		`Command-V pastes them on the same tiles of the page open, or from a tile focused.</p>`).
 		MatchString(harness.get(t, firstPagePath).Body.String()) {
 		t.Error("want the arrow key hint hidden until the script shows it")
 	}

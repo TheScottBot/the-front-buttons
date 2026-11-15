@@ -1,5 +1,6 @@
 // Drag and drop for the editor's grid of keys: drag a key onto a free tile to
-// move it, or hold Command, Option or Ctrl while dropping to copy it. It only adds to the
+// move it, or hold Command, Option or Ctrl while dropping to copy it; drop it
+// on another key to swap the two. It only adds to the
 // page: every move it makes is the same POST /key/move the move form on each
 // key's page sends, through the same guard and the same checks, and that form
 // stays the way to do it from the keyboard (engineering datum 0.16).
@@ -43,7 +44,7 @@ function stateOf(cell: HTMLTableCellElement): TileState | null {
 
 // announce writes to the page's polite live region, which every editor page
 // has, so a refused drop is read out as well as shown.
-function announce(message: string): void {
+export function announce(message: string): void {
   const region = document.querySelector<HTMLElement>(".announcement");
   if (region !== null) {
     region.textContent = message;
@@ -62,13 +63,14 @@ function refusalFrom(page: string): string {
 }
 
 // send posts one change the way the editor's own forms do, with the page's
-// token, and follows the redirect a change the server accepted answers with.
-export async function send(path: string, fields: Record<string, string | readonly string[]>): Promise<void> {
+// token, and follows the redirect a change the server accepted answers with,
+// reporting whether it was accepted.
+export async function send(path: string, fields: Record<string, string | readonly string[]>): Promise<boolean> {
   const token = document.querySelector<HTMLInputElement>('input[name="token"]')?.value;
   if (token === undefined) {
     announce("Error: this page has no editor token; reload it and try again.");
 
-    return;
+    return false;
   }
 
   const body = new URLSearchParams({ token });
@@ -83,16 +85,29 @@ export async function send(path: string, fields: Record<string, string | readonl
     if (response.ok && response.redirected) {
       window.location.assign(response.url);
 
-      return;
+      return true;
     }
 
     announce(refusalFrom(await response.text()));
   } catch {
     announce("Error: the editor could not be reached; is the daemon running?");
   }
+
+  return false;
 }
 
-function relocate(source: Tile, destination: string, copying: boolean): Promise<void> {
+// swap trades the places of two keys, the same POST /key/move as the Swap
+// keys button on a key's page.
+function swap(source: Tile, destination: string): Promise<boolean> {
+  return send("/key/move", {
+    page: source.page, row: source.row, column: source.column, to: destination, action: "swap",
+  });
+}
+
+// swapClass marks the key a carried key would trade places with.
+const swapClass = "swap-target";
+
+function relocate(source: Tile, destination: string, copying: boolean): Promise<boolean> {
   return send("/key/move", {
     page: source.page,
     row: source.row,
@@ -104,7 +119,7 @@ function relocate(source: Tile, destination: string, copying: boolean): Promise<
 
 // remove is the same POST /key/delete as a key's Remove button; the page it
 // returns to offers Undo.
-function remove(source: Tile): Promise<void> {
+function remove(source: Tile): Promise<boolean> {
   return send("/key/delete", { page: source.page, row: source.row, column: source.column });
 }
 
@@ -139,7 +154,7 @@ function carriesTile(group: Group | null, tile: Tile | null): boolean {
     group.tiles.includes(`${tile.row}.${tile.column}`);
 }
 
-function relocateGroup(group: Group, destination: Tile, copying: boolean): Promise<void> {
+function relocateGroup(group: Group, destination: Tile, copying: boolean): Promise<boolean> {
   return send(copying ? "/keys/copy" : "/keys/move", {
     page: group.source.page,
     tile: group.tiles,
@@ -149,7 +164,7 @@ function relocateGroup(group: Group, destination: Tile, copying: boolean): Promi
   });
 }
 
-function removeGroup(group: Group): Promise<void> {
+function removeGroup(group: Group): Promise<boolean> {
   return send("/keys/remove", { page: group.source.page, tile: group.tiles });
 }
 
@@ -296,8 +311,8 @@ function hideBin(bin: HTMLElement): void {
 }
 
 function clearDropTargets(grid: HTMLElement): void {
-  for (const cell of grid.querySelectorAll(`.${dropTargetClass}`)) {
-    cell.classList.remove(dropTargetClass);
+  for (const cell of grid.querySelectorAll(`.${dropTargetClass}, .${swapClass}`)) {
+    cell.classList.remove(dropTargetClass, swapClass);
   }
 }
 
@@ -433,6 +448,14 @@ export function enableDrag(grid: HTMLTableElement): void {
   const accepts = (cell: HTMLTableCellElement): boolean =>
     stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute)));
 
+  // A single key carried over another key, not itself, would swap with it.
+  const swapsWith = (cell: HTMLTableCellElement): boolean => {
+    const tile = parseTile(cell.getAttribute(tileAttribute));
+
+    return group === null && source !== null && stateOf(cell) === "key" && tile !== null &&
+      !(tile.page === source.page && tile.row === source.row && tile.column === source.column);
+  };
+
   if (bin !== null) {
     bin.addEventListener("dragover", (event: DragEvent) => {
       if (source === null || event.dataTransfer === null) {
@@ -553,6 +576,13 @@ export function enableDrag(grid: HTMLTableElement): void {
       return;
     }
 
+    if (cell !== null && swapsWith(cell)) {
+      event.preventDefault();
+      cell.classList.add(swapClass);
+
+      return;
+    }
+
     if (cell === null || !accepts(cell)) {
       return;
     }
@@ -563,7 +593,7 @@ export function enableDrag(grid: HTMLTableElement): void {
   });
 
   root.addEventListener("dragleave", (event: DragEvent) => {
-    cellOf(event.target)?.classList.remove(dropTargetClass);
+    cellOf(event.target)?.classList.remove(dropTargetClass, swapClass);
 
     if (armed !== null && pageLinkOf(event.target) === armed && !armed.contains(event.relatedTarget as Node | null)) {
       disarm();
@@ -593,6 +623,23 @@ export function enableDrag(grid: HTMLTableElement): void {
     const cell = cellOf(event.target);
     const destination = cell?.getAttribute(tileAttribute) ?? null;
     const target = parseTile(destination);
+
+    // A key dropped on another trades places with it; a copy needs a free
+    // tile, so holding the copy key there does nothing.
+    if (cell !== null && destination !== null && swapsWith(cell)) {
+      event.preventDefault();
+      clearDropTargets(root);
+      dropped = true;
+
+      if (copying(event)) {
+        announce("Error: a copy needs a free tile; let go of Command to swap the two keys instead.");
+      } else {
+        void swap(source, destination);
+      }
+
+      return;
+    }
+
     if (cell === null || target === null || (group === null ? !accepts(cell) : !ghostFits)) {
       return;
     }

@@ -4281,6 +4281,31 @@ Driven in a browser against the harness: at the bottom of the page, into
 select mode and out again, and part way down, a key removed with Delete and
 put back with Undo, each kept the grid within a pixel of where it was.
 
+### Swapping keys, and copying and pasting them from the keyboard
+
+A key dropped on another key was refused; the author asked for the two to
+swap. The move route takes a third action, swap, which trades the keys'
+places on one page or two, each keeping everything but its tile, and refuses
+a destination with no key or an application's own brick on a page that cannot
+hold it. A key's form offers a list of every other key to swap with, and the
+drag marks the key a carried key would swap with; holding the copy key there
+does nothing, as a copy needs a free tile.
+
+Command-C copies the key focused, or the ticked keys, Command-X cuts them, and
+Command-V pastes them onto the page open through select mode's copy or move
+routes, on the same tiles or, with a tile focused, shifted so their top left
+lands there; the routes now return to the page pasted onto. What is copied is
+kept in the tab's session storage, never the system clipboard, and a cut is
+used once. Typing and selected text keep the usual keys.
+
+Tests first, failing before the change: two keys swapped; swaps refused with
+no key, onto the wrong page and in place; the key form's swap list; a paste
+returning to its page; and the scripts and hints. A planted violation, both
+keys put on one tile, failed a test. Driven in a browser against the harness:
+Main dropped on Yeku traded places, the swap marked as it was carried; Main
+copied and pasted onto another page on its own tile, then from a focused tile;
+and cut and pasted beside itself, moved, with the copy forgotten.
+
 ### Still owed
 
 On the MacBook: logging out and in to see the daemon start at login (TE10);

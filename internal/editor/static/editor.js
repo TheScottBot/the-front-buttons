@@ -1,4 +1,569 @@
 (() => {
+  // internal/editor/web/drag.ts
+  var tileAttribute = "data-tile";
+  var stateAttribute = "data-state";
+  var draggingClass = "dragging";
+  var dropTargetClass = "drop-target";
+  var tileType = "application/x-front-buttons-tile";
+  function parseTile(value) {
+    const parts = (value ?? "").split(".");
+    if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
+      return null;
+    }
+    return { page: parts[0], row: parts[1], column: parts[2] };
+  }
+  function cellOf(target) {
+    return target instanceof Element ? target.closest(`td[${tileAttribute}]`) : null;
+  }
+  function stateOf(cell) {
+    const state = cell.getAttribute(stateAttribute);
+    return state === "key" || state === "empty" || state === "reserved" ? state : null;
+  }
+  function announce(message) {
+    const region = document.querySelector(".announcement");
+    if (region !== null) {
+      region.textContent = message;
+    }
+  }
+  function refusalFrom(page) {
+    const parsed = new DOMParser().parseFromString(page, "text/html");
+    const alert = parsed.querySelector(".errors");
+    const problems = [...parsed.querySelectorAll(".problems li")].map((item) => item.textContent?.trim() ?? "");
+    return alert?.textContent?.trim() || problems.join(" ") || "Error: the change could not be made.";
+  }
+  async function send(path, fields) {
+    const token = document.querySelector('input[name="token"]')?.value;
+    if (token === void 0) {
+      announce("Error: this page has no editor token; reload it and try again.");
+      return false;
+    }
+    const body = new URLSearchParams({ token });
+    for (const [name, value] of Object.entries(fields)) {
+      for (const each of typeof value === "string" ? [value] : value) {
+        body.append(name, each);
+      }
+    }
+    try {
+      const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
+      if (response.ok && response.redirected) {
+        window.location.assign(response.url);
+        return true;
+      }
+      announce(refusalFrom(await response.text()));
+    } catch {
+      announce("Error: the editor could not be reached; is the daemon running?");
+    }
+    return false;
+  }
+  function swap(source, destination) {
+    return send("/key/move", {
+      page: source.page,
+      row: source.row,
+      column: source.column,
+      to: destination,
+      action: "swap"
+    });
+  }
+  var swapClass = "swap-target";
+  function relocate(source, destination, copying2) {
+    return send("/key/move", {
+      page: source.page,
+      row: source.row,
+      column: source.column,
+      to: destination,
+      action: copying2 ? "copy" : "move"
+    });
+  }
+  function remove(source) {
+    return send("/key/delete", { page: source.page, row: source.row, column: source.column });
+  }
+  function groupOf(cell, source) {
+    const box = cell.querySelector('.select-key input[type="checkbox"]');
+    if (box === null || source === null) {
+      return null;
+    }
+    box.checked = true;
+    const tiles = [...document.querySelectorAll('.select-key input[name="tile"]:checked')].map((ticked) => ticked.value);
+    return { source, tiles };
+  }
+  function carriesTile(group, tile) {
+    return group !== null && tile !== null && tile.page === group.source.page && group.tiles.includes(`${tile.row}.${tile.column}`);
+  }
+  function relocateGroup(group, destination, copying2) {
+    return send(copying2 ? "/keys/copy" : "/keys/move", {
+      page: group.source.page,
+      tile: group.tiles,
+      to: destination.page,
+      row_offset: String(Number(destination.row) - Number(group.source.row)),
+      column_offset: String(Number(destination.column) - Number(group.source.column))
+    });
+  }
+  function removeGroup(group) {
+    return send("/keys/remove", { page: group.source.page, tile: group.tiles });
+  }
+  var ghostClass = "ghost";
+  var ghostFitsClass = "ghost-fits";
+  var ghostBlockedClass = "ghost-blocked";
+  function ghostPicture(cell) {
+    const ghost = document.createElement("span");
+    ghost.className = ghostClass;
+    ghost.setAttribute("aria-hidden", "true");
+    for (const node of cell.querySelector(".select-key label")?.childNodes ?? []) {
+      ghost.append(node.cloneNode(true));
+    }
+    return ghost;
+  }
+  function clearGhosts(root) {
+    for (const ghost of root.querySelectorAll(`.${ghostClass}`)) {
+      ghost.remove();
+    }
+    for (const cell of root.querySelectorAll(`.${ghostFitsClass}, .${ghostBlockedClass}`)) {
+      cell.classList.remove(ghostFitsClass, ghostBlockedClass);
+    }
+  }
+  function showGhosts(group, grid2, destination, pictures) {
+    const rowShift = Number(destination.row) - Number(group.source.row);
+    const columnShift = Number(destination.column) - Number(group.source.column);
+    const landed = [];
+    let fits = true;
+    let offDeck = false;
+    for (const tile of group.tiles) {
+      const [row, column] = tile.split(".").map(Number);
+      const landing = `${destination.page}.${row + rowShift}.${column + columnShift}`;
+      const cell = grid2.querySelector(`td[${tileAttribute}="${landing}"]`);
+      if (cell === null) {
+        fits = false;
+        offDeck = true;
+        continue;
+      }
+      const free = stateOf(cell) === "empty" || carriesTile(group, parseTile(landing));
+      fits && (fits = free);
+      cell.classList.add(free ? ghostFitsClass : ghostBlockedClass);
+      landed.push(cell);
+      const picture = pictures.get(tile);
+      if (picture !== void 0) {
+        cell.append(picture.cloneNode(true));
+      }
+    }
+    if (offDeck) {
+      for (const cell of landed) {
+        cell.classList.replace(ghostFitsClass, ghostBlockedClass);
+      }
+    }
+    return fits;
+  }
+  function groupDragImage(group, event) {
+    const cells = group.tiles.map((tile) => document.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)).filter((cell) => cell !== null);
+    if (cells.length === 0 || event.dataTransfer === null) {
+      return;
+    }
+    const boxes = cells.map((cell) => cell.getBoundingClientRect());
+    const left = Math.min(...boxes.map((box) => box.left));
+    const top = Math.min(...boxes.map((box) => box.top));
+    const image = document.createElement("div");
+    image.className = "grid group-drag-image";
+    image.style.width = `${Math.max(...boxes.map((box) => box.right)) - left}px`;
+    image.style.height = `${Math.max(...boxes.map((box) => box.bottom)) - top}px`;
+    cells.forEach((cell, index) => {
+      const picture = cell.querySelector(".select-key")?.cloneNode(true);
+      if (!(picture instanceof HTMLElement)) {
+        return;
+      }
+      picture.querySelector("input")?.remove();
+      picture.querySelector("label")?.removeAttribute("for");
+      picture.style.left = `${boxes[index].left - left}px`;
+      picture.style.top = `${boxes[index].top - top}px`;
+      picture.style.width = `${boxes[index].width}px`;
+      picture.style.height = `${boxes[index].height}px`;
+      image.append(picture);
+    });
+    document.body.append(image);
+    event.dataTransfer.setDragImage(image, event.clientX - left, event.clientY - top);
+    window.setTimeout(() => image.remove(), 0);
+  }
+  function markGroup(group, root, marked) {
+    for (const tile of group.tiles) {
+      root.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)?.classList.toggle(draggingClass, marked);
+    }
+  }
+  var binArmedClass = "armed";
+  var binTopClass = "key-bin-top";
+  function overlaps(first, second) {
+    return first.left < second.right && second.left < first.right && first.top < second.bottom && second.top < first.bottom;
+  }
+  function showBin(bin, grid2) {
+    bin.classList.remove(binTopClass, binArmedClass);
+    bin.hidden = false;
+    if (overlaps(bin.getBoundingClientRect(), grid2.getBoundingClientRect())) {
+      bin.classList.add(binTopClass);
+    }
+  }
+  function hideBin(bin) {
+    bin.hidden = true;
+    bin.classList.remove(binArmedClass);
+  }
+  function clearDropTargets(grid2) {
+    for (const cell of grid2.querySelectorAll(`.${dropTargetClass}, .${swapClass}`)) {
+      cell.classList.remove(dropTargetClass, swapClass);
+    }
+  }
+  var pageAttribute = "data-page";
+  var pageDropClass = "page-drop";
+  var pageArmingClass = "page-arming";
+  var leftBehindClass = "grid-left-behind";
+  var holdMilliseconds = 800;
+  function copying(event) {
+    return event.metaKey || event.altKey || event.ctrlKey || event.dataTransfer?.dropEffect === "copy";
+  }
+  function showCopying(event) {
+    if (event.dataTransfer !== null && (event.metaKey || event.altKey || event.ctrlKey)) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
+  function pageLinkOf(target) {
+    const link = target instanceof Element ? target.closest(`a[${pageAttribute}]`) : null;
+    return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute) ?? "") ? link : null;
+  }
+  function shownGrid() {
+    return document.querySelector(`table.grid:not(.${leftBehindClass})`);
+  }
+  async function openPageDuringDrag(page) {
+    try {
+      const response = await fetch(`/page?page=${page}`, { credentials: "same-origin" });
+      if (!response.ok) {
+        return false;
+      }
+      const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+      const incoming = parsed.querySelector("table.grid");
+      const incomingPages = parsed.querySelector('nav[aria-label="Pages"]');
+      const current = shownGrid();
+      if (incoming === null || current === null) {
+        return false;
+      }
+      current.classList.add(leftBehindClass);
+      current.setAttribute("aria-hidden", "true");
+      current.after(document.importNode(incoming, true));
+      if (incomingPages !== null) {
+        document.querySelector('nav[aria-label="Pages"]')?.replaceWith(document.importNode(incomingPages, true));
+      }
+      window.history.replaceState(null, "", `/page?page=${page}`);
+      announce("Opened that page: drop the key on a free tile.");
+      return true;
+    } catch {
+      announce("Error: that page could not be opened; is the daemon running?");
+      return false;
+    }
+  }
+  function enableDrag(grid2) {
+    const root = grid2.closest("main") ?? document.body;
+    let source = null;
+    let group = null;
+    let pictures = /* @__PURE__ */ new Map();
+    let ghostedAt = "";
+    let ghostFits = false;
+    let shownPage = "";
+    let opened = false;
+    let dropped = false;
+    let armed = null;
+    let armTimer;
+    const bin = document.getElementById("key-bin");
+    const disarm = () => {
+      window.clearTimeout(armTimer);
+      armed?.classList.remove(pageDropClass, pageArmingClass);
+      armed = null;
+    };
+    const arm = (link) => {
+      if (armed === link) {
+        return;
+      }
+      disarm();
+      armed = link;
+      link.classList.add(pageDropClass, pageArmingClass);
+      const page = link.getAttribute(pageAttribute) ?? "";
+      armTimer = window.setTimeout(() => {
+        disarm();
+        const before = shownPage;
+        shownPage = page;
+        void openPageDuringDrag(page).then((done) => {
+          opened || (opened = done);
+          if (!done) {
+            shownPage = before;
+          }
+        });
+      }, holdMilliseconds);
+    };
+    const accepts = (cell) => stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute)));
+    const swapsWith = (cell) => {
+      const tile = parseTile(cell.getAttribute(tileAttribute));
+      return group === null && source !== null && stateOf(cell) === "key" && tile !== null && !(tile.page === source.page && tile.row === source.row && tile.column === source.column);
+    };
+    if (bin !== null) {
+      bin.addEventListener("dragover", (event) => {
+        if (source === null || event.dataTransfer === null) {
+          return;
+        }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        bin.classList.add(binArmedClass);
+      });
+      bin.addEventListener("dragleave", () => bin.classList.remove(binArmedClass));
+      bin.addEventListener("drop", (event) => {
+        if (source === null) {
+          return;
+        }
+        event.preventDefault();
+        dropped = true;
+        const carried = source;
+        hideBin(bin);
+        void (group === null ? remove(carried) : removeGroup(group));
+      });
+    }
+    root.addEventListener("dragstart", (event) => {
+      const cell = cellOf(event.target);
+      if (cell === null || stateOf(cell) !== "key" || event.dataTransfer === null) {
+        return;
+      }
+      source = parseTile(cell.getAttribute(tileAttribute));
+      group = groupOf(cell, source);
+      shownPage = source?.page ?? "";
+      opened = false;
+      dropped = false;
+      event.dataTransfer.effectAllowed = "copyMove";
+      event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
+      cell.classList.add(draggingClass);
+      if (group !== null) {
+        const carried = group;
+        groupDragImage(carried, event);
+        markGroup(carried, root, true);
+        pictures = new Map(carried.tiles.flatMap((tile) => {
+          const ticked = root.querySelector(`td[${tileAttribute}="${carried.source.page}.${tile}"]`);
+          return ticked === null ? [] : [[tile, ghostPicture(ticked)]];
+        }));
+      }
+      const shown = shownGrid();
+      if (bin !== null && shown !== null) {
+        showBin(bin, shown);
+      }
+    });
+    root.addEventListener("dragend", (event) => {
+      cellOf(event.target)?.classList.remove(draggingClass);
+      if (group !== null) {
+        markGroup(group, root, false);
+      }
+      clearDropTargets(root);
+      clearGhosts(root);
+      ghostedAt = "";
+      disarm();
+      source = null;
+      group = null;
+      if (bin !== null) {
+        hideBin(bin);
+      }
+      if (opened && !dropped) {
+        window.location.assign(`/page?page=${shownPage}`);
+      }
+    });
+    root.addEventListener("dragover", (event) => {
+      if (source === null || event.dataTransfer === null) {
+        return;
+      }
+      const link = pageLinkOf(event.target);
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+        clearGhosts(root);
+        ghostedAt = "";
+        event.preventDefault();
+        showCopying(event);
+        arm(link);
+        return;
+      }
+      const cell = cellOf(event.target);
+      if (group !== null) {
+        const tile = cell?.getAttribute(tileAttribute) ?? "";
+        const destination = parseTile(tile);
+        const shown = cell?.closest("table.grid") ?? null;
+        if (tile !== ghostedAt) {
+          clearGhosts(root);
+          ghostedAt = tile;
+          ghostFits = destination !== null && shown !== null && showGhosts(group, shown, destination, pictures);
+        }
+        if (ghostFits) {
+          event.preventDefault();
+          showCopying(event);
+        }
+        return;
+      }
+      if (cell !== null && swapsWith(cell)) {
+        event.preventDefault();
+        cell.classList.add(swapClass);
+        return;
+      }
+      if (cell === null || !accepts(cell)) {
+        return;
+      }
+      event.preventDefault();
+      showCopying(event);
+      cell.classList.add(dropTargetClass);
+    });
+    root.addEventListener("dragleave", (event) => {
+      cellOf(event.target)?.classList.remove(dropTargetClass, swapClass);
+      if (armed !== null && pageLinkOf(event.target) === armed && !armed.contains(event.relatedTarget)) {
+        disarm();
+      }
+    });
+    root.addEventListener("drop", (event) => {
+      if (source === null) {
+        return;
+      }
+      const link = pageLinkOf(event.target);
+      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
+        event.preventDefault();
+        disarm();
+        dropped = true;
+        const sameTile = `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`;
+        const target2 = parseTile(sameTile);
+        void (group !== null && target2 !== null ? relocateGroup(group, target2, copying(event)) : relocate(source, sameTile, copying(event)));
+        return;
+      }
+      const cell = cellOf(event.target);
+      const destination = cell?.getAttribute(tileAttribute) ?? null;
+      const target = parseTile(destination);
+      if (cell !== null && destination !== null && swapsWith(cell)) {
+        event.preventDefault();
+        clearDropTargets(root);
+        dropped = true;
+        if (copying(event)) {
+          announce("Error: a copy needs a free tile; let go of Command to swap the two keys instead.");
+        } else {
+          void swap(source, destination);
+        }
+        return;
+      }
+      if (cell === null || target === null || (group === null ? !accepts(cell) : !ghostFits)) {
+        return;
+      }
+      event.preventDefault();
+      clearDropTargets(root);
+      clearGhosts(root);
+      dropped = true;
+      void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination, copying(event)));
+    });
+    document.getElementById("drag-help")?.removeAttribute("hidden");
+  }
+
+  // internal/editor/web/clipboard.ts
+  var clipboardKey = "front-buttons-keys";
+  var tileAttribute2 = "data-tile";
+  function save(copied) {
+    try {
+      window.sessionStorage.setItem(clipboardKey, JSON.stringify(copied));
+    } catch {
+      announce("Error: this browser keeps nothing for the page, so keys cannot be copied this way.");
+    }
+  }
+  function load() {
+    try {
+      const stored = window.sessionStorage.getItem(clipboardKey);
+      const copied = stored === null ? null : JSON.parse(stored);
+      if (typeof copied?.page !== "string" || !Array.isArray(copied.tiles) || typeof copied.cut !== "boolean") {
+        return null;
+      }
+      return { page: copied.page, tiles: copied.tiles.filter((tile) => typeof tile === "string"), cut: copied.cut };
+    } catch {
+      return null;
+    }
+  }
+  function forget() {
+    try {
+      window.sessionStorage.removeItem(clipboardKey);
+    } catch {
+    }
+  }
+  function shownGrid2() {
+    return document.querySelector("table.grid:not(.grid-left-behind)");
+  }
+  function focusedTile() {
+    const cell = document.activeElement?.closest(`table.grid td[${tileAttribute2}]`);
+    const parts = (cell?.getAttribute(tileAttribute2) ?? "").split(".");
+    return parts.length === 3 ? parts : null;
+  }
+  function toCopy(cut) {
+    const ticked = [...document.querySelectorAll('.select-key input[name="tile"]:checked')];
+    const page = shownGrid2()?.querySelector(`td[${tileAttribute2}]`)?.getAttribute(tileAttribute2)?.split(".")[0];
+    if (ticked.length > 0 && page !== void 0) {
+      return { page, tiles: ticked.map((box) => box.value), cut };
+    }
+    const focused = focusedTile();
+    const cell = document.activeElement?.closest(`td[${tileAttribute2}]`);
+    if (focused === null || cell?.getAttribute("data-state") !== "key" || cell.querySelector(".select-key") !== null) {
+      return null;
+    }
+    return { page: focused[0], tiles: [`${focused[1]}.${focused[2]}`], cut };
+  }
+  function keysWord(count) {
+    return count === 1 ? "1 key" : `${count} keys`;
+  }
+  function copy(cut) {
+    const copied = toCopy(cut);
+    if (copied === null) {
+      return false;
+    }
+    save(copied);
+    announce(`${cut ? "Cut" : "Copied"} ${keysWord(copied.tiles.length)}: open a page and press Command-V, Ctrl-V on Windows, to paste on the same tiles, or focus a tile with the arrow keys to paste from there.`);
+    return true;
+  }
+  async function paste() {
+    const copied = load();
+    const page = shownGrid2()?.querySelector(`td[${tileAttribute2}]`)?.getAttribute(tileAttribute2)?.split(".")[0];
+    if (copied === null || copied.tiles.length === 0 || page === void 0) {
+      announce("Error: no keys are copied; press Command-C, Ctrl-C on Windows, on a key or the ticked keys first.");
+      return;
+    }
+    let rowShift = 0;
+    let columnShift = 0;
+    const focused = focusedTile();
+    if (focused !== null) {
+      const places = copied.tiles.map((tile) => tile.split(".").map(Number));
+      rowShift = Number(focused[1]) - Math.min(...places.map((place) => place[0]));
+      columnShift = Number(focused[2]) - Math.min(...places.map((place) => place[1]));
+    }
+    if (page === copied.page && rowShift === 0 && columnShift === 0) {
+      announce("Error: those keys are already on these tiles; open another page, or focus a tile with the arrow keys to paste from there.");
+      return;
+    }
+    if (copied.cut) {
+      forget();
+    }
+    const accepted = await send(copied.cut ? "/keys/move" : "/keys/copy", {
+      page: copied.page,
+      tile: copied.tiles,
+      to: page,
+      showing: page,
+      row_offset: String(rowShift),
+      column_offset: String(columnShift)
+    });
+    if (!accepted && copied.cut) {
+      save(copied);
+    }
+  }
+  function enableClipboard() {
+    document.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      const typing = event.target instanceof HTMLElement && event.target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable]');
+      const selecting = (window.getSelection()?.toString() ?? "") !== "";
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || typing || selecting || document.querySelector("dialog[open]") !== null || !["c", "x", "v"].includes(key)) {
+        return;
+      }
+      if (key === "v") {
+        event.preventDefault();
+        void paste();
+        return;
+      }
+      if (copy(key === "x")) {
+        event.preventDefault();
+      }
+    });
+  }
+
   // internal/editor/web/group.ts
   var partSelector = "li.group-part";
   function renumber(list) {
@@ -161,7 +726,7 @@
     paragraph.textContent = message;
     parts.body.replaceChildren(paragraph);
   }
-  async function load(parts, url, init) {
+  async function load2(parts, url, init) {
     let response;
     try {
       response = await fetch(url, { credentials: "same-origin", ...init });
@@ -220,11 +785,11 @@
       }
       event.preventDefault();
       opener = link;
-      void load(parts, link.href);
+      void load2(parts, link.href);
     });
     openFrom = (address, from) => {
       opener = from;
-      void load(parts, address);
+      void load2(parts, address);
     };
     parts.body.addEventListener("submit", (event) => {
       const form = event.target;
@@ -234,9 +799,9 @@
       event.preventDefault();
       const parameters = formParameters(form, event.submitter);
       if (form.method.toLowerCase() === "get") {
-        void load(parts, `${form.action}?${parameters.toString()}`);
+        void load2(parts, `${form.action}?${parameters.toString()}`);
       } else {
-        void load(parts, form.action, { method: "POST", body: parameters });
+        void load2(parts, form.action, { method: "POST", body: parameters });
       }
     });
     parts.dialog.querySelector(".dialog-close")?.addEventListener("click", () => parts.dialog.close());
@@ -251,426 +816,6 @@
       opener?.focus();
       opener = null;
     });
-  }
-
-  // internal/editor/web/drag.ts
-  var tileAttribute = "data-tile";
-  var stateAttribute = "data-state";
-  var draggingClass = "dragging";
-  var dropTargetClass = "drop-target";
-  var tileType = "application/x-front-buttons-tile";
-  function parseTile(value) {
-    const parts = (value ?? "").split(".");
-    if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
-      return null;
-    }
-    return { page: parts[0], row: parts[1], column: parts[2] };
-  }
-  function cellOf(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute}]`) : null;
-  }
-  function stateOf(cell) {
-    const state = cell.getAttribute(stateAttribute);
-    return state === "key" || state === "empty" || state === "reserved" ? state : null;
-  }
-  function announce(message) {
-    const region = document.querySelector(".announcement");
-    if (region !== null) {
-      region.textContent = message;
-    }
-  }
-  function refusalFrom(page) {
-    const parsed = new DOMParser().parseFromString(page, "text/html");
-    const alert = parsed.querySelector(".errors");
-    const problems = [...parsed.querySelectorAll(".problems li")].map((item) => item.textContent?.trim() ?? "");
-    return alert?.textContent?.trim() || problems.join(" ") || "Error: the change could not be made.";
-  }
-  async function send(path, fields) {
-    const token = document.querySelector('input[name="token"]')?.value;
-    if (token === void 0) {
-      announce("Error: this page has no editor token; reload it and try again.");
-      return;
-    }
-    const body = new URLSearchParams({ token });
-    for (const [name, value] of Object.entries(fields)) {
-      for (const each of typeof value === "string" ? [value] : value) {
-        body.append(name, each);
-      }
-    }
-    try {
-      const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
-      if (response.ok && response.redirected) {
-        window.location.assign(response.url);
-        return;
-      }
-      announce(refusalFrom(await response.text()));
-    } catch {
-      announce("Error: the editor could not be reached; is the daemon running?");
-    }
-  }
-  function relocate(source, destination, copying2) {
-    return send("/key/move", {
-      page: source.page,
-      row: source.row,
-      column: source.column,
-      to: destination,
-      action: copying2 ? "copy" : "move"
-    });
-  }
-  function remove(source) {
-    return send("/key/delete", { page: source.page, row: source.row, column: source.column });
-  }
-  function groupOf(cell, source) {
-    const box = cell.querySelector('.select-key input[type="checkbox"]');
-    if (box === null || source === null) {
-      return null;
-    }
-    box.checked = true;
-    const tiles = [...document.querySelectorAll('.select-key input[name="tile"]:checked')].map((ticked) => ticked.value);
-    return { source, tiles };
-  }
-  function carriesTile(group, tile) {
-    return group !== null && tile !== null && tile.page === group.source.page && group.tiles.includes(`${tile.row}.${tile.column}`);
-  }
-  function relocateGroup(group, destination, copying2) {
-    return send(copying2 ? "/keys/copy" : "/keys/move", {
-      page: group.source.page,
-      tile: group.tiles,
-      to: destination.page,
-      row_offset: String(Number(destination.row) - Number(group.source.row)),
-      column_offset: String(Number(destination.column) - Number(group.source.column))
-    });
-  }
-  function removeGroup(group) {
-    return send("/keys/remove", { page: group.source.page, tile: group.tiles });
-  }
-  var ghostClass = "ghost";
-  var ghostFitsClass = "ghost-fits";
-  var ghostBlockedClass = "ghost-blocked";
-  function ghostPicture(cell) {
-    const ghost = document.createElement("span");
-    ghost.className = ghostClass;
-    ghost.setAttribute("aria-hidden", "true");
-    for (const node of cell.querySelector(".select-key label")?.childNodes ?? []) {
-      ghost.append(node.cloneNode(true));
-    }
-    return ghost;
-  }
-  function clearGhosts(root) {
-    for (const ghost of root.querySelectorAll(`.${ghostClass}`)) {
-      ghost.remove();
-    }
-    for (const cell of root.querySelectorAll(`.${ghostFitsClass}, .${ghostBlockedClass}`)) {
-      cell.classList.remove(ghostFitsClass, ghostBlockedClass);
-    }
-  }
-  function showGhosts(group, grid2, destination, pictures) {
-    const rowShift = Number(destination.row) - Number(group.source.row);
-    const columnShift = Number(destination.column) - Number(group.source.column);
-    const landed = [];
-    let fits = true;
-    let offDeck = false;
-    for (const tile of group.tiles) {
-      const [row, column] = tile.split(".").map(Number);
-      const landing = `${destination.page}.${row + rowShift}.${column + columnShift}`;
-      const cell = grid2.querySelector(`td[${tileAttribute}="${landing}"]`);
-      if (cell === null) {
-        fits = false;
-        offDeck = true;
-        continue;
-      }
-      const free = stateOf(cell) === "empty" || carriesTile(group, parseTile(landing));
-      fits && (fits = free);
-      cell.classList.add(free ? ghostFitsClass : ghostBlockedClass);
-      landed.push(cell);
-      const picture = pictures.get(tile);
-      if (picture !== void 0) {
-        cell.append(picture.cloneNode(true));
-      }
-    }
-    if (offDeck) {
-      for (const cell of landed) {
-        cell.classList.replace(ghostFitsClass, ghostBlockedClass);
-      }
-    }
-    return fits;
-  }
-  function groupDragImage(group, event) {
-    const cells = group.tiles.map((tile) => document.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)).filter((cell) => cell !== null);
-    if (cells.length === 0 || event.dataTransfer === null) {
-      return;
-    }
-    const boxes = cells.map((cell) => cell.getBoundingClientRect());
-    const left = Math.min(...boxes.map((box) => box.left));
-    const top = Math.min(...boxes.map((box) => box.top));
-    const image = document.createElement("div");
-    image.className = "grid group-drag-image";
-    image.style.width = `${Math.max(...boxes.map((box) => box.right)) - left}px`;
-    image.style.height = `${Math.max(...boxes.map((box) => box.bottom)) - top}px`;
-    cells.forEach((cell, index) => {
-      const picture = cell.querySelector(".select-key")?.cloneNode(true);
-      if (!(picture instanceof HTMLElement)) {
-        return;
-      }
-      picture.querySelector("input")?.remove();
-      picture.querySelector("label")?.removeAttribute("for");
-      picture.style.left = `${boxes[index].left - left}px`;
-      picture.style.top = `${boxes[index].top - top}px`;
-      picture.style.width = `${boxes[index].width}px`;
-      picture.style.height = `${boxes[index].height}px`;
-      image.append(picture);
-    });
-    document.body.append(image);
-    event.dataTransfer.setDragImage(image, event.clientX - left, event.clientY - top);
-    window.setTimeout(() => image.remove(), 0);
-  }
-  function markGroup(group, root, marked) {
-    for (const tile of group.tiles) {
-      root.querySelector(`td[${tileAttribute}="${group.source.page}.${tile}"]`)?.classList.toggle(draggingClass, marked);
-    }
-  }
-  var binArmedClass = "armed";
-  var binTopClass = "key-bin-top";
-  function overlaps(first, second) {
-    return first.left < second.right && second.left < first.right && first.top < second.bottom && second.top < first.bottom;
-  }
-  function showBin(bin, grid2) {
-    bin.classList.remove(binTopClass, binArmedClass);
-    bin.hidden = false;
-    if (overlaps(bin.getBoundingClientRect(), grid2.getBoundingClientRect())) {
-      bin.classList.add(binTopClass);
-    }
-  }
-  function hideBin(bin) {
-    bin.hidden = true;
-    bin.classList.remove(binArmedClass);
-  }
-  function clearDropTargets(grid2) {
-    for (const cell of grid2.querySelectorAll(`.${dropTargetClass}`)) {
-      cell.classList.remove(dropTargetClass);
-    }
-  }
-  var pageAttribute = "data-page";
-  var pageDropClass = "page-drop";
-  var pageArmingClass = "page-arming";
-  var leftBehindClass = "grid-left-behind";
-  var holdMilliseconds = 800;
-  function copying(event) {
-    return event.metaKey || event.altKey || event.ctrlKey || event.dataTransfer?.dropEffect === "copy";
-  }
-  function showCopying(event) {
-    if (event.dataTransfer !== null && (event.metaKey || event.altKey || event.ctrlKey)) {
-      event.dataTransfer.dropEffect = "copy";
-    }
-  }
-  function pageLinkOf(target) {
-    const link = target instanceof Element ? target.closest(`a[${pageAttribute}]`) : null;
-    return link !== null && /^\d+$/.test(link.getAttribute(pageAttribute) ?? "") ? link : null;
-  }
-  function shownGrid() {
-    return document.querySelector(`table.grid:not(.${leftBehindClass})`);
-  }
-  async function openPageDuringDrag(page) {
-    try {
-      const response = await fetch(`/page?page=${page}`, { credentials: "same-origin" });
-      if (!response.ok) {
-        return false;
-      }
-      const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
-      const incoming = parsed.querySelector("table.grid");
-      const incomingPages = parsed.querySelector('nav[aria-label="Pages"]');
-      const current = shownGrid();
-      if (incoming === null || current === null) {
-        return false;
-      }
-      current.classList.add(leftBehindClass);
-      current.setAttribute("aria-hidden", "true");
-      current.after(document.importNode(incoming, true));
-      if (incomingPages !== null) {
-        document.querySelector('nav[aria-label="Pages"]')?.replaceWith(document.importNode(incomingPages, true));
-      }
-      window.history.replaceState(null, "", `/page?page=${page}`);
-      announce("Opened that page: drop the key on a free tile.");
-      return true;
-    } catch {
-      announce("Error: that page could not be opened; is the daemon running?");
-      return false;
-    }
-  }
-  function enableDrag(grid2) {
-    const root = grid2.closest("main") ?? document.body;
-    let source = null;
-    let group = null;
-    let pictures = /* @__PURE__ */ new Map();
-    let ghostedAt = "";
-    let ghostFits = false;
-    let shownPage = "";
-    let opened = false;
-    let dropped = false;
-    let armed = null;
-    let armTimer;
-    const bin = document.getElementById("key-bin");
-    const disarm = () => {
-      window.clearTimeout(armTimer);
-      armed?.classList.remove(pageDropClass, pageArmingClass);
-      armed = null;
-    };
-    const arm = (link) => {
-      if (armed === link) {
-        return;
-      }
-      disarm();
-      armed = link;
-      link.classList.add(pageDropClass, pageArmingClass);
-      const page = link.getAttribute(pageAttribute) ?? "";
-      armTimer = window.setTimeout(() => {
-        disarm();
-        const before = shownPage;
-        shownPage = page;
-        void openPageDuringDrag(page).then((done) => {
-          opened || (opened = done);
-          if (!done) {
-            shownPage = before;
-          }
-        });
-      }, holdMilliseconds);
-    };
-    const accepts = (cell) => stateOf(cell) === "empty" || carriesTile(group, parseTile(cell.getAttribute(tileAttribute)));
-    if (bin !== null) {
-      bin.addEventListener("dragover", (event) => {
-        if (source === null || event.dataTransfer === null) {
-          return;
-        }
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-        bin.classList.add(binArmedClass);
-      });
-      bin.addEventListener("dragleave", () => bin.classList.remove(binArmedClass));
-      bin.addEventListener("drop", (event) => {
-        if (source === null) {
-          return;
-        }
-        event.preventDefault();
-        dropped = true;
-        const carried = source;
-        hideBin(bin);
-        void (group === null ? remove(carried) : removeGroup(group));
-      });
-    }
-    root.addEventListener("dragstart", (event) => {
-      const cell = cellOf(event.target);
-      if (cell === null || stateOf(cell) !== "key" || event.dataTransfer === null) {
-        return;
-      }
-      source = parseTile(cell.getAttribute(tileAttribute));
-      group = groupOf(cell, source);
-      shownPage = source?.page ?? "";
-      opened = false;
-      dropped = false;
-      event.dataTransfer.effectAllowed = "copyMove";
-      event.dataTransfer.setData(tileType, cell.getAttribute(tileAttribute) ?? "");
-      cell.classList.add(draggingClass);
-      if (group !== null) {
-        const carried = group;
-        groupDragImage(carried, event);
-        markGroup(carried, root, true);
-        pictures = new Map(carried.tiles.flatMap((tile) => {
-          const ticked = root.querySelector(`td[${tileAttribute}="${carried.source.page}.${tile}"]`);
-          return ticked === null ? [] : [[tile, ghostPicture(ticked)]];
-        }));
-      }
-      const shown = shownGrid();
-      if (bin !== null && shown !== null) {
-        showBin(bin, shown);
-      }
-    });
-    root.addEventListener("dragend", (event) => {
-      cellOf(event.target)?.classList.remove(draggingClass);
-      if (group !== null) {
-        markGroup(group, root, false);
-      }
-      clearDropTargets(root);
-      clearGhosts(root);
-      ghostedAt = "";
-      disarm();
-      source = null;
-      group = null;
-      if (bin !== null) {
-        hideBin(bin);
-      }
-      if (opened && !dropped) {
-        window.location.assign(`/page?page=${shownPage}`);
-      }
-    });
-    root.addEventListener("dragover", (event) => {
-      if (source === null || event.dataTransfer === null) {
-        return;
-      }
-      const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
-        clearGhosts(root);
-        ghostedAt = "";
-        event.preventDefault();
-        showCopying(event);
-        arm(link);
-        return;
-      }
-      const cell = cellOf(event.target);
-      if (group !== null) {
-        const tile = cell?.getAttribute(tileAttribute) ?? "";
-        const destination = parseTile(tile);
-        const shown = cell?.closest("table.grid") ?? null;
-        if (tile !== ghostedAt) {
-          clearGhosts(root);
-          ghostedAt = tile;
-          ghostFits = destination !== null && shown !== null && showGhosts(group, shown, destination, pictures);
-        }
-        if (ghostFits) {
-          event.preventDefault();
-          showCopying(event);
-        }
-        return;
-      }
-      if (cell === null || !accepts(cell)) {
-        return;
-      }
-      event.preventDefault();
-      showCopying(event);
-      cell.classList.add(dropTargetClass);
-    });
-    root.addEventListener("dragleave", (event) => {
-      cellOf(event.target)?.classList.remove(dropTargetClass);
-      if (armed !== null && pageLinkOf(event.target) === armed && !armed.contains(event.relatedTarget)) {
-        disarm();
-      }
-    });
-    root.addEventListener("drop", (event) => {
-      if (source === null) {
-        return;
-      }
-      const link = pageLinkOf(event.target);
-      if (link !== null && link.getAttribute(pageAttribute) !== shownPage) {
-        event.preventDefault();
-        disarm();
-        dropped = true;
-        const sameTile = `${link.getAttribute(pageAttribute) ?? ""}.${source.row}.${source.column}`;
-        const target2 = parseTile(sameTile);
-        void (group !== null && target2 !== null ? relocateGroup(group, target2, copying(event)) : relocate(source, sameTile, copying(event)));
-        return;
-      }
-      const cell = cellOf(event.target);
-      const destination = cell?.getAttribute(tileAttribute) ?? null;
-      const target = parseTile(destination);
-      if (cell === null || target === null || (group === null ? !accepts(cell) : !ghostFits)) {
-        return;
-      }
-      event.preventDefault();
-      clearDropTargets(root);
-      clearGhosts(root);
-      dropped = true;
-      void (group !== null ? relocateGroup(group, target, copying(event)) : relocate(source, destination, copying(event)));
-    });
-    document.getElementById("drag-help")?.removeAttribute("hidden");
   }
 
   // internal/editor/web/drawer.ts
@@ -986,7 +1131,7 @@
   }
 
   // internal/editor/web/gridkeys.ts
-  var tileAttribute2 = "data-tile";
+  var tileAttribute3 = "data-tile";
   var focusableSelector = 'a[href], input[type="checkbox"]';
   var steps = {
     ArrowUp: [-1, 0],
@@ -995,7 +1140,7 @@
     ArrowRight: [0, 1]
   };
   function cellOf3(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute2}]`) : null;
+    return target instanceof Element ? target.closest(`td[${tileAttribute3}]`) : null;
   }
   function focusable(cell) {
     return cell?.querySelector(focusableSelector) ?? null;
@@ -1012,7 +1157,7 @@
     return null;
   }
   function removeKey(cell) {
-    const parts = (cell.getAttribute(tileAttribute2) ?? "").split(".");
+    const parts = (cell.getAttribute(tileAttribute3) ?? "").split(".");
     if (cell.getAttribute("data-state") !== "key" || cell.querySelector(".select-key") !== null || parts.length !== 3) {
       return false;
     }
@@ -1223,17 +1368,17 @@
   }
 
   // internal/editor/web/select.ts
-  var tileAttribute3 = "data-tile";
+  var tileAttribute4 = "data-tile";
   var keyState = "key";
   function placeOf3(cell) {
-    const parts = (cell?.getAttribute(tileAttribute3) ?? "").split(".");
+    const parts = (cell?.getAttribute(tileAttribute4) ?? "").split(".");
     if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) {
       return null;
     }
     return { page: parts[0], row: Number(parts[1]), column: Number(parts[2]) };
   }
   function cellOf4(target) {
-    return target instanceof Element ? target.closest(`td[${tileAttribute3}]`) : null;
+    return target instanceof Element ? target.closest(`td[${tileAttribute4}]`) : null;
   }
   function showHints() {
     for (const hint of document.querySelectorAll(".select-help")) {
@@ -1326,6 +1471,7 @@
     enableSelecting(grid);
     enableDrag(grid);
     enableGridKeys(grid);
+    enableClipboard();
     enableKeyDialog(grid);
     enableDrawer(grid);
     enableKeepPlace(grid);

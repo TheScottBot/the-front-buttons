@@ -151,7 +151,7 @@ func TestEditor_ScriptReordersPagesByDraggingTheirNames(t *testing.T) {
 	}
 
 	if !strings.Contains(harness.get(t, firstPagePath).Body.String(),
-		"Drag a page's name onto another's to move the page into that place.") {
+		"Drag a page's name along the list to move the page.") {
 		t.Error("want the drag hint to say pages can be reordered")
 	}
 }

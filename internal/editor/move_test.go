@@ -78,7 +78,7 @@ func TestEditor_KeyPageOffersMoveAndCopy_OnlyForAnExistingKey(t *testing.T) {
 		`<optgroup label="Page 1: Work">`,
 		`<option value="0.0.1">Row 1, column 2</option>`,
 		`<option value="0.3.6">Row 4, column 7</option>`,
-		"Move or copy this key",
+		"Move, copy or swap this key",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("want %s in the key page", want)
@@ -280,7 +280,7 @@ func TestEditor_RefusesAnUnknownMoveAction(t *testing.T) {
 
 	harness := newHarness(t, nil)
 
-	recorder := harness.post(t, movePath, moveForm("swap", "0", "1", "1"))
+	recorder := harness.post(t, movePath, moveForm("trade", "0", "1", "1"))
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("want 400 for an unknown action, got %d", recorder.Code)
 	}

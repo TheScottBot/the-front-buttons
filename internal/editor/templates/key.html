@@ -60,7 +60,7 @@
 <input type="hidden" name="row" value="{{.Row}}">
 <input type="hidden" name="column" value="{{.Column}}">
 <fieldset aria-describedby="move-help">
-<legend>Move or copy this key</legend>
+<legend>Move, copy or swap this key</legend>
 <p class="help" id="move-help">{{.Move.ReservedNote}}</p>
 {{if .Move.Groups}}<div class="field">
 <label for="move-to">Destination tile</label>
@@ -73,6 +73,15 @@
 <button type="submit" name="action" value="move">Move key</button>
 <button type="submit" name="action" value="copy">Copy key</button>
 {{else}}<p>There is no free tile on any page; add a page or remove a key first.</p>{{end}}
+{{if .Move.SwapGroups}}<div class="field">
+<label for="swap-with">Key to swap with</label>
+<select id="swap-with" name="swap">
+{{range .Move.SwapGroups}}<optgroup label="{{.Label}}">
+{{range .Tiles}}<option value="{{.Value}}">{{.Label}}</option>
+{{end}}</optgroup>
+{{end}}</select>
+</div>
+<button type="submit" name="action" value="swap">Swap keys</button>{{end}}
 </fieldset>
 </form>{{end}}
 <figure>

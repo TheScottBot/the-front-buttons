@@ -2,6 +2,7 @@
 // it. esbuild bundles this file and the modules it imports into
 // static/editor.js (scripts/build-editor-script.sh, run by go generate).
 
+import { enableClipboard } from "./clipboard";
 import { enableKeyDialog } from "./dialog";
 import { enableDrag } from "./drag";
 import { enableDrawer } from "./drawer";
@@ -34,6 +35,7 @@ if (grid !== null) {
   enableSelecting(grid);
   enableDrag(grid);
   enableGridKeys(grid);
+  enableClipboard();
   enableKeyDialog(grid);
   enableDrawer(grid);
 

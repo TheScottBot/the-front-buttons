@@ -16,6 +16,7 @@ import (
 const (
 	moveKeyAction = "move"
 	copyKeyAction = "copy"
+	swapKeyAction = "swap"
 )
 
 // destinationParts is a destination's page, row and column.
@@ -34,6 +35,8 @@ var (
 		"choose another tile")
 	errMoveOccupied = errors.New(
 		"that destination already has a key; choose a free tile, or remove that key first")
+	errSwapNoKey = errors.New("there is no key there to swap with; move the key there instead")
+	errSwapPage  = errors.New("the swap was refused")
 )
 
 // keyAddress is where a key sits: its page and its position on that page.
@@ -61,7 +64,9 @@ type moveGroup struct {
 // paging tiles, which the server then refused (evaluation, deck testing); a
 // tile that cannot be used is now never offered. The server still checks.
 type moveView struct {
-	Groups       []moveGroup
+	Groups []moveGroup
+	// SwapGroups are every other key, page by page, to trade places with.
+	SwapGroups   []moveGroup
 	Focus        bool
 	ReservedNote string
 }
@@ -72,8 +77,9 @@ func (pages *pageHandlers) moveChoices(context keyContext) moveView {
 	grid := pages.options.Grid
 	back, forward := grid.BackPosition(), grid.ForwardPosition()
 	view := moveView{
-		Groups: nil,
-		Focus:  context.moveFailed && context.hasKey,
+		Groups:     nil,
+		SwapGroups: pages.swapChoices(context),
+		Focus:      context.moveFailed && context.hasKey,
 		ReservedNote: fmt.Sprintf("Only free tiles are listed: row %d, column %d and row %d, column %d are kept for paging.",
 			back.Row+1, back.Column+1, forward.Row+1, forward.Column+1),
 	}
@@ -108,6 +114,48 @@ func (pages *pageHandlers) moveChoices(context keyContext) moveView {
 	return view
 }
 
+// swapChoices lists, page by page, every key but this one, by its tile and
+// what the grid calls it.
+func (pages *pageHandlers) swapChoices(context keyContext) []moveGroup {
+	var groups []moveGroup
+
+	for pageIndex, page := range context.destinationPages {
+		group := moveGroup{Label: fmt.Sprintf("Page %d: %s", pageIndex+1, page.Name), Tiles: nil}
+
+		for _, key := range sortedKeys(page.Keys) {
+			if pageIndex == context.pageIndex && key.Position == context.position {
+				continue
+			}
+
+			text, _ := describeKey(pages.options.Presets, page, key.Position)
+			group.Tiles = append(group.Tiles, moveTile{
+				Value: fmt.Sprintf("%d.%d.%d", pageIndex, key.Position.Row, key.Position.Column),
+				Label: fmt.Sprintf("Row %d, column %d: %s", key.Position.Row+1, key.Position.Column+1, text),
+			})
+		}
+
+		if len(group.Tiles) > 0 {
+			groups = append(groups, group)
+		}
+	}
+
+	return groups
+}
+
+// sortedKeys orders keys by row, then column, as the grid reads.
+func sortedKeys(keys []config.Key) []config.Key {
+	sorted := slices.Clone(keys)
+	slices.SortFunc(sorted, func(first config.Key, second config.Key) int {
+		if first.Position.Row != second.Position.Row {
+			return first.Position.Row - second.Position.Row
+		}
+
+		return first.Position.Column - second.Position.Column
+	})
+
+	return sorted
+}
+
 // destinationFrom reads the destination list's value, page, row and column
 // joined by dots. Anything else is a page that does not exist, which the checks
 // refuse as not on the deck.
@@ -138,7 +186,7 @@ func (pages *pageHandlers) moveKey(writer http.ResponseWriter, request *http.Req
 	form := request.PostForm
 
 	action := form.Get("action")
-	if action != moveKeyAction && action != copyKeyAction {
+	if action != moveKeyAction && action != copyKeyAction && action != swapKeyAction {
 		http.Error(writer, "unknown action", http.StatusBadRequest)
 
 		return
@@ -150,7 +198,17 @@ func (pages *pageHandlers) moveKey(writer http.ResponseWriter, request *http.Req
 	}
 	destination := destinationFrom(form.Get("to"))
 
+	// The form's swap list names the key to trade with; a drag names it as
+	// its destination.
+	if action == swapKeyAction && form.Get("swap") != "" {
+		destination = destinationFrom(form.Get("swap"))
+	}
+
 	saveError := pages.changeConfiguration(func(configuration *config.Configuration) error {
+		if action == swapKeyAction {
+			return pages.swapKeys(configuration, source, destination)
+		}
+
 		return relocateKey(configuration, pages.options.Grid, source, destination, action == copyKeyAction)
 	})
 	if saveError != nil {
@@ -206,7 +264,8 @@ func reservedRefusal(grid layout.Grid, page config.Page, position layout.Positio
 func isMoveRefusal(saveError error) bool {
 	return errors.Is(saveError, errMoveNoSource) || errors.Is(saveError, errMoveSamePlace) ||
 		errors.Is(saveError, errMoveOffGrid) || errors.Is(saveError, errMoveReserved) ||
-		errors.Is(saveError, errMoveIconTile) || errors.Is(saveError, errMoveOccupied)
+		errors.Is(saveError, errMoveIconTile) || errors.Is(saveError, errMoveOccupied) ||
+		errors.Is(saveError, errSwapNoKey) || errors.Is(saveError, errSwapPage)
 }
 
 // relocateKey puts the key at a checked destination, removing it from the
@@ -273,4 +332,61 @@ func checkRelocation(
 	}
 
 	return key, nil
+}
+
+// swapKeys trades the places of the key at the source and the key at the
+// destination, on one page or two. Each keeps everything but its tile; an
+// application's own brick is never put on a page that cannot hold it.
+func (pages *pageHandlers) swapKeys(
+	configuration *config.Configuration, source keyAddress, destination keyAddress,
+) error {
+	if source.page < 0 || source.page >= len(configuration.Pages) {
+		return errMoveNoSource
+	}
+
+	moving, found := keyAt(configuration.Pages[source.page], source.position)
+
+	switch {
+	case !found:
+		return errMoveNoSource
+	case destination == source:
+		return errMoveSamePlace
+	case destination.page < 0 || destination.page >= len(configuration.Pages):
+		return errMoveOffGrid
+	}
+
+	other, taken := keyAt(configuration.Pages[destination.page], destination.position)
+	if !taken {
+		return errSwapNoKey
+	}
+
+	for _, check := range []struct {
+		kind string
+		page config.Page
+	}{{moving.Kind, configuration.Pages[destination.page]}, {other.Kind, configuration.Pages[source.page]}} {
+		if !pages.kindOfferedOn(check.kind, check.page) {
+			return fmt.Errorf("%w: %s belongs on its application's screen, so cannot go on %s",
+				errSwapPage, check.kind, check.page.Name)
+		}
+	}
+
+	place(&configuration.Pages[source.page], source.position, other.Clone())
+	place(&configuration.Pages[destination.page], destination.position, moving.Clone())
+
+	return nil
+}
+
+// place puts a key on a tile in place of whatever was there.
+func place(page *config.Page, position layout.Position, key config.Key) {
+	key.Position = position
+
+	for index := range page.Keys {
+		if page.Keys[index].Position == position {
+			page.Keys[index] = key
+
+			return
+		}
+	}
+
+	page.Keys = append(page.Keys, key)
 }

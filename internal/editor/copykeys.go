@@ -197,10 +197,16 @@ func (pages *pageHandlers) actOnTicked(writer http.ResponseWriter, request *http
 			pages.removals.remember(selection.source, taken)
 		}
 
-		// The redirect's only variable parts are a formatted integer and a
-		// constant.
-		address := fmt.Sprintf("/page?page=%d&saved=%s", selection.source, saved[action])
-		http.Redirect(writer, request, address, http.StatusSeeOther)
+		// Keys pasted onto the page open return there; anything else returns to
+		// the page the keys came from. The redirect's only variable parts are a
+		// formatted integer and a constant.
+		returnTo := selection.source
+		if showing := integerParameter(request.PostForm, showingField); slices.Contains(selection.targets, showing) {
+			returnTo = showing
+		}
+
+		address := fmt.Sprintf("/page?page=%d&saved=%s", returnTo, saved[action])
+		http.Redirect(writer, request, address, http.StatusSeeOther) //nolint:gosec // see above
 
 		return
 	}

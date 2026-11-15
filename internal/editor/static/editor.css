@@ -573,6 +573,29 @@ input[type="search"] {
   outline-offset: -4px;
 }
 
+/* A key a carried key would swap with: outlined, and the arrows of a swap
+   over it. */
+
+.grid td.swap-target {
+  position: relative;
+  outline: 5px dashed var(--accent);
+  outline-offset: -5px;
+}
+
+.grid td.swap-target::after {
+  content: "\21C4";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--on-block-accent);
+  background: var(--block);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
 .grid td.drop-target {
   outline: 5px solid var(--accent);
   outline-offset: -5px;
