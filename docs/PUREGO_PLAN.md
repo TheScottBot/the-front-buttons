@@ -77,10 +77,165 @@ v0.1.0 gives a point to go back to; that is decided then.
 | --- | --- |
 | `internal/platform/objcbridge` (new, darwin) | The only package besides the HID driver that imports purego. Loads the frameworks once; `Class`, `Selector`, `Send` for objc_msgSend with typed variants for struct arguments (NSRect, NSSize); `CFString` to and from Go strings; `CFNumber`, `CFBoolean`, `CFArray` readers; `Symbol` for constants such as `kAXFocusedApplicationAttribute` read with Dlsym; `WithAutoreleasePool`; `Release` and `Retain`. |
 | `internal/platform/systemadapter` | A `Bridge` type with `BridgeCgo` and `BridgePurego`. The eight macOS constructors take it: `NewApplicationIcons`, `NewApplicationActivator`, `NewApplicationBadges`, `NewWindowCycler`, `NewKeyPresser`, `AccessibilityTrusted`, `NewClipboardWriter`, `NewApplicationQuitter`. Each purego adapter is a file `*_purego_darwin.go` beside its cgo file. The Windows constructors take the bridge and ignore it. |
-| `internal/deck/hidtransport` | `Watcher` keeps all its logic and calls a private `driver` interface: `enumerate(vendorID) ([]deck.Connection, error)`, `open(path) (handle, error)`, and on the handle `write`, `sendFeature`, `getFeature`, `readWithoutWaiting`, `close`. Drivers: `hidapiDriver` (cgo), `iokitDriver` (darwin, purego), later `winhidDriver` (windows). `NewWatcher(bridge)`. |
+| `internal/deck/hidtransport` | `Watcher` keeps all its logic and calls a private `driver` interface: `enumerate(vendorID) ([]deck.Connection, error)`, `open(path) (handle, error)`, and on the handle `write`, `sendFeature`, `getFeature`, `readWithoutWaiting`, `close`. Drivers: `hidapiDriver` (cgo), `iokitDriver` (darwin, purego), later `winhidDriver` (windows). `NewWatcher(name DriverName)`. |
 | `internal/config` | `PlatformBridge` on `Configuration`, decoded and encoded like `world_clocks`, refusing values other than `cgo` and `purego`. |
 | `cmd/the-front-buttons` | Reads the bridge from the file at start and passes it to the constructors and `NewWatcher`. |
 | `.golangci.yml` | depguard: purego only in `objcbridge` and `hidtransport`. `unsafe` and gosec G103 suppressions there only, as in the Windows files. |
+
+## Contracts
+
+These are fixed before any work is shared out, so tasks can be written at the
+same time against them. A task that needs a contract changed writes the change
+in the tracker's contract log and waits for the coordinator to accept it;
+nobody changes a contract in passing. [PUREGO_TRACKER.md](PUREGO_TRACKER.md)
+says who works on what.
+
+### The setting (task C1)
+
+```go
+// internal/config
+type PlatformBridge string
+
+const (
+	PlatformBridgeCgo    PlatformBridge = "cgo"
+	PlatformBridgePurego PlatformBridge = "purego"
+)
+
+// Configuration gains PlatformBridge PlatformBridge; empty means cgo.
+func (configuration Configuration) PlatformBridgeOrDefault() PlatformBridge
+```
+
+### The bridge in systemadapter (task C2)
+
+```go
+// internal/platform/systemadapter, every system
+type Bridge string
+
+const (
+	BridgeCgo    Bridge = "cgo"
+	BridgePurego Bridge = "purego"
+)
+
+// ErrBridgeUnavailable reports a purego adapter not written yet, or cgo
+// asked for in a build without it.
+var ErrBridgeUnavailable = errors.New("not available through this bridge")
+```
+
+- Every macOS constructor named in the layout table takes `bridge Bridge` as
+  its last argument and returns the port interface it serves (for the key
+  presser, a systemadapter interface adding `RequestAccessibility`, which the
+  daemon uses). The Windows constructors take the same argument and ignore
+  it.
+- Each purego adapter is an unexported type `pure<Name>` made by
+  `newPure<Name>()` in `<name>_purego_darwin.go`, with exactly the methods of
+  today's cgo type. C2 creates each of these files with a stub whose methods
+  return `ErrBridgeUnavailable`; the adapter's task then owns the file and
+  replaces the stub.
+- Each cgo file gains `//go:build darwin && cgo`. `cgo_absent_darwin.go`
+  (`//go:build darwin && !cgo`) makes every constructor give the purego
+  adapter whatever it is asked for, and the daemon logs that.
+- `agreement_darwin_test.go` (C2) gives the agreement tests one helper:
+
+```go
+// eachBridge runs check once through each bridge, as subtests named cgo
+// and purego, and returns what each gave, for the test to compare.
+func eachBridge[T any](t *testing.T, check func(t *testing.T, bridge Bridge) T) (cgo T, purego T)
+
+// actingAllowed skips a test that changes the desktop (activates, quits,
+// posts keys, writes the clipboard, raises a window) unless
+// THE_FRONT_BUTTONS_ACTING is set; those run one at a time, under the
+// tracker's desktop lock.
+func actingAllowed(t *testing.T)
+```
+
+### The bridge helpers (task C4)
+
+`internal/platform/objcbridge`, darwin only, built on purego and its `objc`
+package. Adapters use purego's `objc.ID`, `objc.SEL`, `objc.GetClass`,
+`objc.RegisterName` and `objc.Send` directly for messages; this package holds
+everything two or more adapters need, so no two tasks write the same helper
+(the duplicate code check fails on it).
+
+```go
+type CFTypeRef uintptr
+
+var ErrSymbolMissing = errors.New("symbol missing")
+
+func Framework(path string) (uintptr, error)              // Dlopen, once per path
+func Function(target any, library uintptr, name string)    // RegisterLibFunc
+func Constant(library uintptr, name string) (CFTypeRef, error) // the value of an exported CF constant
+
+func CFString(text string) CFTypeRef        // owned; Release it
+func GoString(ref CFTypeRef) string          // "" for nil or not a string
+func NSString(text string) objc.ID           // autoreleased
+func GoStringFromNS(id objc.ID) string
+func CFInteger(ref CFTypeRef) (int64, bool)
+func CFBool(ref CFTypeRef) (bool, bool)
+func CFArrayItems(ref CFTypeRef) []CFTypeRef // not retained
+func CFDictionary(pairs map[CFTypeRef]CFTypeRef) CFTypeRef // owned
+func IsType(ref CFTypeRef, kind Kind) bool   // Kind: KindString, KindNumber, KindBoolean, KindArray, KindAXElement
+func Release(ref CFTypeRef)
+func Retain(ref CFTypeRef) CFTypeRef
+func Equal(first, second CFTypeRef) bool
+func WithAutoreleasePool(work func())
+
+type NSPoint struct{ X, Y float64 }
+type NSSize struct{ Width, Height float64 }
+type NSRect struct{ Origin NSPoint; Size NSSize }
+
+// Accessibility, shared by activation, badges and windows.
+func AXApplication(processID int) CFTypeRef  // owned
+func AXSystemWide() CFTypeRef                // owned
+func AXCopy(element CFTypeRef, attribute string) (CFTypeRef, error) // owned
+func AXSet(element CFTypeRef, attribute string, value CFTypeRef) error
+func AXPerform(element CFTypeRef, action string) error
+func AXProcessID(element CFTypeRef) (int, error)
+```
+
+A helper found missing during an adapter's task is asked for in the tracker
+(task X1), not written inside the adapter.
+
+### The HID driver (task C3)
+
+```go
+// internal/deck/hidtransport
+type DriverName string
+
+const (
+	DriverHIDAPI DriverName = "cgo"
+	DriverPurego DriverName = "purego"
+)
+
+func NewWatcher(name DriverName) *Watcher
+
+// driver and handle are what a driver provides; Watcher keeps the lock, the
+// write retry, the read poll, the panic recovery and the busy against
+// disconnected decision above them.
+type driver interface {
+	enumerate(vendorID uint16) ([]deck.Connection, error)
+	open(path string) (handle, error)
+}
+
+type handle interface {
+	write(report []byte) error
+	sendFeature(report []byte) error
+	getFeature(reportID byte, length int) ([]byte, error)
+	readWithoutWaiting(buffer []byte) (int, error) // 0, nil when no report waits
+	close() error
+}
+
+// errHandleGone is returned by every handle call after the device is
+// removed; Watcher reports it as deck.ErrDisconnected.
+var errHandleGone = errors.New("device removed")
+```
+
+- `hidapi_driver.go` (`//go:build cgo`) holds go-hid; `iokit_darwin.go` and
+  `iokit_input_darwin.go` the macOS driver; `winhid_windows.go` the Windows
+  driver. A `driver_absent_*.go` file per system makes a driver not built in
+  fall back to the other, logged.
+- `driver_contract_test.go` (C3) runs one contract against any driver: a
+  fake in unit tests, and each real driver with a deck attached under
+  `THE_FRONT_BUTTONS_EXPERIMENT`.
 
 ## The macOS HID driver
 
@@ -158,7 +313,7 @@ transient write error losing its code, the setting ignored, and the
 
 ## Phases
 
-| Phase | Work | Days |
+| Phase (tasks in the tracker) | Work | Days |
 | --- | --- | --- |
 | 0 | The work machine's fixes, from the handoff | first |
 | 1 | `platform_bridge` setting, `Bridge` type, constructors taking it, build constraints, the `CGO_ENABLED=0` build check (purego adapters stubbed as unavailable) | 1 |
