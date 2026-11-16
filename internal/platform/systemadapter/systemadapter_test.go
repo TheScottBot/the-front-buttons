@@ -353,11 +353,11 @@ func TestWindowsWindowsToClose_ClosesTheApplicationsOwnWindows(t *testing.T) {
 	t.Parallel()
 
 	windows := []systemadapter.WindowsWindow{
-		{Handle: 1, ProcessID: 10, Visible: true, Owned: false},
-		{Handle: 2, ProcessID: 10, Visible: false, Owned: false},
-		{Handle: 3, ProcessID: 10, Visible: true, Owned: true},
-		{Handle: 4, ProcessID: 11, Visible: true, Owned: false},
-		{Handle: 5, ProcessID: 12, Visible: true, Owned: false},
+		{Handle: 1, ProcessID: 10, Visible: true, Owned: false, Minimised: false},
+		{Handle: 2, ProcessID: 10, Visible: false, Owned: false, Minimised: false},
+		{Handle: 3, ProcessID: 10, Visible: true, Owned: true, Minimised: false},
+		{Handle: 4, ProcessID: 11, Visible: true, Owned: false, Minimised: false},
+		{Handle: 5, ProcessID: 12, Visible: true, Owned: false, Minimised: false},
 	}
 
 	got := systemadapter.WindowsWindowsToClose(windows, func(processID uint32) bool { return processID != 11 })

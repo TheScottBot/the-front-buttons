@@ -156,26 +156,26 @@ func ParseWindowsAppLink(output string) (WindowsProcessRule, error) {
 	return WindowsProcessRule{Path: "", Directory: directory, FileName: program, Package: ""}, nil
 }
 
-// WindowsWindow is what the quitter knows of a top level window: its handle,
-// its process, whether it is showing, and whether another window owns it, as
-// a dialog is owned.
+// WindowsWindow is what the quitter and the activator know of a top level
+// window: its handle, its process, whether it is showing, whether another
+// window owns it, as a dialog is owned, and whether it is minimised.
 type WindowsWindow struct {
 	Handle    uintptr
 	ProcessID uint32
 	Visible   bool
 	Owned     bool
+	Minimised bool
 }
 
 // WindowsWindowsToClose is the application's windows to close: its own
 // visible top level windows, those on the taskbar, as a person would close
 // them. Hidden and owned windows go with their application.
 func WindowsWindowsToClose(windows []WindowsWindow, isApplications func(processID uint32) bool) []uintptr {
-	var handles []uintptr
+	taskbar := taskbarWindows(windows, isApplications)
+	handles := make([]uintptr, 0, len(taskbar))
 
-	for _, window := range windows {
-		if window.Visible && !window.Owned && isApplications(window.ProcessID) {
-			handles = append(handles, window.Handle)
-		}
+	for _, window := range taskbar {
+		handles = append(handles, window.Handle)
 	}
 
 	return handles

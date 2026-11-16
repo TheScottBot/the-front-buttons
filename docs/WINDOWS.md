@@ -136,13 +136,13 @@ leaves the configuration, the log and any secrets in Credential Manager.
 | Key | On Windows |
 | --- | --- |
 | Pages, page markers, the dashboard, world clocks | Work |
-| Opening a link or launching an application | Work, through the shell |
+| Opening a link or launching an application | Work, through the shell; an application key switches to the application instead when it is running |
 | `press_key` and `press_shortcut` | Work, through SendInput |
 | Quitting on a triple press | Closes the application's own windows |
 | Pasting a Mural link, the Mural timer keys | Written; the clipboard is untried on Windows |
 | GitHub Actions, Mural sign in | Work; secrets live in Credential Manager |
-| Application icons on keys | Not written yet: the key shows the crossed box that marks an icon not available |
-| Bringing an application forward | Not written yet: a launch key opens the application, but Windows does not let a program in the background take the focus, so an application already running is not brought to the front |
+| Application icons on keys | Written, through the shell; untried on Windows. An application the shell cannot find shows the crossed box that marks an icon not available |
+| Bringing an application forward | Written; untried on Windows. An application key, and an app screen's key before its key presses, restores the application's window and puts it in front, holding Alt for that moment so Windows lets a background program take the focus. An application whose only window is hidden, as one closed to the notification area, counts as not running and is launched, which brings most such applications back. A Store app whose window belongs to ApplicationFrameHost is launched too, and the shell brings back the one running. |
 | Window cycling, Dock style badges, Spotify | Not available on Windows |
 
 The deck itself has passed its checks through the purego driver on macOS. On
@@ -181,6 +181,27 @@ else:
    and the page should come back.
 
 The macOS results to compare against are in the evaluation.
+
+## Checking application icons on Windows
+
+Application icons are drawn by the shell, as File Explorer and the Start menu
+draw them, and need neither the deck nor the daemon:
+
+1. Notepad's icon, by its path and by the form the app picker gives it, a
+   missing program reported as not found, and every Start menu entry the app
+   picker lists. The last logs how many entries were drawn and names any the
+   shell could not find:
+
+   ```powershell
+   go test ./internal/platform/systemadapter/ -run 'WindowsApplicationIcons' -v
+   ```
+
+2. By hand: with the daemon running, open the editor, add an
+   `open_application` key, pick an application such as Notepad or Teams and
+   tick "Use app icon". The key on the deck and in the editor should show
+   the application's icon, on a background matching its edge. An application
+   whose icon cannot be read shows the crossed box, and the log gives the
+   reason under `application icon not loaded`.
 
 ## Troubleshooting
 

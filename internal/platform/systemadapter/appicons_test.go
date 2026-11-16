@@ -118,15 +118,3 @@ func TestMacOSApplicationIcons_RefusesBytesThatAreNotAPNG(t *testing.T) {
 		t.Fatalf("want ErrUserIconRejected and no icon, got %v (%v)", icon, iconError)
 	}
 }
-
-// TestWindowsApplicationIcons_SaysAppIconsAreNotAvailableYet: reading an icon
-// on Windows needs shell COM, which cannot be run from the Mac this was built
-// on, so the adapter says so plainly and the key shows the missing marker.
-func TestWindowsApplicationIcons_SaysAppIconsAreNotAvailableYet(t *testing.T) {
-	t.Parallel()
-
-	icon, iconError := systemadapter.NewWindowsApplicationIcons().Icon(t.Context(), teamsAppsFolderTarget)
-	if !errors.Is(iconError, platform.ErrIconUnavailable) || icon != nil {
-		t.Fatalf("want ErrIconUnavailable and no icon, got %v (%v)", icon, iconError)
-	}
-}

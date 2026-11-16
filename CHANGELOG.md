@@ -254,6 +254,11 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   hid.dll and setupapi.dll on Windows, with overlapped reads. On macOS it
   lists the same devices and paths as hidapi; neither has yet opened the
   physical deck, and the Windows driver has not run on a Windows machine.
+- Application icons on Windows, not yet tried there: an `open_application`
+  key that uses the application's icon asks the shell for it at 256 pixels,
+  as File Explorer draws it, for a Start menu entry and a program's path
+  alike, without cgo. An application the shell cannot find still shows the
+  crossed box.
 - Three Mural timer keys, each acting on the one board its link names:
   `mural_start_timer`, five minutes unless given a duration, with or without
   the sound at the end, and `mural_add_minute` and `mural_add_half_minute`,
@@ -380,6 +385,22 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   is never asked. Windows does not show badges yet.
 
 ### Fixed
+
+- Application keys on Windows started the application again through the shell
+  rather than switching to it, and Windows' foreground lock left a window the
+  daemon raised flashing in the taskbar instead of taking the focus. An
+  application key now switches to a running application: it finds the
+  application's own windows as Triple press to close does, restores a
+  minimised one, and puts it in front with the Alt key held through
+  `SendInput` for that one call, which satisfies the condition
+  `SetForegroundWindow` documents that the caller sent the last input. It
+  launches the application only when it has no window on the taskbar, or its
+  processes cannot be found; one running that does not come forward is
+  reported on the key, not started a second time. Each application's way of
+  finding its processes, which for a Start menu entry runs PowerShell, is read
+  once while the daemon runs. App screens on Windows now bring their
+  application forward before sending its key presses, and refuse them when it
+  is not open, as on macOS. Not yet run on the Windows machine.
 
 - Quitting an application by name, and window cycling, missed every
   application launched after the daemon first listed running applications:

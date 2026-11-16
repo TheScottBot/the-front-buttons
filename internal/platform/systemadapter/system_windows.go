@@ -22,9 +22,11 @@ const (
 // NewURLOpener returns this machine's URLOpener: ShellExecuteW.
 func NewURLOpener() WindowsLauncher { return NewWindowsURLOpener(shellExecute) }
 
-// NewApplicationLauncher returns this machine's ApplicationLauncher:
-// ShellExecuteW.
-func NewApplicationLauncher() WindowsLauncher { return NewWindowsApplicationLauncher(shellExecute) }
+// NewApplicationLauncher returns this machine's ApplicationLauncher: a switch
+// to the application if it is running, and ShellExecuteW if it is not.
+func NewApplicationLauncher() WindowsLauncher {
+	return NewWindowsApplicationSwitcher(NewWindowsActivator(systemDesktop()), shellExecute)
+}
 
 // shellExecute makes one ShellExecuteW call on a thread with COM initialised, as
 // Microsoft advises before every call (evaluation 6.1). COM state belongs to a

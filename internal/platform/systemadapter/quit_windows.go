@@ -45,6 +45,7 @@ const (
 var (
 	procPostMessage               = windows.NewLazySystemDLL("user32.dll").NewProc("PostMessageW")
 	procGetWindow                 = windows.NewLazySystemDLL("user32.dll").NewProc("GetWindow")
+	procIsIconic                  = windows.NewLazySystemDLL("user32.dll").NewProc("IsIconic")
 	procGetApplicationUserModelID = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetApplicationUserModelId")
 )
 
@@ -67,24 +68,13 @@ func (ApplicationQuitter) QuitApplication(quitContext context.Context, identifie
 		return ruleError
 	}
 
-	found, listError := topLevelWindows()
+	found, _, listError := systemDesktop().applicationWindows(rule)
 	if listError != nil {
 		return listError
 	}
 
-	known := map[uint32]bool{}
-	isApplications := func(processID uint32) bool {
-		matches, seen := known[processID]
-		if !seen {
-			matches = rule.Matches(describeProcess(processID))
-			known[processID] = matches
-		}
-
-		return matches
-	}
-
-	for _, handle := range WindowsWindowsToClose(found, isApplications) {
-		posted, _, postError := procPostMessage.Call(handle, windowMessageClose, 0, 0)
+	for _, window := range found {
+		posted, _, postError := procPostMessage.Call(window.Handle, windowMessageClose, 0, 0)
 		if posted == 0 {
 			return fmt.Errorf("%w: %w", errWindowNotClosed, postError)
 		}
@@ -118,20 +108,31 @@ func windowsProcessRule(ruleContext context.Context, target WindowsQuitTarget) (
 	path := target.Value
 
 	if target.KnownFolder != "" {
-		folderID, guidError := windows.GUIDFromString(target.KnownFolder)
-		if guidError != nil {
-			return WindowsProcessRule{}, fmt.Errorf("reading a known folder's ID: %w", guidError)
-		}
-
-		folder, folderError := windows.KnownFolderPath((*windows.KNOWNFOLDERID)(&folderID), 0)
+		folder, folderError := knownFolderPath(target.KnownFolder)
 		if folderError != nil {
-			return WindowsProcessRule{}, fmt.Errorf("finding a known folder: %w", folderError)
+			return WindowsProcessRule{}, folderError
 		}
 
 		path = folder + `\` + path
 	}
 
 	return WindowsProcessRule{Path: path, Directory: "", FileName: "", Package: ""}, nil
+}
+
+// knownFolderPath is the path of the known folder whose ID is given, such as
+// {1AC14E77-02E7-4E5D-B744-2EB1AE5198B7} for System32.
+func knownFolderPath(folderID string) (string, error) {
+	parsed, guidError := windows.GUIDFromString(folderID)
+	if guidError != nil {
+		return "", fmt.Errorf("reading a known folder's ID: %w", guidError)
+	}
+
+	folder, folderError := windows.KnownFolderPath((*windows.KNOWNFOLDERID)(&parsed), 0)
+	if folderError != nil {
+		return "", fmt.Errorf("finding a known folder: %w", folderError)
+	}
+
+	return folder, nil
 }
 
 // The windows EnumWindows lists, collected by one callback made once, as
@@ -151,15 +152,19 @@ func collectWindow(handle windows.HWND, _ uintptr) uintptr {
 
 	_, _ = windows.GetWindowThreadProcessId(handle, &processID)
 	owner, _, _ := procGetWindow.Call(uintptr(handle), getWindowOwner)
+	minimised, _, _ := procIsIconic.Call(uintptr(handle))
 
 	windowList = append(windowList, WindowsWindow{
 		Handle: uintptr(handle), ProcessID: processID, Visible: windows.IsWindowVisible(handle), Owned: owner != 0,
+		Minimised: minimised != 0,
 	})
 
 	return 1
 }
 
-// topLevelWindows lists every top level window.
+// topLevelWindows lists every top level window in the order EnumWindows
+// gives them, which is front to back in practice, though Microsoft does not
+// promise it.
 func topLevelWindows() ([]WindowsWindow, error) {
 	windowListMutex.Lock()
 	defer windowListMutex.Unlock()

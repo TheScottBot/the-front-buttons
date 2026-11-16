@@ -72,20 +72,10 @@ func (WindowsKeyPresser) PressKey(_ context.Context, key string) error {
 		return mapError
 	}
 
-	inputs := [2]keyboardInput{
+	return sendKeyboardInputs([]keyboardInput{
 		{inputType: inputKeyboard, virtualKey: virtualKey, scanCode: 0, flags: 0, time: 0, extraInfo: 0},
 		{inputType: inputKeyboard, virtualKey: virtualKey, scanCode: 0, flags: keyEventKeyUp, time: 0, extraInfo: 0},
-	}
-
-	// SendInput takes a pointer to the array; unsafe is the only way to pass
-	// one to a system call, and the array outlives the call.
-	sent, _, callError := procSendInput.Call(uintptr(len(inputs)),
-		uintptr(unsafe.Pointer(&inputs[0])), inputStructSize) //nolint:gosec // see above
-	if sent != uintptr(len(inputs)) {
-		return fmt.Errorf("%w: %w", errKeyNotSent, callError)
-	}
-
-	return nil
+	})
 }
 
 // PressShortcut sends one momentary press of a key with its modifiers held:
@@ -113,6 +103,12 @@ func (WindowsKeyPresser) PressShortcut(_ context.Context, shortcut platform.Shor
 		})
 	}
 
+	return sendKeyboardInputs(inputs)
+}
+
+// sendKeyboardInputs sends key events with SendInput, in order, as one
+// uninterrupted run.
+func sendKeyboardInputs(inputs []keyboardInput) error {
 	// SendInput takes a pointer to the slice's array; unsafe is the only way
 	// to pass one to a system call, and the slice outlives the call.
 	sent, _, callError := procSendInput.Call(uintptr(len(inputs)),

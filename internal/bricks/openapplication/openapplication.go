@@ -23,7 +23,7 @@ type Parameters struct {
 	// UseAppIcon is the check box the author asked for. It stands apart so the
 	// tag alignment check does not pad Application's tag out to the width of
 	// this long description.
-	UseAppIcon bool `brick:"use_app_icon" replaces:"icon,icon_file" description:"Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. Not available on Windows yet, where the key shows the missing icon marker."`
+	UseAppIcon bool `brick:"use_app_icon" replaces:"icon,icon_file" description:"Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. An application whose icon cannot be read shows the missing icon marker."`
 
 	// AppScreen makes the key open the application's screen too: a page of
 	// its own, outside the regular pages, with the application's icon top left

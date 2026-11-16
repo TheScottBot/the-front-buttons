@@ -2,6 +2,7 @@ package systemadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -109,20 +110,30 @@ func (launcher MacOSLauncher) open(runContext context.Context, target string, fl
 	return nil
 }
 
-// WindowsLauncher opens URLs and launches applications with ShellExecuteW.
+// WindowsLauncher opens URLs and launches applications with ShellExecuteW,
+// and for an application key, switches to the application first when there
+// is an activator to switch with.
 type WindowsLauncher struct {
-	execute ShellExecutor
+	execute  ShellExecutor
+	activate func(activateContext context.Context, identifier string) error
 }
 
 // NewWindowsURLOpener returns the Windows URLOpener over a shell executor.
 func NewWindowsURLOpener(execute ShellExecutor) WindowsLauncher {
-	return WindowsLauncher{execute: execute}
+	return WindowsLauncher{execute: execute, activate: nil}
 }
 
 // NewWindowsApplicationLauncher returns the Windows ApplicationLauncher over a
 // shell executor.
 func NewWindowsApplicationLauncher(execute ShellExecutor) WindowsLauncher {
-	return WindowsLauncher{execute: execute}
+	return WindowsLauncher{execute: execute, activate: nil}
+}
+
+// NewWindowsApplicationSwitcher returns the Windows ApplicationLauncher that
+// switches to a running application, as the open command does on macOS, and
+// launches the application only when it is not running.
+func NewWindowsApplicationSwitcher(activator platform.ApplicationActivator, execute ShellExecutor) WindowsLauncher {
+	return WindowsLauncher{execute: execute, activate: activator.ActivateApplication}
 }
 
 // OpenURL opens a URL with its default handler.
@@ -130,12 +141,29 @@ func (launcher WindowsLauncher) OpenURL(_ context.Context, address string) error
 	return launcher.open(address)
 }
 
-// LaunchApplication launches a packaged application by application user model
-// ID through the Apps folder, or a desktop application by executable path.
-func (launcher WindowsLauncher) LaunchApplication(_ context.Context, identifier string) error {
+// LaunchApplication switches to the application if it is running, and
+// otherwise launches a packaged application by application user model ID
+// through the Apps folder, or a desktop application by executable path. An
+// application whose processes cannot be found, as one whose Start menu entry
+// is not a shortcut, is launched, which for a single instance application
+// brings back the one running; one found running that would not come forward
+// is reported rather than started a second time, as is one whose press was
+// abandoned.
+func (launcher WindowsLauncher) LaunchApplication(launchContext context.Context, identifier string) error {
 	checkError := platform.CheckLaunchTarget(identifier)
 	if checkError != nil {
 		return fmt.Errorf("checking the application identifier: %w", checkError)
+	}
+
+	if launcher.activate != nil {
+		activateError := launcher.activate(launchContext, identifier)
+
+		switch {
+		case activateError == nil:
+			return nil
+		case errors.Is(activateError, platform.ErrApplicationNotInFront), launchContext.Err() != nil:
+			return fmt.Errorf("%w: switching to the application: %w", platform.ErrLaunchFailed, activateError)
+		}
 	}
 
 	target := identifier
