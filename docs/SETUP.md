@@ -28,6 +28,8 @@ go build -ldflags "-H=windowsgui" -o the-front-buttons.exe ./cmd/the-front-butto
 The Windows build needs a gcc on the `PATH` for cgo; without one Go turns cgo
 off and the build fails in `go-hid` with `undefined: BusUnknown`. MSYS2's
 `mingw-w64-ucrt-x86_64-gcc`, with `C:\msys64\ucrt64\bin` on the `PATH`, works.
+To build on Windows with no C compiler at all, through purego, follow
+[WINDOWS.md](WINDOWS.md) instead.
 
 It reads its configuration from the per machine file and prints the editor's
 address:
