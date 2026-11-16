@@ -199,7 +199,7 @@ A7; H1 then H2; H3.
 | H2 | IOKit driver: input reports and removal | H1 | `iokit_input_darwin.go`, `iokit_input_darwin_test.go`, `reportqueue.go`, `reportqueue_test.go` | integrated | 100%: a run loop thread per open device (locked goroutine, CFRunLoop kept alive by an empty source), input reports into a queue of 30 read without waiting, removal marks the handle gone and stops the loop, close unschedules, stops, waits for the thread, then IOHIDDeviceClose; callbacks made once per process, devices found by a context number. Thread, registry and run loop outcome in `iokitcore.go`; real CFRunLoop and both callbacks through the C ABI tested on the Mac with no device. Reports from a real device and unplugging are for H4 | worker-11, 2026-11-16; tests 17 new; plants 6/6; checks: race, lint, nocgo, windows, dupl |
 | H3 | Windows HID driver | C3 | `winhid_windows.go`, `winhid_windows_test.go` | integrated | 100%: driver in; pure logic (padding, report ID, error mapping, paths, struct layouts, the handle's pending read and removal state) in untagged `winhidcore.go` and `winhidcore_internal_test.go`, run on macOS. Device tests in `winhid_windows_test.go` skip without THE_FRONT_BUTTONS_EXPERIMENT and wait for the Dell (with the contract test's purego run). For D1: SECURITY.md should name hid.dll and setupapi.dll (kernel32 through x/sys) | worker-6, 2026-11-16; tests 30 new; plants 9/9; checks: race, lint, nocgo, windows, dupl |
 | D1 | Docs for the setting and the new code | C1 | the files D1 owns above | integrated | 100%: CONFIGURATION.md (Platform bridge section), SECURITY.md (System libraries without cgo, seized opening, limitations), CHANGELOG.md (three entries), TESTING.md (experiment driver variable, as allowed) and the evaluation's "Purego, 16 November 2026" section; read only agreement tests rerun for the evaluation (icons pixel for pixel pass; window lists and 7 acting tests skip). SETUP.md unchanged (still right for the default build) | worker-12, 2026-11-16; tests 0 new (docs only); plants 0/0; checks: repositorychecks (prose, security profile), reference, go test ./... |
-| H4 | Both drivers on the deck: contract, experiments, parity | H1, H2, W1; deck lock | the evaluation's deck section (with D1) | open | | |
+| H4 | Both drivers on the deck: contract, experiments, parity | H1, H2, W1; deck lock | the evaluation's deck section (with D1) | integrated | 100%: contract, experiments, exclusive open and unplug on the deck through both drivers | coordinator, 2026-11-16; checks: deck |
 | V1 | A week of use on purego, then decide | G1 | the evaluation's verdict | open | | |
 | R1 | Remove cgo, go-hid and the setting | G2 | everything cgo; a schema migration | open | | |
 
@@ -546,3 +546,34 @@ whole tree checks run.
   reads `platform bridge` asked cgo, platform cgo, hid cgo, and the deck
   connected. Gate G1 reached apart from the agreement tests that need
   Accessibility and acting; waiting on the person's commit.
+- 2026-11-16, H4, coordinator, on the physical deck with the installed daemon
+  stopped: the driver contract passes through purego and cgo; the full
+  repaint experiment, four runs each, takes 40 to 43 ms per repaint through
+  both, slowest write about 3 ms through both (one cgo run 5.9 ms);
+  experiment 1 reads every press through both with the same 512 byte
+  reports, header 01002000 and nothing past the key data; a second open
+  while purego holds the deck is refused through either driver with
+  0xE00002C5, exclusive access, as against cgo; a daemon on purego saw two
+  unplugs as disconnects and reconnected each time, keys working and the
+  page redrawn. Installed daemon restarted on cgo afterwards.
+- 2026-11-16, agreement run, coordinator, with Accessibility granted to the
+  process running the tests. Read only, all agree: window lists (12 regular
+  applications, 14 standard windows, the frontmost application's focus),
+  badges, trust, activation of an application not running, icons. Acting,
+  under the desktop lock: clipboard writes agree; F20 and Shift F20 post
+  through both; quitting an unknown application quits nothing through both;
+  quitting Calculator by bundle ID works through both. Findings:
+  (1) text that is not UTF-8: the cgo clipboard clears the clipboard and
+  reports success (`stringWithUTF8String:` gives nil and `setString:` takes
+  it), the purego one refuses; the configuration file cannot hold such text.
+  (2) `[[NSWorkspace sharedWorkspace] runningApplications]` is fixed at its
+  first call in a process that runs no main run loop, as the daemon and the
+  tests do, while `runningApplicationsWithBundleIdentifier:` stays current;
+  so quitting by name, and window cycling, miss applications launched after
+  the first call, through both bridges alike. Calculator by name fails for
+  this reason. A fault in both bridges, older than purego.
+  (3) the activation acting tests stop at their own first step: reading the
+  system wide AXFocusedApplication gives -25204 through both bridges in the
+  test process, whichever application is in front. Not run.
+  (4) the window raise test needs a frontmost application with two standard
+  windows; skipped.
