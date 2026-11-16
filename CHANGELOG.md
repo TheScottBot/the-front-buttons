@@ -5,7 +5,7 @@ Keep a Changelog. Each tag will name the contract digest it was built against
 (none yet: the configuration contract is provisional), every change to shared
 code since the previous tag, and which author gates were cleared at which commit.
 
-## Unreleased
+## 0.1.0 - 2026-11-16
 
 Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
