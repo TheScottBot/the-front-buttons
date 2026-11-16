@@ -95,7 +95,11 @@ directly; it never ends a process. A Squirrel install's program is found by the
 - **Automation of Spotify (macOS)**, asked for on first use: play, pause, change
   track, and read whether it is playing and its art.
 - **USB**: opens Elgato devices only, vendor ID 0x0FD9
-  (`internal/deck/hidtransport/hidtransport.go`).
+  (`internal/deck/hidtransport/hidtransport.go`). On macOS both drivers open
+  the deck seized, for this process alone: hidapi through go-hid, and the
+  IOKit driver with `kIOHIDOptionsTypeSeizeDevice`, as hidapi does
+  (`iokit_darwin.go`). On Windows the purego driver opens it shared for
+  reading and writing, as hidapi does there (`winhid_windows.go`).
 - **AppKit**: reads applications' icons and the running applications.
 - **The clipboard**: a `mural_share_link` key writes its configured message
   and link to the clipboard, in place of what was there, and pastes it; the
@@ -104,6 +108,33 @@ directly; it never ends a process. A Squirrel install's program is found by the
 Installs signed with the person's own code signing certificate keep the
 Accessibility grant across reinstalls; ad hoc signed ones need it granted again
 (`docs/SETUP.md`, Key presses on macOS).
+
+## System libraries without cgo
+
+The `platform_bridge` setting (docs/CONFIGURATION.md) chooses between cgo and
+purego, `github.com/ebitengine/purego`, the one module the purego work adds.
+Purego calls the system's own libraries from Go, opened by their fixed system
+paths and never from a path in configuration or the environment:
+
+- **macOS**: CoreFoundation, Foundation, AppKit and ApplicationServices from
+  `/System/Library/Frameworks`, and `/usr/lib/libobjc.A.dylib`, for the
+  adapters (`internal/platform/objcbridge/frameworks_darwin.go`); IOKit and
+  CoreFoundation for the deck's driver (`internal/deck/hidtransport/iokit_darwin.go`).
+- **Windows**: `hid.dll` and `setupapi.dll` from the system folder, for the
+  deck's driver, with kernel32 through `golang.org/x/sys`, already a
+  dependency (`internal/deck/hidtransport/winhid_windows.go`).
+
+They are the same libraries the cgo code links against, called for the same
+things; nothing new is reached. Each adapter and driver looks up its functions
+once, in one place that recovers from a missing function or library, and then
+reports itself unavailable rather than crashing the daemon
+(`internal/platform/objcbridge/binding_darwin.go`, `Bind`); an Objective C
+class or selector is checked before it is first used, so a missing one is
+reported the same way rather than raising an exception. The IOKit driver makes
+two purego callbacks, for input reports and for the deck's removal, once per
+process, and finds the device each call is for by a number it registered
+(`iokit_input_darwin.go`). Purego opens no connection and runs no program, so
+the Network and Programs run sections above are unchanged.
 
 ## Files
 
@@ -210,6 +241,10 @@ lets forms go only to the editor itself, redirects included
   finding, GO-2026-6859 in Go's own `net/http`, is fixed by Go 1.27.4, which the
   build now requires, and the check on 1.27.4 found no vulnerabilities. Run
   `go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...` to check again.
+  That check predates purego, which has not been checked since it was added.
+- The purego bridge has not yet driven the physical deck, nor acted on the
+  desktop (key presses, quitting, raising windows, the clipboard); cgo stays
+  the default until it has.
 
 ## Reporting
 

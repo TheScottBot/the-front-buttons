@@ -103,6 +103,9 @@ touches. A worker never changes a contract by itself.
   scripts. Only the coordinator installs.
 - The deck and the desktop are shared (see Locks).
 - Secrets never in config, logs, test output or reports.
+- Scratch files (plant scripts, backups, built binaries) go in a folder of the
+  worker's own name inside the session scratchpad, never at its top level,
+  where two workers once overwrote each other's plant script.
 
 ## Checks
 
@@ -184,18 +187,18 @@ A7; H1 then H2; H3.
 | C3 | HID driver interface under the watcher | none | `internal/deck/hidtransport/` except the drivers H1 to H3 own | integrated | driver interface, hidapi driver and contract in; checks passing, 100%. For D1: no fallback files, drivers add themselves to `builtDrivers` (see contract log); `Watcher.DriverChoice()` says asked and used driver for W1 to log; a `CGO_ENABLED=0` build of hidtransport now compiles, with no driver until H1 and H3 | worker-3, 2026-11-16; tests 15 new; plants 7/7; checks: race, lint, nocgo, windows, dupl |
 | C4 | objcbridge package and the purego module | none | `internal/platform/objcbridge/`, `go.mod`, `go.sum`, `.golangci.yml` | integrated | all checks pass, 100%; additions in the contract log; for D1: SECURITY.md could name purego and the libraries objcbridge opens (CoreFoundation, Foundation, AppKit, ApplicationServices, libobjc; IOKit later), not demanded by its test | worker-4, 2026-11-16; tests 38 new; plants 6/6; checks: race, lint, nocgo (objcbridge test and vet only; whole tree from G0), windows, dupl |
 | W1 | Daemon reads the setting and passes it on | C1, C2, C3 | `cmd/the-front-buttons/main.go` and its tests | integrated | 100%: bridge read once at start (`OnDisk`, missing or unreadable file gives cgo), passed to every constructor, `NewWatcher` and the `-accessibility-check` one shot; start line `platform bridge` (asked, platform, hid, fall backs); reload line once per change; new files `cmd/the-front-buttons/bridge.go` and `bridge_test.go`. D1 note: log lines `platform bridge` (INFO, WARN on a fall back), `platform bridge not read from the configuration file; using cgo`, `platform bridge change takes effect at the next start` (running, file) | worker-5, 2026-11-16; tests 9 new; plants 11/11; checks: race, lint, nocgo, windows, dupl |
-| A1 | Clipboard through purego | C2, C4 | `clipboard_purego_darwin.go`, `clipboard_agreement_darwin_test.go` | open | | |
-| A2 | Quit through purego | C2, C4 | `quit_purego_darwin.go`, `quit_agreement_darwin_test.go` | open | | |
-| A3 | Keys and Accessibility trust through purego | C2, C4 | `keys_purego_darwin.go`, `keys_agreement_darwin_test.go` | open | | |
-| A4 | Activation through purego | C2, C4 | `activation_purego_darwin.go`, `activation_agreement_darwin_test.go` | open | | |
-| A5 | Badges through purego | C2, C4 | `badges_purego_darwin.go`, `badges_agreement_darwin_test.go` | open | | |
-| A6 | Window cycling through purego | C2, C4 | `windows_purego_darwin.go`, `windows_agreement_darwin_test.go` | open | | |
-| A7 | App icons through purego | C2, C4 | `appicons_purego_darwin.go`, `appicons_agreement_darwin_test.go` | open | | |
-| X1 | objcbridge helpers asked for during wave 2 | C4 | `internal/platform/objcbridge/` (from G0 on) | open | | |
-| H1 | IOKit driver: enumerate, open, reports out, features, close | C3, C4 | `iokit_darwin.go`, `iokit_darwin_test.go` | open | | |
-| H2 | IOKit driver: input reports and removal | H1 | `iokit_input_darwin.go`, `iokit_input_darwin_test.go`, `reportqueue.go`, `reportqueue_test.go` | open | | |
+| A1 | Clipboard through purego | C2, C4 | `clipboard_purego_darwin.go`, `clipboard_agreement_darwin_test.go` | integrated | 100%: adapter (`setString:forType:` on the general pasteboard, as cgo: text ends at a NUL, not UTF-8 refused after clearing); non acting tests write a uniquely named pasteboard; two acting agreement tests (write and read back through each bridge, restoring the clipboard) wait for the desktop lock. X1 helpers `Bind`, `Class`, `ClassSelector`, `InstanceSelector` (`binding_darwin.go`) and `RunningApplications`, `RunningApplicationsWithBundleID` (`runningapplications_darwin.go`), counted here; WriteClipboard and QuitApplication entries removed from `bridge_darwin_test.go` as accepted. Plant not caught: an owned string left unreleased (here and in the helper). For D1: a purego clipboard loads AppKit | worker-7, 2026-11-16; tests 14 new; plants 8/10; checks: race, lint, nocgo, windows, dupl |
+| A2 | Quit through purego | C2, C4 | `quit_purego_darwin.go`, `quit_agreement_darwin_test.go` | integrated | 100%: adapter (by bundle ID, or by name or bundle file name with `isEqualToString:`, then `terminate`; NUL and not UTF-8 as cgo); non acting tests list the candidates without terminating (the Dock, and every running app whose name and bundle file name differ); two acting agreement tests (unknown app quits nothing; Calculator opened and quit by bundle ID, name and name.app through each bridge) wait for the desktop lock. Plant not caught: an owned string left unreleased; `forceTerminate` for `terminate` only an acting run could tell | worker-7, 2026-11-16; tests 8 new; plants 5/6; checks: race, lint, nocgo, windows, dupl |
+| A3 | Keys and Accessibility trust through purego | C2, C4 | `keys_purego_darwin.go`, `keys_agreement_darwin_test.go` | integrated | 100%: adapter (AXIsProcessTrusted, the prompt through AXIsProcessTrustedWithOptions with a released dictionary, CGEventCreateKeyboardEvent, CGEventSetFlags, CGEventPost at the HID tap, both events released; a failed binding answers ErrBridgeUnavailable without asking or posting); trust agreement read only; events and prompt options checked through recorders in place of CGEventPost and the prompt; one acting test (F20 and Shift F20 through each bridge, only when trusted) waits for the desktop lock. Uses worker-9's `CFBoolean`. Plants not caught: the session tap for the HID tap (acting only, and even then unseen); trust always true is caught only on a Mac that is not trusted. PressKey and PressShortcut entries, the RequestAccessibility call and the stub trust test removed from `bridge_darwin_test.go`. For R1: `pureFreshProcessTrusted` and `pureAccessibilityAskInterval` repeat the cgo file's, to drop with it. For D1: a purego key presser loads ApplicationServices | worker-7, 2026-11-16; tests 8 new; plants 9/10; checks: race, lint, nocgo, windows, dupl |
+| A4 | Activation through purego | C2, C4 | `activation_purego_darwin.go`, `activation_agreement_darwin_test.go` | integrated | 100%: adapter through objcbridge (AX focused application, AXFrontmost, AXUIElementGetPid; NSRunningApplication by bundle ID, by process, activateWithOptions:), Accessibility calls behind a seam so non acting tests count retains with real elements; activation and badges entries removed from C2's stub test; uses worker-7's binding and running applications files and worker-9's cfboolean file, copied unchanged. Not exposed, so not compared: the frontmost read through cgo (static C). The two acting tests compile and skip. For D1: nothing new to document | worker-8, 2026-11-16; tests 8 new (2 acting, skipped); plants 11/11; checks: race, lint, nocgo, windows, dupl |
+| A5 | Badges through purego | C2, C4 | `badges_purego_darwin.go`, `badges_agreement_darwin_test.go` | integrated | 100%: adapter through objcbridge (NSRunningApplication for the Dock, AXChildren of the Dock and each list, AXStatusLabel and AXURL per item, CFGetTypeID against CFURLGetTypeID, NSBundle bundleWithURL: and bundleIdentifier); trust from pureAccessibilityTrusted, so until A3 lands purego reports ErrBadgesNotPermitted and the agreement test fails on a trusted machine; this test process is not trusted, so both bridges agree on ErrBadgesNotPermitted and the purego Dock read with trust forced gives "the Dock could not be read". Reader proven against a stand in Dock tree of real CF objects with retain counts. For D1: nothing new to document | worker-8, 2026-11-16; tests 7 new; plants 14/14; checks: race, lint, nocgo, windows, dupl |
+| A6 | Window cycling through purego | C2, C4 | `windows_purego_darwin.go`, `windows_agreement_darwin_test.go` | integrated | 100%: adapter in; non acting tests on a fake desktop (made up windows on elements of unused process IDs) plus an SDK header check of every AX name; real window agreement tests skip here, as Accessibility is not granted to the test binary; raise agreement test acting, not run. CycleWindows entry removed from the stubs test (accepted rule). X1 files: CFBoolean (own), worker-7's binding and running application files copied unchanged. Misses: frontmostApplication swapped for menuBarOwningApplication (same answer in practice), processIdentifier read as int64 (harmless on arm64). For D1: purego window cycling uses the purego Accessibility check, the stub's false until A3 lands | worker-9, 2026-11-16; tests 14 new; plants 18/20; checks: race, lint, nocgo, windows, dupl |
+| A7 | App icons through purego | C2, C4 | `appicons_purego_darwin.go`, `appicons_agreement_darwin_test.go` | integrated | 100%: icons agree pixel for pixel through both bridges for 9 installed apps (by bundle ID, name and path) and give the same not found error for 5 missing ones; uses worker-7's `Bind`, `Class`, `ClassSelector`, `InstanceSelector` (copy of `binding_darwin.go` in the worktree, worker-7's to keep). `TestPuregoStubs_ReportTheBridgeUnavailable` now fails on its Icon entry, as worker-7's open ask says; run with `-skip` until accepted, entry left alone. Not caught: the bitmap's release left out (a leak no read shows). D1 note: purego icons draw with AppKit in the calling thread, no cgo; only arm64 run, Intel (NSRect on the stack) unrun | worker-10, 2026-11-16; tests 7 new; plants 8/8; checks: race, lint, nocgo, windows, dupl |
+| X1 | objcbridge helpers asked for during wave 2 | C4 | `internal/platform/objcbridge/` (from G0 on) | integrated | | |
+| H1 | IOKit driver: enumerate, open, reports out, features, close | C3, C4 | `iokit_darwin.go`, `iokit_darwin_test.go` | integrated | 100%: listing, open seized (kIOHIDOptionsTypeSeizeDevice, as go-hid's hidapi opens, per the accepted decision; closed with the same option), reports out, features, close; parity equal (deck 1 listing; every vendor 36 listings of 24 devices, hidapi's one listing per usage pair mirrored); untagged core `iokitcore.go` with `iokitcore_internal_test.go`; binds through X1's `objcbridge.Bind` (`binding_darwin.go` copied unchanged from A123 to compile). `experiment_test.go` (allowed for this only): the experiments take `THE_FRONT_BUTTONS_EXPERIMENT_DRIVER` (cgo or purego, default cgo) and fail rather than fall back. Opening not run: H4 on the deck. D1 note: both drivers seize the deck; TESTING.md could name the new variable | worker-11, 2026-11-16; tests 27 new; plants 9/9; checks: race, lint, nocgo, windows, dupl |
+| H2 | IOKit driver: input reports and removal | H1 | `iokit_input_darwin.go`, `iokit_input_darwin_test.go`, `reportqueue.go`, `reportqueue_test.go` | integrated | 100%: a run loop thread per open device (locked goroutine, CFRunLoop kept alive by an empty source), input reports into a queue of 30 read without waiting, removal marks the handle gone and stops the loop, close unschedules, stops, waits for the thread, then IOHIDDeviceClose; callbacks made once per process, devices found by a context number. Thread, registry and run loop outcome in `iokitcore.go`; real CFRunLoop and both callbacks through the C ABI tested on the Mac with no device. Reports from a real device and unplugging are for H4 | worker-11, 2026-11-16; tests 17 new; plants 6/6; checks: race, lint, nocgo, windows, dupl |
 | H3 | Windows HID driver | C3 | `winhid_windows.go`, `winhid_windows_test.go` | integrated | 100%: driver in; pure logic (padding, report ID, error mapping, paths, struct layouts, the handle's pending read and removal state) in untagged `winhidcore.go` and `winhidcore_internal_test.go`, run on macOS. Device tests in `winhid_windows_test.go` skip without THE_FRONT_BUTTONS_EXPERIMENT and wait for the Dell (with the contract test's purego run). For D1: SECURITY.md should name hid.dll and setupapi.dll (kernel32 through x/sys) | worker-6, 2026-11-16; tests 30 new; plants 9/9; checks: race, lint, nocgo, windows, dupl |
-| D1 | Docs for the setting and the new code | C1 | the files D1 owns above | open | | |
+| D1 | Docs for the setting and the new code | C1 | the files D1 owns above | integrated | 100%: CONFIGURATION.md (Platform bridge section), SECURITY.md (System libraries without cgo, seized opening, limitations), CHANGELOG.md (three entries), TESTING.md (experiment driver variable, as allowed) and the evaluation's "Purego, 16 November 2026" section; read only agreement tests rerun for the evaluation (icons pixel for pixel pass; window lists and 7 acting tests skip). SETUP.md unchanged (still right for the default build) | worker-12, 2026-11-16; tests 0 new (docs only); plants 0/0; checks: repositorychecks (prose, security profile), reference, go test ./... |
 | H4 | Both drivers on the deck: contract, experiments, parity | H1, H2, W1; deck lock | the evaluation's deck section (with D1) | open | | |
 | V1 | A week of use on purego, then decide | G1 | the evaluation's verdict | open | | |
 | R1 | Remove cgo, go-hid and the setting | G2 | everything cgo; a schema migration | open | | |
@@ -397,6 +400,88 @@ then the coordinator's `accepted` or `refused`, with the tasks it touches.
   `deck.ErrDisconnected`; hidapi never returns it, so nothing changes today.
   Touches H1, H3 (the registration line), W1 (logging the choice).
   Accepted, all three.
+- 2026-11-16, worker-7, X1 helper (running applications), for A2 with A4,
+  A5 and A6 calling the same messages: in
+  `internal/platform/objcbridge/runningapplications_darwin.go`,
+  `func RunningApplications() []objc.ID` (`[[NSWorkspace sharedWorkspace]
+  runningApplications]`) and `func RunningApplicationsWithBundleID(bundleID
+  string) []objc.ID` (`[NSRunningApplication
+  runningApplicationsWithBundleIdentifier:]`), each NSRunningApplication
+  not retained, so both are called inside `WithAutoreleasePool` and the
+  items used before it drains; an empty or unknown bundle ID gives none.
+  NSArray needs no helper: it is toll free bridged, so `CFArrayItems`
+  lists one. Why: quit, activation, badges and windows send these same
+  messages, and dupl fails on a second copy.
+- 2026-11-16, worker-7, the stubs' test (C2's `bridge_darwin_test.go`):
+  `TestPuregoStubs_ReportTheBridgeUnavailable` calls every purego method
+  expecting `ErrBridgeUnavailable`, and
+  `TestAccessibilityTrusted_IsFalse_ThroughTheStub` expects false. Once a stub is replaced those calls act:
+  WriteClipboard writes "text" to the clipboard, QuitApplication quits
+  Finder, RequestAccessibility shows the Accessibility prompt and starts the
+  watcher, PressKey posts F13 when trusted; and the tests fail. Asked: let
+  each A task remove its own adapter's entries (and A3 the
+  RequestAccessibility call and the stub trust test) from that file, nothing
+  else, so `go test ./internal/platform/...` never acts on the desktop.
+  Until accepted, worker-7 runs the systemadapter tests with
+  `-skip 'TestPuregoStubs_ReportTheBridgeUnavailable|TestAccessibilityTrusted_IsFalse_ThroughTheStub'`.
+  Touches A1 to A7.
+- 2026-11-16, worker-7, X1 helper (the recovering binder every adapter
+  needs, from worker-4's (3) above), in
+  `internal/platform/objcbridge/binding_darwin.go`:
+  `var ErrBindingFailed = errors.New("binding failed")`;
+  `func Bind[T any](bind func() (T, error)) func() (T, error)` runs bind
+  once, on the first call, recovers a panic (Function's missing function)
+  into an error wrapping ErrBindingFailed, wraps any error bind returns
+  the same way, and gives that same result to every later call;
+  `func Class(name string) (objc.Class, error)` (no such class wraps
+  ErrBindingFailed); `func ClassSelector(class objc.Class, name string)
+  (objc.SEL, error)` and `func InstanceSelector(class objc.Class, name
+  string) (objc.SEL, error)` register the selector and check, with
+  `respondsToSelector:` and `instancesRespondToSelector:`, that the class
+  or its instances answer it, so a misspelt or missing selector is an
+  ErrBindingFailed at bind time rather than an unrecognised selector
+  exception that aborts the daemon. An adapter answers
+  `fmt.Errorf("%w: %w", ErrBridgeUnavailable, bindError)`. Why: A1 to A7,
+  H1 and H2 each need it, and dupl fails on a second copy.
+- 2026-11-16, worker-9, X1 helper (Core Foundation booleans), for A6 with
+  A3 (the trust prompt's dictionary) and A4 (AXFrontmost) setting the same
+  values: in `internal/platform/objcbridge/cfboolean_darwin.go`,
+  `func CFBoolean(value bool) (CFTypeRef, error)`, giving kCFBooleanTrue or
+  kCFBooleanFalse, read once with `Constant`; not owned, never released; a
+  missing constant gives `ErrSymbolMissing`, never a panic. A6 also uses
+  worker-7's `RunningApplications() []objc.ID` from
+  `runningapplications_darwin.go` with that exact signature and file name.
+  Why: three adapters pass these constants, and each would otherwise read
+  them itself.
+- 2026-11-16, worker-10, X1 helper (binding once without a panic), for A7
+  with every A task and H1 needing the same, as the accepted C4 entry (3)
+  asks: in `internal/platform/objcbridge/bindonce_darwin.go`,
+  `func BindOnce[T any](bind func() (T, error)) func() (T, error)`. The
+  returned function runs bind on its first call only and gives every call
+  the same result; a panic inside bind (such as `Function`'s for a missing
+  C function) is recovered and given as an error wrapping
+  `ErrSymbolMissing`. The adapter wraps any error from it in
+  `ErrBridgeUnavailable`. Why: each adapter must bind once in one place
+  that recovers a panic, and dupl fails on a second copy of that guard.
+- 2026-11-16, worker-10: the line above is withdrawn; it repeats
+  worker-7's `Bind`, logged first. A7 uses worker-7's `Bind`, `Class`,
+  `ClassSelector`, `InstanceSelector` and `ErrBindingFailed` from
+  `binding_darwin.go` with those exact signatures.
+- 2026-11-16, coordinator: worker-7's three entries (RunningApplications,
+  the stubs' test, Bind and its selector checks) and worker-9's CFBoolean
+  are accepted; worker-10's BindOnce stands withdrawn in favour of Bind. On
+  the stubs' test: each A task removes its own adapter's entries from
+  `TestPuregoStubs_ReportTheBridgeUnavailable` (and A3 the
+  RequestAccessibility call and the stub trust test) and nothing else, so no
+  test run without `THE_FRONT_BUTTONS_ACTING` ever acts on the desktop.
+  Until a task has done so, its worker skips that test rather than running
+  it against a real adapter. Touches A1 to A7.
+- 2026-11-16, coordinator, the macOS HID driver (H1): go-hid opens the deck
+  seized (kIOHIDOptionsTypeSeizeDevice), so the IOKit driver opens it the
+  same way, for a like for like comparison; the plan's "without seizing"
+  was wrong. And `experiment_test.go` takes its driver from
+  `THE_FRONT_BUTTONS_EXPERIMENT_DRIVER` (cgo or purego, default cgo), so H4
+  runs both drivers on one build. Accepted; both given to worker-11 under H1.
 
 ## Integration log
 
@@ -432,3 +517,32 @@ whole tree checks run.
   pass. No Windows call has run yet: the Dell runs the WinHID tests, the
   on the deck tests under `THE_FRONT_BUTTONS_EXPERIMENT`, and an unplug by
   hand.
+- 2026-11-16, wave 2 started from `67ffac5` with H3's files copied in:
+  worktrees A123 (A1, A2, A3), A45 (A4, A5), A6, A7 and H12 (H1 then H2).
+  X1: a worker needing a helper two adapters share adds it to objcbridge
+  in its own file named for the helper, after logging its signature in the
+  contract log; the coordinator keeps one copy at integration.
+- 2026-11-16, A1 to A7 and X1 (worker-7, worker-8, worker-9, worker-10): the
+  seven purego adapters with their agreement tests, and the shared helpers
+  (`binding_darwin.go`, `runningapplications_darwin.go` from worker-7,
+  `cfboolean_darwin.go` from worker-9, one copy each), copied into the main
+  checkout. With every adapter real, `TestPuregoStubs_ReportTheBridgeUnavailable`
+  and `TestAccessibilityTrusted_IsFalse_ThroughTheStub` had no entries left
+  and are removed. Whole tree race tests, platform tests without cgo, lint,
+  dupl, nocgo, Windows vet and lint pass. No acting test run yet; the read
+  only agreement tests that need Accessibility skipped (not granted to the
+  test binary).
+- 2026-11-16, H1 and H2, worker-11: the IOKit driver, opening the deck
+  seized as go-hid does, its input thread and report queue, and the
+  experiments choosing a driver by `THE_FRONT_BUTTONS_EXPERIMENT_DRIVER`,
+  copied into the main checkout. Listing parity with hidapi: equal paths
+  for all 24 devices. Whole tree race tests, deck and platform tests
+  without cgo, lint, dupl, nocgo, Windows vet, lint and build pass. The
+  deck was never opened; H4 runs the contract and experiments on it.
+- 2026-11-16, D1, worker-12: the configuration guide, security profile,
+  changelog, testing guide and evaluation, copied into the main checkout;
+  repository and reference checks pass.
+- 2026-11-16, installed on the arm64 Mac with every wave 2 task in: the log
+  reads `platform bridge` asked cgo, platform cgo, hid cgo, and the deck
+  connected. Gate G1 reached apart from the agreement tests that need
+  Accessibility and acting; waiting on the person's commit.

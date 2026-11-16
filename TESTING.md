@@ -91,10 +91,14 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 bin/golangci-lint run $(go list ./... | 
   and checks the order and orientation by eye. The write experiment times full
   pages with and without a reader running and fails on any write that fails
   after the transport's retries. Compare the results with the MacBook's in the
-  evaluation, under deck testing. Run them with:
+  evaluation, under deck testing. `THE_FRONT_BUTTONS_EXPERIMENT_DRIVER` picks
+  the driver, `cgo` (the default) or `purego`, as `platform_bridge` names
+  them, so one build runs the experiments through either; a build without the
+  driver asked for fails rather than falling back. Run them with:
 
   ```bash
   THE_FRONT_BUTTONS_EXPERIMENT=1 go test -count=1 -v -run Experiment ./internal/deck/hidtransport/
+  THE_FRONT_BUTTONS_EXPERIMENT=1 THE_FRONT_BUTTONS_EXPERIMENT_DRIVER=purego go test -count=1 -v -run Experiment ./internal/deck/hidtransport/
   ```
 
 - Bringing an application to the front on macOS is not unit tested, since it

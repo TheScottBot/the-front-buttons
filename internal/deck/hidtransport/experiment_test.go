@@ -2,6 +2,7 @@ package hidtransport_test
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -23,6 +24,7 @@ import (
 const (
 	experimentVariable      = "THE_FRONT_BUTTONS_EXPERIMENT"
 	experimentForVariable   = "THE_FRONT_BUTTONS_EXPERIMENT_FOR"
+	experimentDriverVar     = "THE_FRONT_BUTTONS_EXPERIMENT_DRIVER"
 	defaultExperimentLength = 2 * time.Minute
 	experimentPollTimeout   = 250 * time.Millisecond
 	experimentBrightness    = 70
@@ -49,7 +51,21 @@ func openExperimentDeck(t *testing.T) (deck.Model, deck.DeckDevice) {
 		t.Skipf("set %s=1 with a deck attached and a person at it", experimentVariable)
 	}
 
-	watcher := hidtransport.NewWatcher(hidtransport.DriverHIDAPI)
+	asked, driverError := experimentDriverNamed(os.Getenv(experimentDriverVar))
+	if driverError != nil {
+		t.Fatal(driverError)
+	}
+
+	watcher := hidtransport.NewWatcher(asked)
+
+	// A build without the driver asked for would fall back to another, and
+	// its numbers would be recorded against the wrong driver.
+	choice := watcher.DriverChoice()
+	if choice.Using != asked {
+		t.Fatalf("the %s driver was asked for, but this build uses %q (%v)", asked, choice.Using, choice.Unavailable)
+	}
+
+	t.Logf("driver: %s", choice.Using)
 
 	connections, enumerateError := watcher.Enumerate()
 	if enumerateError != nil || len(connections) == 0 {
@@ -268,6 +284,46 @@ func writeImage(t *testing.T, model deck.Model, device deck.DeckDevice, keyIndex
 
 	for _, page := range pages {
 		failOn(t, device.Write(page))
+	}
+}
+
+// errUnknownExperimentDriver reports a THE_FRONT_BUTTONS_EXPERIMENT_DRIVER
+// naming no driver.
+var errUnknownExperimentDriver = errors.New("unknown driver; want cgo or purego")
+
+// experimentDriverNamed reads THE_FRONT_BUTTONS_EXPERIMENT_DRIVER: cgo, the
+// default when it is unset, or purego, as the platform_bridge setting names
+// them, so one build can run the experiments through either driver.
+func experimentDriverNamed(value string) (hidtransport.DriverName, error) {
+	switch hidtransport.DriverName(value) {
+	case "", hidtransport.DriverHIDAPI:
+		return hidtransport.DriverHIDAPI, nil
+	case hidtransport.DriverPurego:
+		return hidtransport.DriverPurego, nil
+	default:
+		return "", fmt.Errorf("%s=%q: %w", experimentDriverVar, value, errUnknownExperimentDriver)
+	}
+}
+
+func TestExperimentDriverNamed_ReadsCgoOrPuregoDefaultingToCgo(t *testing.T) {
+	t.Parallel()
+
+	for value, want := range map[string]hidtransport.DriverName{
+		"":       hidtransport.DriverHIDAPI,
+		"cgo":    hidtransport.DriverHIDAPI,
+		"purego": hidtransport.DriverPurego,
+	} {
+		got, nameError := experimentDriverNamed(value)
+		if nameError != nil || got != want {
+			t.Errorf("%q: want %s, got %q (%v)", value, want, got, nameError)
+		}
+	}
+
+	for _, value := range []string{"hidapi", "IOKit", "Purego", " cgo"} {
+		_, nameError := experimentDriverNamed(value)
+		if !errors.Is(nameError, errUnknownExperimentDriver) {
+			t.Errorf("%q: want errUnknownExperimentDriver, got %v", value, nameError)
+		}
 	}
 }
 

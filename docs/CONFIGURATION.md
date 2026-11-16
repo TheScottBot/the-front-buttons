@@ -277,3 +277,61 @@ a credential (`credential: github-work`), and the secret is stored in the
 Keychain on macOS or Credential Manager on Windows through the editor's
 credentials page, which never shows it again. For GitHub, use a fine grained
 token with read access to Actions on the repositories the keys watch.
+
+## Platform bridge
+
+How the daemon reaches the system's own libraries: through cgo, as it always
+has, or through purego, which calls them from Go with no C compiler. Both are
+built in while the two are compared; leave the setting out and nothing
+changes. It is set by hand only, at the top level beside `pages`:
+
+```yaml
+schema_version: 1
+platform_bridge: purego
+pages:
+  # ...
+```
+
+The value is `cgo` or `purego`, in lower case exactly; leaving the field out
+means `cgo`. Anything else refuses the file, as any other problem does:
+`unknown_bridge` for any other text, empty text included, and `wrong_type`
+for a number, a list or anything that is not text. The editor does not show
+the setting, but keeps it as written when it saves anything else, and writes
+it only when the file has it. Its undo and redo refuse rather than overwrite a
+hand edit, as for any change made by hand.
+
+It is read once, when the daemon starts. A change made while it runs leaves
+it on the bridge it started with until the next start; restart it to use the
+new one. On macOS, restart the login agent with:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/io.github.thescottbot.the-front-buttons
+```
+
+On Windows, stop it with `-stop` and start the task again, as
+[SETUP.md](SETUP.md) describes.
+
+The log says which way each run went, in three lines:
+
+- `platform bridge`, once at start: `asked`, the bridge the file names (cgo
+  when it names none), `platform`, the bridge the macOS adapters use, and
+  `hid`, the deck's driver. It is a warning when either falls back:
+  `platform_fell_back` when cgo is asked for in a build without cgo, which
+  uses purego; `hid_fell_back` when the driver asked for is not in the build;
+  `hid_unavailable` when no driver is. On Windows `platform` reads "unused on
+  this system", as only the deck's driver takes the setting there.
+- `platform bridge not read from the configuration file; using cgo`, a warning
+  at start when the file could not be read or was refused. The daemon starts
+  on cgo, and the file's problems are logged as usual.
+- `platform bridge change takes effect at the next start`, with `running` and
+  `file`, once when a saved file first names a different bridge from the one
+  running. Changing it back says nothing.
+
+What `purego` means today: every macOS adapter (the clipboard, quitting,
+key presses and the Accessibility check, bringing an application forward,
+Dock badges, window cycling and application icons) and the deck's driver
+(IOKit on macOS, hid.dll on Windows) run through purego. Application icons
+are drawn identically through both bridges, pixel for pixel. What acts on the
+desktop through purego, such as pressing keys or raising windows, and the deck
+through the purego driver, have not yet been tried, so `cgo` remains the
+default and the safer choice.

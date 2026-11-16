@@ -247,7 +247,7 @@ The way hidapi's macOS backend does it, through IOKit:
   `DevSrvsID:<id>`, as hidapi writes it, so a path from either driver opens
   with either.
 - **Open:** `IORegistryEntryIDMatching`, `IOServiceGetMatchingService`,
-  `IOHIDDeviceCreate`, `IOHIDDeviceOpen` without seizing, as hidapi does.
+  `IOHIDDeviceCreate`, `IOHIDDeviceOpen` seized, as go-hid opens it.
 - **Input reports:** each open device gets a goroutine on a locked OS thread
   running a `CFRunLoop`, with the device scheduled on it and
   `IOHIDDeviceRegisterInputReportCallback` filling a bounded queue (oldest

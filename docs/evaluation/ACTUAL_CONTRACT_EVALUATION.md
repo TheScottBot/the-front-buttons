@@ -5122,3 +5122,179 @@ On the MacBook: logging out and in to see the daemon start at login (TE10);
 the keyboard only editor run (TE9). On Windows, when the author turns to the
 Dell: the app picker's Start menu listing, and launching a picked application. Everything on the Dell, including real
 dock switches between the two machines.
+
+## Purego, 16 November 2026
+
+The daemon called macOS through cgo in two places, go-hid's bundled hidapi
+and seven Objective C files in the system adapter, so building needed Xcode's
+Command Line Tools. The work recorded here (docs/PUREGO_PLAN.md) adds a
+second way, github.com/ebitengine/purego, which calls the same system
+libraries from Go with no C compiler, behind a setting that picks either at
+start, so the two can be compared on the deck before cgo is removed. It was
+built by several tasks at once, each in its own worktree, against contracts
+written first; docs/PUREGO_TRACKER.md is the record of who built what and how
+it was checked. Everything below ran on the arm64 Mac, with no deck attached
+and no Accessibility granted to the test binaries.
+
+### The setting and the daemon
+
+`platform_bridge`, at the top level of the file, is `cgo` or `purego`, written
+exactly; absent, it means cgo, so every existing file keeps its behaviour and
+needs no migration. Any other text is refused as `unknown_bridge` and
+anything not text as `wrong_type`. The encoder writes it only when set, so a
+file saved without it stays without it, and the editor's saves keep it. The
+daemon reads it once at start, straight from the file, passes it to every
+adapter's constructor, the HID watcher and the `-accessibility-check` one
+shot, and logs one `platform bridge` line naming the bridge asked for, the
+adapters' bridge and the HID driver, at warning level when either falls back.
+A file that cannot be read gives cgo with its own warning. A saved file first
+naming another bridge is logged once as taking effect at the next start.
+
+Tests first: the setting's six (decoded, encoded, absent when unset, cgo by
+default, refused with the field named, kept on save), with planting each of
+purego by default, any value accepted, and the setting dropped on save
+failing a test. The daemon's nine cover the bridge passed on, the start line
+with and without fall backs, the unread warning, and the change line once per
+change; eleven plants, from the setting ignored to a line missing, each
+failed a test. Installed on the arm64 Mac with no setting, the log read asked
+cgo, platform cgo, hid cgo, and the deck connected.
+
+### The bridge in the system adapter, and objcbridge
+
+Each of the eight adapter constructors takes the bridge and returns either
+the cgo adapter or its purego twin; the cgo files carry
+`//go:build darwin && cgo`, and a build without cgo gives the purego ones,
+asked or not. Go leaves out a file importing "C" when cgo is off whatever its
+build line says, so a test parses the package's files to check the line is
+there. A shared agreement helper runs one question through both bridges and
+compares the answers, and skips any test that acts on the desktop unless
+`THE_FRONT_BUTTONS_ACTING` is set.
+
+`internal/platform/objcbridge` holds what every purego adapter needs: the
+frameworks opened by fixed path, Core Foundation strings, numbers, arrays and
+dictionaries, releasing, autorelease pools, Accessibility element reads with
+their error codes, and reading exported constants, where a missing one is an
+error rather than a panic. Three helpers were added as adapters asked for
+them: `Bind`, which binds an adapter's functions once and turns a panic for a
+missing function into an error, with `Class`, `ClassSelector` and
+`InstanceSelector` checking a class answers a selector before it is sent, so a
+misspelt selector cannot abort the daemon; the running applications, all or
+by bundle ID; and Core Foundation's two booleans. depguard keeps purego to
+objcbridge, the system adapter and hidtransport. Its 38 tests run against the
+real frameworks, counting retains with `CFGetRetainCount`; planting a string
+conversion losing non ASCII text, a release that does not release, a missing
+constant not reported, and depguard letting a brick import purego each failed
+a test.
+
+### The seven adapters
+
+Each purego adapter makes the same calls as its cgo file, through objcbridge:
+
+| Adapter | Through purego | Tests | Plants caught |
+|---|---|---|---|
+| Clipboard | `setString:forType:` on the general pasteboard; text ends at a NUL, and text not UTF-8 is refused after clearing, as cgo does | 14 | 8 of 10 |
+| Quit | by bundle ID, or by name or bundle file name, then `terminate` | 8 | 5 of 6 |
+| Keys and trust | `AXIsProcessTrusted`, the prompt with a released options dictionary, keyboard events posted at the HID tap and released | 8 | 9 of 10 |
+| Activation | the focused application and `AXFrontmost` through Accessibility, `activateWithOptions:` through AppKit | 8 | 11 of 11 |
+| Badges | the Dock's `AXChildren`, each item's `AXStatusLabel` and `AXURL`, the bundle identifier from the URL | 7 | 14 of 14 |
+| Window cycling | the frontmost application's standard windows through Accessibility, raised the same way | 14 | 18 of 20 |
+| Application icons | the icon drawn by AppKit into a bitmap in the calling thread | 7 | 8 of 8 |
+
+Where the real system cannot be read without acting or Accessibility, the
+tests use stand ins made of real Core Foundation objects: a Dock tree with
+counted retains for badges, made up windows on unused process IDs for window
+cycling, and recorders in place of `CGEventPost` and the prompt for key
+presses. The six plants not caught: an owned string left unreleased, in the
+clipboard adapter and in the shared helper, and in quit, where `forceTerminate`
+for `terminate` also needs an acting run to tell; the session tap for the HID
+tap, which even an acting run would not show; and in window cycling, the menu
+bar's owner for the frontmost application, the same answer in practice, and a
+process ID read as 64 bits, harmless on arm64. Application icons were run only
+on arm64; the Intel calling convention for the rectangle it passes is unrun.
+
+### Agreement between the bridges
+
+The read only agreement tests run without the desktop lock; the acting ones,
+which write the clipboard, post F20, quit Calculator and raise a window, skip
+without `THE_FRONT_BUTTONS_ACTING` and have not been run. Run read only on
+the arm64 Mac:
+
+| Agreement | Result |
+|---|---|
+| Application icons | identical, pixel for pixel, for 9 installed applications by bundle ID, name and path; the same not found error for 5 missing ones |
+| Accessibility trust | the same answer, not trusted |
+| Badges | both refuse as not permitted, the test binary not being trusted |
+| Activation | the same answer for an empty and an unknown application |
+| Shortcuts | chosen and written the same |
+| Clipboard and quit | both bridges make the adapter |
+| Window lists | skipped: they need Accessibility |
+| Acting tests (7) | skipped: they act on the desktop |
+
+So the icons are the one adapter whose real output is shown to match. The
+others are shown to make the same calls, against stand ins and recorders,
+and to agree where the system answers without acting.
+
+### The HID drivers
+
+The transport now sits on a driver interface: hidapi through go-hid behind
+it, unchanged, every existing test passing as before, and a driver contract
+test run against a fake driver. Each driver adds itself from its own file, and
+the watcher picks the one asked for or the first built in, saying which it
+used so the daemon can log a fall back; with none, listing and opening fail.
+Its 15 tests caught all seven plants, among them the write retry skipped and
+the panic recovery lost.
+
+The IOKit driver lists HID devices through an IOHIDManager and gives each the
+path hidapi gives, `DevSrvsID:` and the registry entry ID. A parity test that
+only lists found the same connections and paths as hidapi: the deck as one
+listing, and 36 listings of 24 devices across every vendor, hidapi's one
+listing per usage pair mirrored. It opens the deck seized, with
+`kIOHIDOptionsTypeSeizeDevice`, exactly as go-hid's hidapi does, for a like
+for like comparison. Each open deck has a run loop thread, a locked goroutine
+whose CFRunLoop is kept alive by an empty source; input reports go into a
+queue read without waiting, and removal marks the handle gone and stops the
+loop. Closing unschedules, stops and waits for the thread before
+`IOHIDDeviceClose`. The two callbacks, input and removal, are made once per
+process, well inside purego's limit of 2,000 in all, and find their device by a
+context number. Its 43 tests, 26 for listing, opening, reports out, features
+and closing and 17 for input and removal, run a real CFRunLoop and call both
+callbacks through the C ABI, with no device; fourteen plants, from report
+types swapped and the report ID byte dropped to the queue unbounded and the
+thread left running after close, each failed a test.
+
+The Windows driver lists devices through setupapi and talks to them through
+hid.dll, with overlapped reads, opening shared for reading and writing as
+hidapi does on Windows. Its logic (padding, the report ID, error mapping,
+paths, structure layouts, a handle's pending read and removal) is in an
+untagged file whose tests run on the Mac; vet and lint for Windows pass. Its
+30 tests caught all nine plants. The tests that need a device skip without
+`THE_FRONT_BUTTONS_EXPERIMENT` and wait for the Dell.
+
+The whole tree now builds and vets with `CGO_ENABLED=0`, on macOS and for
+Windows.
+
+### Differences from hidapi
+
+Found while building, none yet seen on the deck:
+
+- The IOKit driver's input queue holds 30 reports and drops the oldest past
+  that; hidapi's macOS backend, which counts its queue differently, keeps up
+  to 32 in effect. A deck read every poll never comes near either.
+- The Windows driver cancels a write still pending after a second with
+  `CancelIoEx` and waits for it to finish before reporting the timeout, and
+  closing cancels the pending read and waits for it before closing the
+  handle, so no buffer is freed while Windows may still write to it.
+- The IOKit driver opens only `DevSrvsID:` paths, decimal digits after the
+  prefix as hidapi writes them; hidapi also opens an IOService plane path,
+  which no version of it lists on macOS. The watcher only ever opens paths a
+  listing gave, which are always this form.
+
+### Still to show
+
+H4: the driver contract and both experiments on the physical deck with each
+driver, `THE_FRONT_BUTTONS_EXPERIMENT_DRIVER` choosing it on one build, the
+numbers side by side here, and an unplug by hand; the Windows driver on the
+Dell. V1: a week of daily use with `platform_bridge: purego`, the acting
+agreement tests run under the desktop lock, Accessibility granted so the
+window lists compare, and the logs compared, before deciding whether cgo
+goes.

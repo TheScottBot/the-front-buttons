@@ -2,8 +2,6 @@
 package systemadapter
 
 import (
-	"context"
-	"errors"
 	"go/ast"
 	"go/build/constraint"
 	"go/parser"
@@ -106,70 +104,6 @@ func TestConstructors_FollowTheBridge(t *testing.T) {
 				t.Errorf("cgo with CgoAvailable %v: got %T", CgoAvailable, choice.make(t, BridgeCgo))
 			}
 		})
-	}
-}
-
-func TestAccessibilityTrusted_IsFalse_ThroughTheStub(t *testing.T) {
-	t.Parallel()
-
-	if AccessibilityTrusted(BridgePurego) {
-		t.Error("want the purego stub to report Accessibility not trusted")
-	}
-}
-
-// TestPuregoStubs_ReportTheBridgeUnavailable calls every method of every
-// purego adapter that would reach macOS, none of which acts on the desktop
-// while it is a stub.
-func TestPuregoStubs_ReportTheBridgeUnavailable(t *testing.T) {
-	t.Parallel()
-
-	shortcut := platform.Shortcut{Key: "F9", Control: false, Alt: false, Shift: true, Command: true}
-	presser := newPureKeyPresser(t.Context(), func() {})
-	presser.RequestAccessibility()
-
-	failures := map[string]func(context.Context) error{
-		"Icon": func(callContext context.Context) error {
-			icon, iconError := newPureApplicationIcons().Icon(callContext, "com.apple.finder")
-			if icon != nil {
-				t.Errorf("Icon: want no icon, got %v", icon)
-			}
-
-			return iconError
-		},
-		"ActivateApplication": func(callContext context.Context) error {
-			return newPureApplicationActivator().ActivateApplication(callContext, "com.apple.finder")
-		},
-		"Badges": func(callContext context.Context) error {
-			badges, badgesError := newPureApplicationBadges().Badges(callContext)
-			if badges != nil {
-				t.Errorf("Badges: want no badges, got %v", badges)
-			}
-
-			return badgesError
-		},
-		"CycleWindows": func(callContext context.Context) error {
-			return newPureWindowCycler(func() { t.Error("CycleWindows: want no prompt from a stub") }).
-				CycleWindows(callContext, platform.WindowGroup{Prefix: "com.jetbrains.", Excluded: nil}, 1)
-		},
-		"PressKey": func(callContext context.Context) error {
-			return presser.PressKey(callContext, "F13")
-		},
-		"PressShortcut": func(callContext context.Context) error {
-			return presser.PressShortcut(callContext, shortcut)
-		},
-		"WriteClipboard": func(callContext context.Context) error {
-			return newPureClipboardWriter().WriteClipboard(callContext, "text")
-		},
-		"QuitApplication": func(callContext context.Context) error {
-			return newPureApplicationQuitter().QuitApplication(callContext, "com.apple.finder")
-		},
-	}
-
-	for name, call := range failures {
-		failure := call(t.Context())
-		if !errors.Is(failure, ErrBridgeUnavailable) {
-			t.Errorf("%s: want ErrBridgeUnavailable, got %v", name, failure)
-		}
 	}
 }
 

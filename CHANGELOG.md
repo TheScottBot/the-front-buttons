@@ -236,6 +236,24 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   each shifted as far as the one dragged; onto a page's name, to the same
   tiles there; into the bin, removed. The drag shows every ticked key, and a
   ghost of each on the tile it would land on, crossed where it would not fit.
+- A `platform_bridge` setting, `cgo` or `purego`, read at start, chooses how
+  the daemon reaches the system's own libraries: through cgo, the default and
+  what it did before, or through purego, which needs no C compiler. Every
+  macOS adapter (clipboard, quit, key presses and the Accessibility check,
+  bringing an application forward, Dock badges, window cycling and
+  application icons) and the deck's driver have a purego version beside the
+  cgo one. The log names the bridge each run uses, and a change while
+  running is logged as taking effect at the next start. Application icons are
+  drawn the same through both, pixel for pixel, on the arm64 Mac; the rest
+  agrees where it can be compared without acting or Accessibility, and
+  nothing acting on the desktop or on the deck has yet run through purego.
+- The whole tree builds and vets with `CGO_ENABLED=0`, on macOS and Windows.
+  A build without cgo uses purego, and logs a warning if cgo was asked for.
+- The deck's purego driver: IOKit on macOS, opening the deck seized as hidapi
+  does, with a run loop thread per open deck for input reports and removal;
+  hid.dll and setupapi.dll on Windows, with overlapped reads. On macOS it
+  lists the same devices and paths as hidapi; neither has yet opened the
+  physical deck, and the Windows driver has not run on a Windows machine.
 - Three Mural timer keys, each acting on the one board its link names:
   `mural_start_timer`, five minutes unless given a duration, with or without
   the sound at the end, and `mural_add_minute` and `mural_add_half_minute`,
