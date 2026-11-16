@@ -34,6 +34,12 @@ type Parameters struct {
 	brick.Appearance
 }
 
+// notOnWindows is why the kinds do not run on Windows, and what to use there
+// instead, for the editor there.
+const notOnWindows = "Window cycling is only written for macOS so far; on Windows the key shows " +
+	"that it is unavailable. A press_shortcut key with Alt+Tab as its Windows half switches to the " +
+	"window used last instead."
+
 // Register adds both kinds to a registry.
 func Register(registry *brick.Registry) error {
 	for kindName, step := range map[string]int{NextKindName: 1, PreviousKindName: -1} {
@@ -46,6 +52,11 @@ func Register(registry *brick.Registry) error {
 		})
 		if registerError != nil {
 			return registerError //nolint:wrapcheck // Register already names the kind
+		}
+
+		notOnError := registry.SetNotOn(kindName, brick.PlatformWindows, notOnWindows)
+		if notOnError != nil {
+			return notOnError //nolint:wrapcheck // it names the kind
 		}
 	}
 

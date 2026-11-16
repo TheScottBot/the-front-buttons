@@ -1948,3 +1948,13 @@ header .theme-switch {
   border: none;
   cursor: auto;
 }
+
+/* What does not run on this machine: said plainly, in the help's size, with
+   the accent's rule beside it so it is seen before the key is saved. */
+.not-here {
+  margin: 0.4rem 0 0;
+  padding: 0.15rem 0.6rem;
+  max-width: 40rem;
+  border-left: 4px solid var(--accent);
+  font-size: 0.92rem;
+}

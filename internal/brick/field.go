@@ -101,6 +101,9 @@ type Field struct {
 	// with one name.
 	MacLabel     string
 	WindowsLabel string
+	// NotOn names the platforms the field does nothing on, which the editor
+	// says beside it there; empty for a field that works everywhere.
+	NotOn []string
 	// Default is where a number or check box starts in a new key's form,
 	// written as the form shows it, a check box's as true or false; empty for
 	// none. It never fills a value left out of the

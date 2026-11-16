@@ -53,6 +53,10 @@ type Parameters struct {
 	brick.Appearance
 }
 
+// notOnWindows is why the kinds do not run on Windows, for the editor there.
+const notOnWindows = "Controlling Spotify is only written for macOS so far; on Windows the key " +
+	"shows that it is unavailable."
+
 // Register adds the four kinds to a registry.
 func Register(registry *brick.Registry) error {
 	for kindName, build := range map[string]func(platform.MediaPlayer) any{
@@ -70,6 +74,13 @@ func Register(registry *brick.Registry) error {
 		})
 		if registerError != nil {
 			return registerError //nolint:wrapcheck // Register already names the kind
+		}
+	}
+
+	for _, kindName := range []string{AlbumKindName, PlayPauseKindName, PreviousKindName, NextKindName} {
+		notOnError := registry.SetNotOn(kindName, brick.PlatformWindows, notOnWindows)
+		if notOnError != nil {
+			return notOnError //nolint:wrapcheck // it names the kind
 		}
 	}
 

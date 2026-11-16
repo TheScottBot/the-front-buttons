@@ -14,7 +14,8 @@
 </select>
 <button type="submit">Use this type</button>
 </form>
-<form method="post" action="/key" id="key-form">
+{{if .NotHere}}<p class="not-here" role="note">{{.NotHere}}</p>
+{{end}}<form method="post" action="/key" id="key-form">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="page" value="{{.PageIndex}}">
 <input type="hidden" name="row" value="{{.Row}}">
@@ -42,7 +43,7 @@
 <option value="">Choose an application</option>
 {{range .Choices}}<option value="{{.Value}}">{{.Label}}</option>
 {{end}}</select>
-{{end}}{{end}}{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}
+{{end}}{{end}}{{if .NotHere}}<p class="not-here" id="{{.NotHereID}}">{{.NotHere}}</p>{{end}}{{if .Error}}<p class="error" id="{{.ErrorID}}">{{.Error}}</p>{{end}}
 <p class="help" id="{{.DescriptionID}}">{{if eq .Name "field.icon"}}<a href="/icons" target="_blank" rel="noopener">Browse the icons</a> in a new tab. {{end}}{{.Description}}{{if .Secret}} This names a stored credential; set its secret on the <a href="/credentials">credentials page</a>.{{end}}</p>
 </div>
 {{end}}{{end}}<button type="submit">Save key</button>

@@ -86,12 +86,16 @@ type fieldView struct {
 	OnWindows     bool
 	FirstModifier bool
 	LastModifier  bool
+	// NotOn names the platforms the field does nothing on, and NotHere says so
+	// when this machine is one of them.
+	NotOn   []string
+	NotHere string
 }
 
 // The platforms the editor names modifier keys for.
 const (
-	ShortcutPlatformMac     = "mac"
-	ShortcutPlatformWindows = "windows"
+	ShortcutPlatformMac     = brick.PlatformMac
+	ShortcutPlatformWindows = brick.PlatformWindows
 )
 
 // nameModifiers names each modifier check box as this machine's platform does,
@@ -133,12 +137,21 @@ type fieldChoice struct {
 // DescribedBy lists the ids a control's aria-describedby names: its error
 // first, so a screen reader reads why before what.
 func (field fieldView) DescribedBy() string {
-	if field.Error != "" {
-		return field.ErrorID + " " + field.DescriptionID
+	described := field.DescriptionID
+	if field.NotHere != "" {
+		described = field.NotHereID() + " " + described
 	}
 
-	return field.DescriptionID
+	if field.Error != "" {
+		return field.ErrorID + " " + described
+	}
+
+	return described
 }
+
+// NotHereID is the id of what is said beside a field that does nothing on
+// this machine.
+func (field fieldView) NotHereID() string { return field.ID + "-not-here" }
 
 // typeOption is one choice in the key type list.
 type typeOption struct {
@@ -191,21 +204,21 @@ func (pages *pageHandlers) typeOptions(selected string) []typeOption {
 		value := kindChoicePrefix + kindName
 		kind, _ := pages.options.Registry.Kind(kindName)
 		about, asks := pages.aboutKind(kind)
-		options = append(options, typeOption{
+		options = append(options, pages.markNotHere(typeOption{
 			Value: value, Label: "Brick: " + kindName, Selected: value == selected, About: about, Asks: asks,
-		})
+		}, kindName))
 	}
 
 	for _, presetName := range pages.options.Presets.Names() {
 		row, _ := pages.options.Presets.Row(presetName)
 		value := presetChoicePrefix + presetName
 		label := "Preset: " + presetName + " (" + row.Action() + ")"
-		options = append(options, typeOption{
+		options = append(options, pages.markNotHere(typeOption{
 			Value: value, Label: label, Selected: value == selected,
 			About: fmt.Sprintf("A preset of the %s brick, to %s.", row.TargetKind(), row.Action()) +
 				asksIntro(row.FieldsSchema()),
 			Asks: fieldAsks(row.FieldsSchema()),
-		})
+		}, row.TargetKind()))
 	}
 
 	return options
@@ -255,6 +268,8 @@ func fieldViews(schema brick.Schema, parameters any, fieldErrors map[string]stri
 			OnWindows:     false,
 			FirstModifier: false,
 			LastModifier:  false,
+			NotOn:         field.NotOn,
+			NotHere:       "",
 		}
 
 		// A field whose format has a short, fixed set of values is chosen from

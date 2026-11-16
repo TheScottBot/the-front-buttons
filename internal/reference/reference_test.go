@@ -102,3 +102,27 @@ func TestBrickReference_MatchesTheRegistry(t *testing.T) {
 		t.Fatalf("docs/BRICKS.md is out of date; run %s=1 go test ./internal/reference/", updateBricksVariable)
 	}
 }
+
+// TestMarkdown_SaysWhatDoesNotRunOnWindows: the reference says which kinds do
+// not run on Windows, with why, and which fields do nothing there, as the
+// editor on Windows does.
+func TestMarkdown_SaysWhatDoesNotRunOnWindows(t *testing.T) {
+	t.Parallel()
+
+	generated := builtInReference(t)
+
+	for _, want := range []string{
+		"### `spotify_next`\n\nA brick kind. Not available on Windows: Controlling Spotify is only written for macOS so far",
+		"### `jetbrains_next_window`\n\nA brick kind. Not available on Windows: " +
+			"Window cycling is only written for macOS so far",
+		"top right on the key, within a few seconds of it changing. Not available on Windows. |",
+	} {
+		if !strings.Contains(generated, want) {
+			t.Errorf("want %q in the reference", want)
+		}
+	}
+
+	if strings.Contains(generated, "### `open_url`\n\nA brick kind. Not available") {
+		t.Error("want a kind that runs on Windows left unmarked")
+	}
+}

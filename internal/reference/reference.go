@@ -7,6 +7,7 @@ package reference
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +36,13 @@ func Markdown(registry *brick.Registry, presetTable presets.Table) string {
 	for _, kindName := range registry.KindNames() {
 		kind, _ := registry.Kind(kindName)
 
-		fmt.Fprintf(&generated, "\n### `%s`\n\nA brick kind.\n\n", kindName)
+		fmt.Fprintf(&generated, "\n### `%s`\n\nA brick kind.", kindName)
+
+		if reason := registry.NotOn(kindName, brick.PlatformWindows); reason != "" {
+			fmt.Fprintf(&generated, " Not available on Windows: %s", reason)
+		}
+
+		generated.WriteString("\n\n")
 		writeFieldTable(&generated, kind.Schema())
 	}
 
@@ -67,8 +74,13 @@ func writeFieldTable(generated *strings.Builder, schema brick.Schema) {
 			required = "required"
 		}
 
+		description := field.Description
+		if slices.Contains(field.NotOn, brick.PlatformWindows) {
+			description += " Not available on Windows."
+		}
+
 		fmt.Fprintf(generated, "| `%s` | %s | %s | %s | %s | %s |\n",
-			field.Name, fieldType, required, describeBounds(field), string(field.Format), field.Description)
+			field.Name, fieldType, required, describeBounds(field), string(field.Format), description)
 	}
 }
 

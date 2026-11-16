@@ -632,6 +632,9 @@ type keyView struct {
 	// ScreenHref and ScreenName link a key that opens an app screen to it.
 	ScreenHref string
 	ScreenName string
+	// NotHere says, above the fields, that the key's kind does not run on
+	// this machine, and why; empty where it runs.
+	NotHere string
 }
 
 func (pages *pageHandlers) showKey(writer http.ResponseWriter, request *http.Request) {
@@ -755,6 +758,7 @@ func (pages *pageHandlers) renderKey(
 ) {
 	pages.attachChoices(request.Context(), context.fields)
 	nameModifiers(context.fields, pages.options.Platform)
+	markFieldsNotHere(context.fields, pages.options.Platform)
 
 	title := "Key"
 	if focusFirstError(context.fields) || len(context.errors) > 0 {
@@ -776,6 +780,7 @@ func (pages *pageHandlers) renderKey(
 		Move:          pages.moveChoices(context),
 		ScreenHref:    context.screen.href,
 		ScreenName:    context.screen.name,
+		NotHere:       pages.notHereNote(context.resolved.kindName),
 	})
 }
 

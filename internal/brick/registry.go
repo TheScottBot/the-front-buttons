@@ -70,6 +70,7 @@ type Registry struct {
 	placeholders map[string]string
 	titles       map[string]string
 	descriptions map[string]string
+	notOn        map[string]map[string]string
 }
 
 // NewRegistry returns an empty registry.
@@ -77,6 +78,7 @@ func NewRegistry() *Registry {
 	return &Registry{
 		kinds: make(map[string]Kind), appSets: nil, placeholders: make(map[string]string),
 		titles: make(map[string]string), descriptions: make(map[string]string),
+		notOn: make(map[string]map[string]string),
 	}
 }
 
@@ -191,6 +193,38 @@ func (registry *Registry) SetDescription(kindName string, description string) er
 // Description is what a kind's keys do, or nothing.
 func (registry *Registry) Description(kindName string) string {
 	return registry.descriptions[kindName]
+}
+
+// SetNotOn marks a kind as not running on a platform, saying why and what to
+// use instead, for the editor on that platform to show beside the kind. It
+// refuses a kind that is not registered, a platform there is none of, and no
+// reason.
+func (registry *Registry) SetNotOn(kindName string, platform string, reason string) error {
+	switch {
+	case !isPlatform(platform):
+		return fmt.Errorf("%w: %q is not a platform", ErrInvalidKind, platform)
+	case reason == "":
+		return fmt.Errorf("%w: no reason why %q does not run on %s", ErrInvalidKind, kindName, platform)
+	}
+
+	reasons, known := registry.notOn[platform]
+	if !known {
+		reasons = make(map[string]string)
+	}
+
+	noteError := registry.note(reasons, kindName, reason, "platform it does not run on")
+	if noteError != nil {
+		return noteError
+	}
+
+	registry.notOn[platform] = reasons
+
+	return nil
+}
+
+// NotOn is why a kind does not run on a platform, or nothing where it runs.
+func (registry *Registry) NotOn(kindName string, platform string) string {
+	return registry.notOn[platform][kindName]
 }
 
 // note keeps one thing said of a registered kind.

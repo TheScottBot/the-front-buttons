@@ -21,6 +21,7 @@ const (
 	formatTagKey      = "format"
 	suggestTagKey     = "suggest"
 	replacesTagKey    = "replaces"
+	notOnTagKey       = "not_on"
 	descriptionTagKey = "description"
 )
 
@@ -171,6 +172,11 @@ func deriveField(structType reflect.Type, structField reflect.StructField, field
 		return Field{}, locate(labelsError)
 	}
 
+	notOnError := applyNotOn(&field, structField.Tag)
+	if notOnError != nil {
+		return Field{}, locate(notOnError)
+	}
+
 	return field, nil
 }
 
@@ -198,6 +204,7 @@ func parseBrickTag(brickTag string, fieldIndex []int, description string) (Field
 		Default:          "",
 		MacLabel:         "",
 		WindowsLabel:     "",
+		NotOn:            nil,
 		structFieldIndex: fieldIndex,
 	}
 	if !lowerSnakeCaseName.MatchString(field.Name) {
@@ -307,6 +314,26 @@ func applyPlatformLabels(field *Field, structTag reflect.StructTag) error {
 	}
 
 	field.MacLabel, field.WindowsLabel = macLabel, windowsLabel
+
+	return nil
+}
+
+// applyNotOn reads a not_on tag: the platforms, comma separated, a field does
+// nothing on, such as a check box for the Dock's badges on Windows.
+func applyNotOn(field *Field, structTag reflect.StructTag) error {
+	notOnTag, hasNotOn := structTag.Lookup(notOnTagKey)
+	if !hasNotOn {
+		return nil
+	}
+
+	platforms := strings.Split(notOnTag, ",")
+	for _, platform := range platforms {
+		if !isPlatform(platform) {
+			return declarationFault("not_on names %q, which is not a platform", platform)
+		}
+	}
+
+	field.NotOn = platforms
 
 	return nil
 }

@@ -143,7 +143,7 @@ leaves the configuration, the log and any secrets in Credential Manager.
 | GitHub Actions, Mural sign in | Work; secrets live in Credential Manager |
 | Application icons on keys | Written, through the shell; untried on Windows. An application the shell cannot find shows the crossed box that marks an icon not available |
 | Bringing an application forward | Written; untried on Windows. An application key, and an app screen's key before its key presses, restores the application's window and puts it in front, holding Alt for that moment so Windows lets a background program take the focus. An application whose only window is hidden, as one closed to the notification area, counts as not running and is launched, which brings most such applications back. A Store app whose window belongs to ApplicationFrameHost is launched too, and the shell brings back the one running. |
-| Window cycling, Dock style badges, Spotify | Not available on Windows |
+| Window cycling, Dock style badges, Spotify | Not available on Windows; the editor marks them so. For window cycling, a `press_shortcut` key with Alt+Tab as its Windows half switches to the window used last |
 
 The deck itself has passed its checks through the purego driver on macOS. On
 Windows the purego driver has only been compiled and its logic tested; the

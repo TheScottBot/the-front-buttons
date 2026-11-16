@@ -1266,7 +1266,7 @@ A brick kind.
 
 ### `jetbrains_next_window`
 
-A brick kind.
+A brick kind. Not available on Windows: Window cycling is only written for macOS so far; on Windows the key shows that it is unavailable. A press_shortcut key with Alt+Tab as its Windows half switches to the window used last instead.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -1299,7 +1299,7 @@ A brick kind.
 
 ### `jetbrains_previous_window`
 
-A brick kind.
+A brick kind. Not available on Windows: Window cycling is only written for macOS so far; on Windows the key shows that it is unavailable. A press_shortcut key with Alt+Tab as its Windows half switches to the window used last instead.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -1625,7 +1625,7 @@ A brick kind.
 | `application` | text | required | 1 to 512 characters |  | The application to launch: a bundle identifier or name on macOS; an executable path or application user model ID on Windows. |
 | `use_app_icon` | boolean | optional |  |  | Draw the application's own icon instead of Icon or Icon file, and colour the key to match the icon's edge; a Background you set still wins. An application whose icon cannot be read shows the missing icon marker. |
 | `app_screen` | boolean | optional |  |  | Hold the key for half a second to also show the application's screen on the deck: a page of its own keys, with the application's icon top left to go back. A tap still just opens the application. Saving the key creates the screen if there is none. |
-| `show_notifications` | boolean | optional |  |  | Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows yet. |
+| `show_notifications` | boolean | optional |  |  | Show the badge the application shows on its Dock icon, such as a count of unread messages, top right on the key, within a few seconds of it changing. Not available on Windows. |
 | `triple_press_to_close` | boolean | optional |  |  | Press the key three times quickly to quit the application outright, not just close its window. The first press still opens it. After the quit the key does nothing until it has been left alone for a second and a half, so a fourth press does not open it again. On Windows it closes the application's windows instead, which leaves running one that keeps going in the notification area. |
 
 ### `open_editor`
@@ -1710,7 +1710,7 @@ A brick kind.
 
 ### `spotify_album`
 
-A brick kind.
+A brick kind. Not available on Windows: Controlling Spotify is only written for macOS so far; on Windows the key shows that it is unavailable.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -1721,7 +1721,7 @@ A brick kind.
 
 ### `spotify_next`
 
-A brick kind.
+A brick kind. Not available on Windows: Controlling Spotify is only written for macOS so far; on Windows the key shows that it is unavailable.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -1732,7 +1732,7 @@ A brick kind.
 
 ### `spotify_play_pause`
 
-A brick kind.
+A brick kind. Not available on Windows: Controlling Spotify is only written for macOS so far; on Windows the key shows that it is unavailable.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|
@@ -1743,7 +1743,7 @@ A brick kind.
 
 ### `spotify_previous`
 
-A brick kind.
+A brick kind. Not available on Windows: Controlling Spotify is only written for macOS so far; on Windows the key shows that it is unavailable.
 
 | Field | Type | Required | Bounds | Format | Description |
 |---|---|---|---|---|---|

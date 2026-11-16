@@ -208,10 +208,10 @@ func (pages *pageHandlers) appTypeOptions(page config.Page, selected string) []t
 		kind, _ := pages.options.Registry.Kind(kindName)
 		value := kindChoicePrefix + kindName
 		about, asks := pages.aboutKind(kind)
-		options = append(options, typeOption{
+		options = append(options, pages.markNotHere(typeOption{
 			Value: value, Label: set.NameFor(page.Application) + ": " + pages.kindTitle(kind), Selected: value == selected,
 			About: about, Asks: asks,
-		})
+		}, kindName))
 	}
 
 	// Named by what they do, they are listed in that order.

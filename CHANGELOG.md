@@ -11,6 +11,15 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Added
 
+- The editor says which keys do not run on the machine it runs on. On
+  Windows, the Spotify and window cycling kinds are marked "not on Windows" in
+  the drawer and the type list, with why first in what the drawer says of
+  them, and their key form says so above its fields; window cycling's points
+  to a press_shortcut key with Alt+Tab instead. The badge check box on an
+  application key is marked beside it. Nothing is hidden, so a key already in
+  the file can still be seen and changed. Bricks declare it with the
+  registry's SetNotOn and a field's not_on tag, and the brick reference says
+  the same.
 - Repository checks: prose and typography, operating system use, the README's
   first line and its brick reference; golangci-lint with every linter, import
   layering and formatting; duplicate code across packages; CI on macOS arm64 and
