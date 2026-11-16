@@ -18,6 +18,18 @@ copy, never the copy in its own worktree.
   on the whole tree, installs, and keeps the integration log.
 - **Worker:** one task at a time, in its own git worktree. Signs with the
   name it was given when started, such as `worker-3`.
+
+### Where worktrees live
+
+Outside the checkout, in a folder beside it named
+`the-front-buttons-worktrees`, one detached worktree per task named after
+the task (`C1`, `A4`), made by the coordinator from the last gate's commit
+before the worker starts. Never inside the checkout: the repository checks
+scan everything under the checkout's root and read only its own
+`.gitignore`, so a whole copy of the tree inside it fails them. Workers are
+started without the agent tool's own worktree option, which puts worktrees
+under `.claude/`, and are told their worktree's path. The coordinator removes
+a worktree once its task is integrated.
 - **Person:** commits at each gate, and does whatever needs hands: pressing
   keys on the deck, granting Accessibility, using the build day to day.
 
