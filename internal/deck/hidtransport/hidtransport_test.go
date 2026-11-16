@@ -18,7 +18,7 @@ const deckTestsVariable = "THE_FRONT_BUTTONS_DECK_TESTS"
 func TestWatcher_PassesTheDeckWatcherContract_WithOrWithoutADeck(t *testing.T) {
 	t.Parallel()
 
-	testsupport.RunDeckWatcherContract(t, hidtransport.NewWatcher())
+	testsupport.RunDeckWatcherContract(t, hidtransport.NewWatcher(hidtransport.DriverHIDAPI))
 }
 
 // TestWatcher_SeveralWatchersAtOnce_DoNotCrashHIDAPI enumerates from several
@@ -35,7 +35,7 @@ func TestWatcher_SeveralWatchersAtOnce_DoNotCrashHIDAPI(t *testing.T) {
 
 	for range watcherCount {
 		group.Go(func() {
-			watcher := hidtransport.NewWatcher()
+			watcher := hidtransport.NewWatcher(hidtransport.DriverHIDAPI)
 
 			for range 4 {
 				_, enumerateError := watcher.Enumerate()
@@ -56,7 +56,7 @@ func TestDevice_PassesTheDeckDeviceContract_OnAnAttachedDeck(t *testing.T) {
 		t.Skipf("set %s=1 with a deck attached to run the device contract (TE6 author gate)", deckTestsVariable)
 	}
 
-	watcher := hidtransport.NewWatcher()
+	watcher := hidtransport.NewWatcher(hidtransport.DriverHIDAPI)
 
 	connections, enumerateError := watcher.Enumerate()
 	if enumerateError != nil || len(connections) == 0 {

@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -150,10 +152,10 @@ import (
 // draw.
 var errIconNotDrawn = errors.New("macOS did not draw the application's icon")
 
-// NewApplicationIcons returns this machine's ApplicationIcons: AppKit's
+// cgoApplicationIcons returns this machine's ApplicationIcons: AppKit's
 // NSWorkspace, which finds the application as Launch Services does and draws
 // its icon wherever it is stored.
-func NewApplicationIcons() MacOSApplicationIcons {
+func cgoApplicationIcons() MacOSApplicationIcons {
 	return NewMacOSApplicationIcons(readApplicationIcon)
 }
 

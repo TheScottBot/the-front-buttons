@@ -93,6 +93,20 @@ linters:
             - pkg: github.com/TheScottBot/the-front-buttons/internal/editor
               desc: the editor drives the core; only cmd/the-front-buttons may import it
 
+        # docs/PUREGO_PLAN.md: purego calls C with no signature checks, so it
+        # stays in the bridge helpers and the adapters that send Objective-C
+        # messages or call IOKit. Bricks and the rest of the core never see it.
+        purego-only-in-bridges:
+          list-mode: lax
+          files:
+            - "$all"
+            - "!**/internal/platform/objcbridge/**"
+            - "!**/internal/platform/systemadapter/**"
+            - "!**/internal/deck/hidtransport/**"
+          deny:
+            - pkg: github.com/ebitengine/purego
+              desc: calls C unchecked; only internal/platform/objcbridge, internal/platform/systemadapter and internal/deck/hidtransport may import it
+
         # Evaluation record, TE4 dependency record: only the render packages
         # draw, so the font and image library stays inside them.
         image-library-only-in-render:

@@ -97,7 +97,9 @@ func placeAfterMove(pageIndex int, from int, destination int) int {
 // reorderPlaces lists the places a page may move to: those of every page of
 // its own sort, numbered from one, with the page there now named.
 func reorderPlaces(allPages []config.Page, pageIndex int) []reorderPlace {
-	page := pageAt(config.Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: allPages}, pageIndex)
+	page := pageAt(config.Configuration{
+		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: allPages,
+	}, pageIndex)
 	places := make([]reorderPlace, 0, len(allPages))
 
 	for index, candidate := range allPages {

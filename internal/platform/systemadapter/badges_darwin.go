@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -113,9 +115,9 @@ type ApplicationBadges struct {
 	trusted func() bool
 }
 
-// NewApplicationBadges returns this machine's ApplicationBadges.
-func NewApplicationBadges() ApplicationBadges {
-	return ApplicationBadges{trusted: AccessibilityTrusted}
+// cgoApplicationBadges returns this machine's ApplicationBadges.
+func cgoApplicationBadges() ApplicationBadges {
+	return ApplicationBadges{trusted: cgoAccessibilityTrusted}
 }
 
 // Badges reads every badge on the Dock at once. Reading takes milliseconds

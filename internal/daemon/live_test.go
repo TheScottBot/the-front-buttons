@@ -38,8 +38,9 @@ func liveKey(source string, row int, column int, credential string) config.Key {
 // the first page is showing.
 func livePages() config.Configuration {
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion,
-		WorldClocks:   nil,
+		SchemaVersion:  config.CurrentSchemaVersion,
+		WorldClocks:    nil,
+		PlatformBridge: "",
 		Pages: []config.Page{
 			{Name: firstPageName, Application: "", Keys: []config.Key{button("first", 0, false), liveKey("shared", 0, 1, "")}},
 			{Name: secondPageName, Application: "", Keys: []config.Key{liveKey("shared", 0, 0, "")}},
@@ -213,8 +214,9 @@ func TestDaemon_LogsAConfiguredCredentialThatIsMissing(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		running := startHarness(t)
 		running.configurations <- config.Configuration{
-			SchemaVersion: config.CurrentSchemaVersion,
-			WorldClocks:   nil,
+			SchemaVersion:  config.CurrentSchemaVersion,
+			WorldClocks:    nil,
+			PlatformBridge: "",
 			Pages: []config.Page{{
 				Name: "Only", Application: "", Keys: []config.Key{liveKey("shared", 0, 0, "never-stored")},
 			}},

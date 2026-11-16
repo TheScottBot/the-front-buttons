@@ -153,7 +153,9 @@ func (pages *pageHandlers) configuration() (config.Configuration, []string) {
 
 	lastGood, hasLastGood := pages.options.Store.Current()
 	if !hasLastGood {
-		lastGood = config.Configuration{SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, Pages: nil}
+		lastGood = config.Configuration{
+			SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil,
+		}
 	}
 
 	return lastGood, problems

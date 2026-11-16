@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -91,19 +93,19 @@ type MacOSKeyPresser struct {
 	watcher *AccessibilityWatcher
 }
 
-// NewKeyPresser returns this machine's KeyPresser. After a press is refused
+// cgoKeyPresser returns this machine's KeyPresser. After a press is refused
 // for want of Accessibility, it waits for the permission and calls granted
 // once it arrives, so the daemon can restart itself to use it.
-func NewKeyPresser(watchContext context.Context, granted func()) MacOSKeyPresser {
+func cgoKeyPresser(watchContext context.Context, granted func()) MacOSKeyPresser {
 	return MacOSKeyPresser{
 		prompt:  &sync.Once{},
 		watcher: NewAccessibilityWatcher(watchContext, freshProcessTrusted, accessibilityAskInterval, granted),
 	}
 }
 
-// AccessibilityTrusted reports whether macOS trusts this process for
+// cgoAccessibilityTrusted reports whether macOS trusts this process for
 // Accessibility, as it decided when the process started.
-func AccessibilityTrusted() bool {
+func cgoAccessibilityTrusted() bool {
 	return C.frontButtonsTrusted(0) != 0
 }
 
@@ -134,7 +136,7 @@ func (presser MacOSKeyPresser) PressKey(_ context.Context, key string) error {
 		return mapError
 	}
 
-	if !AccessibilityTrusted() {
+	if !cgoAccessibilityTrusted() {
 		presser.RequestAccessibility()
 
 		return fmt.Errorf("%w: grant The Front Buttons Accessibility in System Settings, Privacy and Security, "+
@@ -151,7 +153,7 @@ func (presser MacOSKeyPresser) PressShortcut(_ context.Context, shortcut platfor
 		return mapError
 	}
 
-	if !AccessibilityTrusted() {
+	if !cgoAccessibilityTrusted() {
 		presser.RequestAccessibility()
 
 		return fmt.Errorf("%w: grant The Front Buttons Accessibility in System Settings, Privacy and Security, "+

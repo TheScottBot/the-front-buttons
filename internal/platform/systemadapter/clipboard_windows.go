@@ -46,8 +46,9 @@ var (
 	errClipboardRefused = errors.New("the clipboard refused the text")
 )
 
-// NewClipboardWriter returns this machine's ClipboardWriter.
-func NewClipboardWriter() ClipboardWriter { return ClipboardWriter{} }
+// NewClipboardWriter returns this machine's ClipboardWriter. The bridge is
+// ignored.
+func NewClipboardWriter(_ Bridge) ClipboardWriter { return ClipboardWriter{} }
 
 // WriteClipboard puts the text on the clipboard in place of what was there.
 func (ClipboardWriter) WriteClipboard(_ context.Context, text string) error {

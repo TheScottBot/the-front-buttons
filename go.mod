@@ -3,6 +3,7 @@ module github.com/TheScottBot/the-front-buttons
 go 1.27.4
 
 require (
+	github.com/ebitengine/purego v0.11.3
 	github.com/sstallion/go-hid v0.15.0
 	github.com/zalando/go-keyring v0.2.8
 	go.yaml.in/yaml/v4 v4.0.0

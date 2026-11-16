@@ -55,8 +55,9 @@ var errWindowNotClosed = errors.New("window not asked to close")
 // ApplicationQuitter is the ApplicationQuitter on Windows.
 type ApplicationQuitter struct{}
 
-// NewApplicationQuitter returns this machine's ApplicationQuitter.
-func NewApplicationQuitter() ApplicationQuitter { return ApplicationQuitter{} }
+// NewApplicationQuitter returns this machine's ApplicationQuitter. The bridge
+// is ignored.
+func NewApplicationQuitter(_ Bridge) ApplicationQuitter { return ApplicationQuitter{} }
 
 // QuitApplication closes the application's own windows. An application not
 // running has none, and is left alone.

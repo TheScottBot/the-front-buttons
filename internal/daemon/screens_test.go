@@ -18,8 +18,9 @@ const secondScreenName = "Blue 2"
 // later in the file than the regular pages, opened from an app key on First.
 func twoScreenConfiguration() config.Configuration {
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion,
-		WorldClocks:   nil,
+		SchemaVersion:  config.CurrentSchemaVersion,
+		WorldClocks:    nil,
+		PlatformBridge: "",
 		Pages: []config.Page{
 			{Name: appIconTestLabel, Application: knownApplication, Keys: []config.Key{button("screen one", 1, false)}},
 			{Name: firstPageName, Application: "", Keys: []config.Key{appScreenKey(true), button("first", 1, false)}},

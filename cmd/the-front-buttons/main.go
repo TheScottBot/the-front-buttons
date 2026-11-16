@@ -114,7 +114,7 @@ func run() int {
 	flag.Parse()
 
 	if status, answered := answerOneShot(*accessibilityCheck, *printName, *printLaunchAgent, *printScheduledTask,
-		*taskUser); answered {
+		*taskUser, *configPathOverride); answered {
 		return status
 	}
 
@@ -187,14 +187,15 @@ func exitStatus(runContext context.Context, logger *slog.Logger, startError erro
 }
 
 // answerOneShot handles the flags that answer one question and exit, before
-// any log or deck is opened, and reports whether one did.
+// any log or deck is opened, and reports whether one did. The Accessibility
+// check asks through the configuration file's platform bridge.
 func answerOneShot(
 	accessibilityCheck, printName, printLaunchAgent, printScheduledTask bool,
-	taskUser string,
+	taskUser, configPathOverride string,
 ) (int, bool) {
 	switch {
 	case accessibilityCheck:
-		if systemadapter.AccessibilityTrusted() {
+		if systemadapter.AccessibilityTrusted(oneShotBridge(configPathOverride)) {
 			return 0, true
 		}
 
@@ -336,18 +337,30 @@ func executablePath() (string, error) {
 	return resolved, nil
 }
 
-// core is everything built from the registry: the kinds, the presets and the
-// grid configuration is checked against.
 // mirrorSubscribers is how many editor pages may follow the deck at once.
 const mirrorSubscribers = 4
 
-type core struct {
+// catalogue is what a configuration file is decoded against: the deck model,
+// its grid, the kinds and the presets.
+type catalogue struct {
 	model       deck.Model
 	grid        layout.Grid
 	registry    *brick.Registry
 	presetTable presets.Table
-	renderer    *render.Renderer
-	icons       *tablericons.IconSet
+}
+
+// decoder decodes configuration files against the catalogue.
+func (parts catalogue) decoder() config.Decoder {
+	return config.NewDecoder(parts.registry, parts.presetTable, parts.grid)
+}
+
+// core is everything built from the registry: the catalogue configuration is
+// checked against, and what draws and serves it.
+type core struct {
+	catalogue
+
+	renderer *render.Renderer
+	icons    *tablericons.IconSet
 	// iconFiles reads keys' own icons from the icons folder beside the
 	// configuration file; set once that file is chosen.
 	iconFiles usericons.Folder
@@ -362,10 +375,11 @@ type core struct {
 	mural *muralapi.Client
 }
 
-func buildCore() (core, error) {
+// buildCatalogue builds the deck model, grid, kinds and presets.
+func buildCatalogue() (catalogue, error) {
 	models := deck.Models()
 	if len(models) == 0 {
-		return core{}, errNoSupportedModel
+		return catalogue{}, errNoSupportedModel
 	}
 
 	// Configuration is validated against the XL's grid, the model this product
@@ -374,20 +388,28 @@ func buildCore() (core, error) {
 
 	grid, gridError := model.Grid()
 	if gridError != nil {
-		return core{}, fmt.Errorf("building the grid: %w", gridError)
+		return catalogue{}, fmt.Errorf("building the grid: %w", gridError)
 	}
 
 	registry := brick.NewRegistry()
 
 	registerError := allbricks.Register(registry)
 	if registerError != nil {
-		return core{}, fmt.Errorf("registering brick kinds: %w", registerError)
+		return catalogue{}, fmt.Errorf("registering brick kinds: %w", registerError)
 	}
 
 	presetTable, presetError := presets.BuiltIn(registry)
 	if presetError != nil {
-		return core{}, fmt.Errorf("building presets: %w", presetError)
+		return catalogue{}, fmt.Errorf("building presets: %w", presetError)
 	}
+
+	return catalogue{model: model, grid: grid, registry: registry, presetTable: presetTable}, nil
+}
+
+// buildCore builds the renderer, icons and shared adapters on a catalogue,
+// with the applications' icons read through the platform bridge.
+func buildCore(parts catalogue, bridge systemadapter.Bridge) (core, error) {
+	model := parts.model
 
 	icons, iconError := tablericons.Load()
 	if iconError != nil {
@@ -405,10 +427,48 @@ func buildCore() (core, error) {
 	}
 
 	return core{
-		model: model, grid: grid, registry: registry, presetTable: presetTable, renderer: renderer, icons: icons,
-		iconFiles: usericons.NewFolder(""), appIcons: systemadapter.NewApplicationIcons(),
+		catalogue: parts, renderer: renderer, icons: icons,
+		iconFiles: usericons.NewFolder(""), appIcons: systemadapter.NewApplicationIcons(bridge),
 		mirror: deckmirror.New(mirrorSubscribers), mural: nil,
 	}, nil
+}
+
+// configured is what start builds from the configuration file before the
+// editor and the daemon: the core, the store, the bridges read from the file
+// and the HID watcher using them.
+type configured struct {
+	built   core
+	store   *config.Store
+	bridges bridgeChoice
+	watcher *hidtransport.Watcher
+}
+
+// openConfiguration chooses the configuration file, reads its platform bridge
+// once, before any adapter is built, and builds the core through it.
+func openConfiguration(runContext context.Context, logger *slog.Logger, configPathOverride string) (configured, error) {
+	parts, catalogueError := buildCatalogue()
+	if catalogueError != nil {
+		return configured{}, catalogueError
+	}
+
+	configPath, pathError := chooseConfigPath(configPathOverride)
+	if pathError != nil {
+		return configured{}, pathError
+	}
+
+	logStarting(runContext, logger, parts, configPath)
+
+	store := config.NewStore(configPath, parts.decoder(), config.LocalFileSystem{})
+	bridges, watcher := startBridges(runContext, logger, store)
+
+	built, buildError := buildCore(parts, bridges.platform)
+	if buildError != nil {
+		return configured{}, buildError
+	}
+
+	built.iconFiles = usericons.NewFolder(filepath.Join(filepath.Dir(configPath), iconsFolderName))
+
+	return configured{built: built, store: store, bridges: bridges, watcher: watcher}, nil
 }
 
 func start(
@@ -418,27 +478,17 @@ func start(
 	editorPort int,
 	stateDirectory string,
 ) error {
-	built, buildError := buildCore()
-	if buildError != nil {
-		return buildError
+	opened, openError := openConfiguration(runContext, logger, configPathOverride)
+	if openError != nil {
+		return openError
 	}
 
-	configPath, pathError := chooseConfigPath(configPathOverride)
-	if pathError != nil {
-		return pathError
-	}
+	built, store, bridges := opened.built, opened.store, opened.bridges
 
-	built.iconFiles = usericons.NewFolder(filepath.Join(filepath.Dir(configPath), iconsFolderName))
-
-	logStarting(runContext, logger, built, configPath)
-
-	decoder := config.NewDecoder(built.registry, built.presetTable, built.grid)
-	store := config.NewStore(configPath, decoder, config.LocalFileSystem{})
 	configurations := make(chan config.Configuration, 1)
 
-	go store.Watch(runContext, configurationPollInterval, func(configuration config.Configuration) {
-		offerLatest(configurations, configuration)
-	}, logger)
+	go store.Watch(runContext, configurationPollInterval,
+		acceptConfigurations(runContext, configurations, logger, bridges.asked), logger)
 
 	counters := diagnostics.NewCounters()
 	credentials := systemadapter.NewKeyringCredentialStore()
@@ -462,11 +512,12 @@ func start(
 	keyPresser := systemadapter.NewKeyPresser(daemonContext, func() {
 		permissionGranted.Store(true)
 		stopDaemon()
-	})
+	}, bridges.platform)
 
 	runner := daemon.New(daemonOptions(built, logger, counters, credentials,
 		githubactions.NewClient(newGitHubHTTPClient(), credentials, counters),
-		hidtransport.NewWatcher(), editorLogin, keyPresser, newFilePageMemory(daemonContext, stateDirectory, logger)))
+		opened.watcher, editorLogin, keyPresser,
+		newFilePageMemory(daemonContext, stateDirectory, logger), bridges.platform))
 
 	runError := runner.Run(daemonContext, configurations)
 
@@ -479,13 +530,13 @@ func start(
 
 // logStarting logs what this run is: the product, its version, its
 // configuration file and the kinds and presets it knows.
-func logStarting(runContext context.Context, logger *slog.Logger, built core, configPath string) {
+func logStarting(runContext context.Context, logger *slog.Logger, parts catalogue, configPath string) {
 	logger.InfoContext(runContext, "starting",
 		slog.String("product", platform.ProductDisplayName),
 		slog.String("version", buildVersion()),
 		slog.String("config", configPath),
-		slog.Any("kinds", built.registry.KindNames()),
-		slog.Any("presets", built.presetTable.Names()))
+		slog.Any("kinds", parts.registry.KindNames()),
+		slog.Any("presets", parts.presetTable.Names()))
 }
 
 // errRestartForPermission asks run to exit so the daemon restarts with a
@@ -621,16 +672,9 @@ func newAPIHTTPClient() *http.Client {
 	return httpClient
 }
 
-// daemonOptions wires the adapters into the daemon. It is separate from start so
-// the composition can be tested with fakes in place of the deck and GitHub.
-// askingKeyPresser is a KeyPresser that can ask for the Accessibility
-// permission it needs, so the window keys share its prompt and its restart.
-type askingKeyPresser interface {
-	platform.KeyPresser
-	platform.ShortcutPresser
-	RequestAccessibility()
-}
-
+// daemonOptions wires the adapters into the daemon, the macOS ones through
+// the platform bridge. It is separate from start so the composition can be
+// tested with fakes in place of the deck and GitHub.
 func daemonOptions(
 	built core,
 	logger *slog.Logger,
@@ -639,8 +683,9 @@ func daemonOptions(
 	pipelineProvider pipeline.Provider,
 	watcher deck.DeckWatcher,
 	editorLogin func() string,
-	keyPresser askingKeyPresser,
+	keyPresser systemadapter.AskingKeyPresser,
 	pageMemory daemon.PageMemory,
+	bridge systemadapter.Bridge,
 ) daemon.Options {
 	return daemon.Options{
 		Watcher:  watcher,
@@ -649,14 +694,14 @@ func daemonOptions(
 		Ports: brick.Ports{
 			URLOpener:           systemadapter.NewURLOpener(),
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
-			ApplicationQuitter:  systemadapter.NewApplicationQuitter(),
-			ClipboardWriter:     systemadapter.NewClipboardWriter(),
+			ApplicationQuitter:  systemadapter.NewApplicationQuitter(bridge),
+			ClipboardWriter:     systemadapter.NewClipboardWriter(bridge),
 			MuralTimer:          built.mural,
 			PipelineProvider:    pipelineProvider,
 			EditorAddress:       editorLogin,
 			KeyPresser:          keyPresser,
 			MediaPlayer:         systemadapter.NewMediaPlayer(),
-			WindowCycler:        systemadapter.NewWindowCycler(keyPresser.RequestAccessibility),
+			WindowCycler:        systemadapter.NewWindowCycler(keyPresser.RequestAccessibility, bridge),
 			ShortcutPresser:     keyPresser,
 		},
 		Logger:          logger,
@@ -666,8 +711,8 @@ func daemonOptions(
 		Counters:        counters,
 		CredentialStore: credentials,
 		IconFiles:       built.iconFiles,
-		Activator:       systemadapter.NewApplicationActivator(),
-		Badges:          systemadapter.NewApplicationBadges(),
+		Activator:       systemadapter.NewApplicationActivator(bridge),
+		Badges:          systemadapter.NewApplicationBadges(bridge),
 		AppIcons:        built.appIcons,
 		Mirror:          built.mirror,
 		PageMemory:      pageMemory,

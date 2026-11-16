@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -55,8 +57,8 @@ var errQuitRefused = errors.New("the application refused to quit")
 // work may still ask about it before it goes.
 type ApplicationQuitter struct{}
 
-// NewApplicationQuitter returns this machine's ApplicationQuitter.
-func NewApplicationQuitter() ApplicationQuitter { return ApplicationQuitter{} }
+// cgoApplicationQuitter returns this machine's ApplicationQuitter.
+func cgoApplicationQuitter() ApplicationQuitter { return ApplicationQuitter{} }
 
 // QuitApplication asks the application to quit, if it is running.
 func (ApplicationQuitter) QuitApplication(_ context.Context, identifier string) error {

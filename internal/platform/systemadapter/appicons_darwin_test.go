@@ -15,8 +15,9 @@ import (
 // in it.
 func TestApplicationIcons_ReadsARealApplicationsIcon_OnMacOS(t *testing.T) {
 	t.Parallel()
+	skipWithoutCgo(t)
 
-	icons := systemadapter.NewApplicationIcons()
+	icons := systemadapter.NewApplicationIcons(systemadapter.BridgeCgo)
 
 	for _, identifier := range []string{
 		"com.apple.finder", safariName, "/Applications/Safari.app", "com.apple.mail",
@@ -44,8 +45,9 @@ func TestApplicationIcons_ReadsARealApplicationsIcon_OnMacOS(t *testing.T) {
 
 func TestApplicationIcons_FailsCleanly_ForAnApplicationThatIsNotInstalled(t *testing.T) {
 	t.Parallel()
+	skipWithoutCgo(t)
 
-	icons := systemadapter.NewApplicationIcons()
+	icons := systemadapter.NewApplicationIcons(systemadapter.BridgeCgo)
 
 	for _, identifier := range []string{
 		"com.example.no-such-application", "No Such Application Anywhere",
@@ -55,5 +57,15 @@ func TestApplicationIcons_FailsCleanly_ForAnApplicationThatIsNotInstalled(t *tes
 		if !errors.Is(iconError, platform.ErrApplicationNotFound) || icon != nil {
 			t.Errorf("%q: want ErrApplicationNotFound and no icon, got %v (%v)", identifier, icon, iconError)
 		}
+	}
+}
+
+// skipWithoutCgo skips a test of the cgo adapter in a build without cgo,
+// where the constructors give the purego adapter instead.
+func skipWithoutCgo(t *testing.T) {
+	t.Helper()
+
+	if !systemadapter.CgoAvailable {
+		t.Skip("this build has no cgo, so the cgo adapter is not in it")
 	}
 }

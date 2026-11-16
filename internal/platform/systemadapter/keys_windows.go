@@ -50,12 +50,12 @@ var errKeyNotSent = errors.New("key press not sent by Windows")
 type WindowsKeyPresser struct{}
 
 // AccessibilityTrusted is always true on Windows, which asks no permission to
-// send key presses.
-func AccessibilityTrusted() bool { return true }
+// send key presses. The bridge is ignored.
+func AccessibilityTrusted(_ Bridge) bool { return true }
 
 // NewKeyPresser returns this machine's KeyPresser. Windows needs no permission,
-// so nothing is ever waited for.
-func NewKeyPresser(_ context.Context, _ func()) WindowsKeyPresser {
+// so nothing is ever waited for, and the bridge is ignored.
+func NewKeyPresser(_ context.Context, _ func(), _ Bridge) WindowsKeyPresser {
 	// The build fails unless keyboardInput is exactly the 40 bytes SendInput
 	// expects for each input: the index is a constant, out of range otherwise.
 	var probe keyboardInput

@@ -54,10 +54,7 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 	}))
 	t.Cleanup(fakeGitHub.Close)
 
-	built, buildError := buildCore()
-	if buildError != nil {
-		t.Fatal(buildError)
-	}
+	built := testCore(t)
 
 	credentials := testsupport.NewCredentialStoreTestDouble()
 
@@ -88,7 +85,8 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 		done <- daemon.New(daemonOptions(built, logger, counters, credentials,
 			githubactions.NewClient(fakeGitHub.Client(), credentials, counters),
 			testsupport.NewDeckWatcherTestDouble(), func() string { return "http://127.0.0.1:1/" },
-			systemadapter.NewKeyPresser(runContext, func() {}), nil)).Run(runContext, configurations)
+			systemadapter.NewKeyPresser(runContext, func() {}, systemadapter.BridgeCgo), nil,
+			systemadapter.BridgeCgo)).Run(runContext, configurations)
 	}()
 
 	waitForLog(logs, `"reason":"unauthorised"`)
@@ -108,6 +106,23 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 	if !strings.Contains(logged, `"reason":"unauthorised"`) {
 		t.Fatalf("want the refused token reported by reason, got:\n%s", logged)
 	}
+}
+
+// testCore is the core start builds, through the cgo bridge.
+func testCore(t *testing.T) core {
+	t.Helper()
+
+	parts, catalogueError := buildCatalogue()
+	if catalogueError != nil {
+		t.Fatal(catalogueError)
+	}
+
+	built, buildError := buildCore(parts, systemadapter.BridgeCgo)
+	if buildError != nil {
+		t.Fatal(buildError)
+	}
+
+	return built
 }
 
 // waitForLog waits up to ten seconds for a log to hold some text.

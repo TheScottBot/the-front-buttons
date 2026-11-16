@@ -41,24 +41,31 @@ func (decoder Decoder) Decode(fileContent []byte) (Configuration, error) {
 	if len(fileContent) > MaximumFileBytes {
 		list.addf(nil, "", ReasonTooLarge, "file is %d bytes; the limit is %d", len(fileContent), MaximumFileBytes)
 
-		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
+		return rejected(list)
 	}
 
 	root, rootFound := parseRoot(fileContent, &list)
 	if !rootFound {
-		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
+		return rejected(list)
 	}
 
 	if !decoder.bringToCurrentVersion(root, &list) {
-		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
+		return rejected(list)
 	}
 
 	configuration := decoder.decodeRoot(root, &list)
 	if len(list.problems) > 0 {
-		return Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}, &RejectionError{Problems: list.problems}
+		return rejected(list)
 	}
 
 	return configuration, nil
+}
+
+// rejected is Decode's result for a refused file: no configuration, and every
+// problem found.
+func rejected(list problemList) (Configuration, error) {
+	return Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: nil},
+		&RejectionError{Problems: list.problems}
 }
 
 // parseRoot parses exactly one YAML document whose root is a mapping.
@@ -177,11 +184,15 @@ func mappingValue(mapping *yaml.Node, entryName string) *yaml.Node {
 }
 
 func (decoder Decoder) decodeRoot(root *yaml.Node, list *problemList) Configuration {
-	configuration := Configuration{SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, Pages: nil}
+	configuration := Configuration{SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil}
 
-	entries, isMapping := list.mappingEntries(root, "", schemaVersionName, worldClocksName, pagesName)
+	entries, isMapping := list.mappingEntries(root, "", schemaVersionName, platformBridgeName, worldClocksName, pagesName)
 	if !isMapping {
 		return configuration
+	}
+
+	if bridgeNode, present := entries[platformBridgeName]; present {
+		configuration.PlatformBridge = decodePlatformBridge(bridgeNode, list)
 	}
 
 	if clocksNode, present := entries[worldClocksName]; present {

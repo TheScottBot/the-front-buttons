@@ -12,8 +12,8 @@ import (
 type UnavailableWindowCycler struct{}
 
 // NewWindowCycler returns this machine's WindowCycler; there is no permission
-// to ask for.
-func NewWindowCycler(_ func()) UnavailableWindowCycler { return UnavailableWindowCycler{} }
+// to ask for, and the bridge is ignored.
+func NewWindowCycler(_ func(), _ Bridge) UnavailableWindowCycler { return UnavailableWindowCycler{} }
 
 // CycleWindows reports moving between windows unavailable.
 func (UnavailableWindowCycler) CycleWindows(context.Context, platform.WindowGroup, int) error {

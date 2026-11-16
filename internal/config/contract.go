@@ -43,20 +43,21 @@ const (
 // The names used in the file. Each appears once here and is used by both the
 // decoder and the encoder, so the two cannot disagree (datum 0.7).
 const (
-	schemaVersionName = "schema_version"
-	pagesName         = "pages"
-	pageNameName      = "name"
-	applicationName   = "application"
-	keysName          = "keys"
-	rowName           = "row"
-	columnName        = "column"
-	kindName          = "kind"
-	parametersName    = "parameters"
-	presetName        = "preset"
-	fieldsName        = "fields"
-	worldClocksName   = "world_clocks"
-	clockLabelName    = "label"
-	clockZoneName     = "zone"
+	schemaVersionName  = "schema_version"
+	pagesName          = "pages"
+	pageNameName       = "name"
+	applicationName    = "application"
+	keysName           = "keys"
+	rowName            = "row"
+	columnName         = "column"
+	kindName           = "kind"
+	parametersName     = "parameters"
+	presetName         = "preset"
+	fieldsName         = "fields"
+	worldClocksName    = "world_clocks"
+	clockLabelName     = "label"
+	clockZoneName      = "zone"
+	platformBridgeName = "platform_bridge"
 )
 
 // Reason categorises why a configuration was rejected, so rejections are counted
@@ -89,6 +90,8 @@ const (
 	ReasonUnknownZone Reason = "unknown_zone"
 	// ReasonDuplicateLabel is a world clock's label another clock has.
 	ReasonDuplicateLabel Reason = "duplicate_label"
+	// ReasonUnknownBridge is a platform bridge that is neither cgo nor purego.
+	ReasonUnknownBridge Reason = "unknown_bridge"
 )
 
 // Problem is one thing wrong with a configuration file: where, why, and a
@@ -124,7 +127,11 @@ type Configuration struct {
 	// when the file names none, meaning DefaultWorldClocks. The decoder never
 	// fills the defaults in, so saving a file never writes them into it.
 	WorldClocks []WorldClock
-	Pages       []Page
+	// PlatformBridge is the bridge the daemon reaches the system through, or
+	// empty when the file names none, meaning PlatformBridgeCgo. The decoder
+	// never fills the default in, so saving a file never writes it into it.
+	PlatformBridge PlatformBridge
+	Pages          []Page
 }
 
 // WorldClock is one of the world view's clocks: the label on its first key,
@@ -153,6 +160,26 @@ func (configuration Configuration) WorldClocksOrDefault() []WorldClock {
 	}
 
 	return configuration.WorldClocks
+}
+
+// PlatformBridge names how the daemon reaches the system's own libraries:
+// through cgo, or through purego with no C compiler in the build.
+type PlatformBridge string
+
+// The platform bridges a file may name.
+const (
+	PlatformBridgeCgo    PlatformBridge = "cgo"
+	PlatformBridgePurego PlatformBridge = "purego"
+)
+
+// PlatformBridgeOrDefault is the bridge the daemon uses: the file's, or cgo
+// when it names none.
+func (configuration Configuration) PlatformBridgeOrDefault() PlatformBridge {
+	if configuration.PlatformBridge == "" {
+		return PlatformBridgeCgo
+	}
+
+	return configuration.PlatformBridge
 }
 
 // Page is one page of keys.
@@ -201,7 +228,10 @@ func (configuration Configuration) Clone() Configuration {
 	}
 
 	return Configuration{
-		SchemaVersion: configuration.SchemaVersion, WorldClocks: slices.Clone(configuration.WorldClocks), Pages: pages,
+		SchemaVersion:  configuration.SchemaVersion,
+		WorldClocks:    slices.Clone(configuration.WorldClocks),
+		PlatformBridge: configuration.PlatformBridge,
+		Pages:          pages,
 	}
 }
 

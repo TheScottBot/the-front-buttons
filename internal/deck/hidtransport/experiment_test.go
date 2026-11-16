@@ -49,7 +49,7 @@ func openExperimentDeck(t *testing.T) (deck.Model, deck.DeckDevice) {
 		t.Skipf("set %s=1 with a deck attached and a person at it", experimentVariable)
 	}
 
-	watcher := hidtransport.NewWatcher()
+	watcher := hidtransport.NewWatcher(hidtransport.DriverHIDAPI)
 
 	connections, enumerateError := watcher.Enumerate()
 	if enumerateError != nil || len(connections) == 0 {

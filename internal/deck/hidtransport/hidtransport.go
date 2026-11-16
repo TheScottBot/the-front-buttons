@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	hid "github.com/sstallion/go-hid"
-
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 )
 
@@ -27,7 +25,7 @@ const (
 )
 
 // readPollInterval is how often a timed read looks for a report. A read never
-// waits inside hidapi holding the device's lock, which kept every write waiting
+// waits inside the driver holding the device's lock, which kept every write waiting
 // out the read in progress (evaluation, deck testing); it asks without waiting,
 // then sleeps unlocked. Five milliseconds adds no delay a person could feel.
 const readPollInterval = 5 * time.Millisecond
@@ -51,52 +49,63 @@ func retryTransient(call func() error) error {
 	return callError
 }
 
-// ErrEnumerationFailed reports that listing devices failed, including the panic
-// go-hid can raise on macOS for a device with an invalid string (finding TF5).
-// The watcher keeps running and tries again on its next poll.
+// ErrEnumerationFailed reports that listing devices failed, including a panic
+// in the driver, which go-hid can raise on macOS for a device with an invalid
+// string (finding TF5). The watcher keeps running and tries again on its next
+// poll.
 var ErrEnumerationFailed = errors.New("enumerating HID devices failed")
 
-// hidapi keeps process wide state: its initialisation, and on macOS one HID
-// manager that enumeration, opening and closing all use. None of it is safe
-// from two threads at once, and two watchers initialising together aborted the
-// process on the first run against a real deck (evaluation, deck testing). So
-// every call that touches that state holds this one lock, and hidapi is
-// initialised once per process, not once per watcher.
+// HID drivers keep process wide state: hidapi its initialisation and, on macOS,
+// one HID manager that enumeration, opening and closing all use. None of it is
+// safe from two threads at once, and two watchers initialising together
+// aborted the process on the first run against a real deck (evaluation, deck
+// testing). So every enumerate, open and close, through any driver, holds this
+// one lock.
 //
-//nolint:gochecknoglobals // mirrors hidapi's own state, which is process wide
-var hidapi struct {
-	mutex       sync.Mutex
-	initialised bool
-	initFailure error
-}
+//nolint:gochecknoglobals // mirrors the drivers' own state, which is process wide
+var driverLock sync.Mutex
 
-// withHIDAPI runs call holding the process wide lock, with hidapi initialised.
-func withHIDAPI(call func() error) error {
-	hidapi.mutex.Lock()
-	defer hidapi.mutex.Unlock()
-
-	if !hidapi.initialised {
-		hidapi.initialised = true
-
-		initialiseError := hid.Init()
-		if initialiseError != nil {
-			hidapi.initFailure = fmt.Errorf("initialising hidapi: %w", initialiseError)
-		}
-	}
-
-	if hidapi.initFailure != nil {
-		return hidapi.initFailure
-	}
+// withDriverLock runs call holding the process wide lock. The lock is released
+// by a deferred call, so a panic in the driver leaves it free.
+func withDriverLock(call func() error) error {
+	driverLock.Lock()
+	defer driverLock.Unlock()
 
 	return call()
 }
 
-// Watcher is the DeckWatcher adapter: hidapi enumeration and opening.
-type Watcher struct{}
+// disconnected reports a failed call on an open deck, errHandleGone included,
+// as the deck being gone.
+func disconnected(action string, cause error) error {
+	return fmt.Errorf("%w: %s: %w", deck.ErrDisconnected, action, cause)
+}
 
-// NewWatcher returns a watcher; hidapi is not touched until the first call.
-func NewWatcher() *Watcher {
-	return &Watcher{}
+// Watcher is the DeckWatcher adapter: enumeration and opening through one HID
+// driver.
+type Watcher struct {
+	choice DriverChoice
+	driver driver
+}
+
+// NewWatcher returns a watcher using the driver named if this build holds it,
+// and otherwise another (DriverChoice says which). No driver is touched until
+// the first call.
+func NewWatcher(name DriverName) *Watcher {
+	return newWatcher(name, builtDrivers)
+}
+
+func newWatcher(name DriverName, built map[DriverName]driver) *Watcher {
+	using, unavailable := chooseDriver(name, built)
+
+	return &Watcher{
+		choice: DriverChoice{Asked: name, Using: using, Unavailable: unavailable},
+		driver: built[using],
+	}
+}
+
+// DriverChoice says which driver was asked for and which is used.
+func (watcher *Watcher) DriverChoice() DriverChoice {
+	return watcher.choice
 }
 
 // Enumerate lists attached decks of supported models. Its results are named so
@@ -110,22 +119,23 @@ func (watcher *Watcher) Enumerate() (connections []deck.Connection, enumerateErr
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			connections = nil
-			enumerateError = fmt.Errorf("%w: hidapi panicked: %v", ErrEnumerationFailed, recovered)
+			enumerateError = fmt.Errorf("%w: the %s driver panicked: %v",
+				ErrEnumerationFailed, watcher.choice.Using, recovered)
 		}
 	}()
 
+	if watcher.driver == nil {
+		return nil, fmt.Errorf("%w: %w", ErrEnumerationFailed, watcher.choice.Unavailable)
+	}
+
 	var found []deck.Connection
 
-	listError := withHIDAPI(func() error {
-		return hid.Enumerate(elgatoVendorID, hid.ProductIDAny, func(information *hid.DeviceInfo) error {
-			found = append(found, deck.Connection{
-				Path:      information.Path,
-				VendorID:  information.VendorID,
-				ProductID: information.ProductID,
-			})
+	listError := withDriverLock(func() error {
+		var driverError error
 
-			return nil
-		})
+		found, driverError = watcher.driver.enumerate(elgatoVendorID)
+
+		return driverError
 	})
 	if listError != nil {
 		return nil, fmt.Errorf("%w: %w", ErrEnumerationFailed, listError)
@@ -140,20 +150,21 @@ func (watcher *Watcher) Enumerate() (connections []deck.Connection, enumerateErr
 //
 //nolint:ireturn // implements the port, which returns a device interface
 func (watcher *Watcher) Open(connection deck.Connection) (deck.DeckDevice, error) {
-	var handle *hid.Device
+	if watcher.driver == nil {
+		return nil, fmt.Errorf("%w: %w", deck.ErrDisconnected, watcher.choice.Unavailable)
+	}
 
-	openError := withHIDAPI(func() error {
+	var opened handle
+
+	openError := withDriverLock(func() error {
 		var pathError error
 
-		handle, pathError = hid.OpenPath(connection.Path)
-		if pathError != nil {
-			return fmt.Errorf("opening the path: %w", pathError)
-		}
+		opened, pathError = watcher.driver.open(connection.Path)
 
-		return nil
+		return pathError
 	})
 	if openError == nil {
-		return &device{mutex: sync.Mutex{}, handle: handle, closed: false}, nil
+		return &device{mutex: sync.Mutex{}, handle: opened, closed: false}, nil
 	}
 
 	if watcher.isListed(connection) {
@@ -183,7 +194,7 @@ func (watcher *Watcher) isListed(connection deck.Connection) bool {
 // serialised, as the reference library does with its own mutex.
 type device struct {
 	mutex  sync.Mutex
-	handle *hid.Device
+	handle handle
 	closed bool
 }
 
@@ -197,7 +208,7 @@ func (opened *device) Write(report []byte) error {
 	}
 
 	writeError := retryTransient(func() error {
-		_, attemptError := opened.handle.Write(report)
+		attemptError := opened.handle.write(report)
 		if attemptError != nil {
 			return fmt.Errorf("attempt: %w", attemptError)
 		}
@@ -205,7 +216,7 @@ func (opened *device) Write(report []byte) error {
 		return nil
 	})
 	if writeError != nil {
-		return fmt.Errorf("%w: writing: %w", deck.ErrDisconnected, writeError)
+		return disconnected("writing", writeError)
 	}
 
 	return nil
@@ -220,9 +231,9 @@ func (opened *device) SendFeatureReport(report []byte) error {
 		return fmt.Errorf("sending a feature report: %w", deck.ErrDisconnected)
 	}
 
-	_, sendError := opened.handle.SendFeatureReport(report)
+	sendError := opened.handle.sendFeature(report)
 	if sendError != nil {
-		return fmt.Errorf("%w: sending a feature report: %w", deck.ErrDisconnected, sendError)
+		return disconnected("sending a feature report", sendError)
 	}
 
 	return nil
@@ -239,15 +250,12 @@ func (opened *device) GetFeatureReport(reportID byte, length int) ([]byte, error
 		return nil, fmt.Errorf("reading a feature report: %w", deck.ErrDisconnected)
 	}
 
-	buffer := make([]byte, length)
-	buffer[0] = reportID
-
-	readLength, readError := opened.handle.GetFeatureReport(buffer)
+	report, readError := opened.handle.getFeature(reportID, length)
 	if readError != nil {
-		return nil, fmt.Errorf("%w: reading a feature report: %w", deck.ErrDisconnected, readError)
+		return nil, disconnected("reading a feature report", readError)
 	}
 
-	return buffer[:readLength], nil
+	return report, nil
 }
 
 // ReadInputReport waits up to timeout for one input report.
@@ -269,7 +277,8 @@ func (opened *device) ReadInputReport(buffer []byte, timeout time.Duration) (int
 	}
 }
 
-// Close releases the deck once; hidapi must never be given a closed handle.
+// Close releases the deck once; a driver must never be given a closed handle.
+// A deck already removed is reported as disconnected, once released.
 func (opened *device) Close() error {
 	opened.mutex.Lock()
 	defer opened.mutex.Unlock()
@@ -280,16 +289,20 @@ func (opened *device) Close() error {
 
 	opened.closed = true
 
-	closeError := withHIDAPI(opened.handle.Close)
-	if closeError != nil {
-		return fmt.Errorf("closing: %w", closeError)
-	}
+	closeError := withDriverLock(opened.handle.close)
 
-	return nil
+	switch {
+	case errors.Is(closeError, errHandleGone):
+		return disconnected("closing", closeError)
+	case closeError != nil:
+		return fmt.Errorf("closing: %w", closeError)
+	default:
+		return nil
+	}
 }
 
-// readWithoutWaiting takes a report hidapi already holds, if any, holding the
-// device's lock only for that.
+// readWithoutWaiting takes a report the driver already holds, if any, holding
+// the device's lock only for that.
 func (opened *device) readWithoutWaiting(buffer []byte) (int, error) {
 	opened.mutex.Lock()
 	defer opened.mutex.Unlock()
@@ -298,14 +311,10 @@ func (opened *device) readWithoutWaiting(buffer []byte) (int, error) {
 		return 0, fmt.Errorf("reading: %w", deck.ErrDisconnected)
 	}
 
-	readLength, readError := opened.handle.ReadWithTimeout(buffer, 0)
-
-	switch {
-	case errors.Is(readError, hid.ErrTimeout):
-		return 0, nil
-	case readError != nil:
-		return 0, fmt.Errorf("%w: reading: %w", deck.ErrDisconnected, readError)
-	default:
-		return readLength, nil
+	readLength, readError := opened.handle.readWithoutWaiting(buffer)
+	if readError != nil {
+		return 0, disconnected("reading", readError)
 	}
+
+	return readLength, nil
 }

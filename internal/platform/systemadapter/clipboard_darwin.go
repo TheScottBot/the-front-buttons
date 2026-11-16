@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -36,8 +38,8 @@ var errClipboardRefused = errors.New("the clipboard refused the text")
 // general pasteboard, which needs no permission.
 type ClipboardWriter struct{}
 
-// NewClipboardWriter returns this machine's ClipboardWriter.
-func NewClipboardWriter() ClipboardWriter { return ClipboardWriter{} }
+// cgoClipboardWriter returns this machine's ClipboardWriter.
+func cgoClipboardWriter() ClipboardWriter { return ClipboardWriter{} }
 
 // WriteClipboard puts the text on the clipboard in place of what was there.
 func (ClipboardWriter) WriteClipboard(_ context.Context, text string) error {

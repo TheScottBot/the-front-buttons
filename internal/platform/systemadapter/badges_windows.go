@@ -10,8 +10,9 @@ import (
 // (evaluation, deck testing): it reports badges unavailable.
 type ApplicationBadges struct{}
 
-// NewApplicationBadges returns this machine's ApplicationBadges.
-func NewApplicationBadges() ApplicationBadges { return ApplicationBadges{} }
+// NewApplicationBadges returns this machine's ApplicationBadges. The bridge is
+// ignored.
+func NewApplicationBadges(_ Bridge) ApplicationBadges { return ApplicationBadges{} }
 
 // Badges reports badges unavailable.
 func (ApplicationBadges) Badges(context.Context) (map[string]string, error) {

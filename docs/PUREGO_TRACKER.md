@@ -113,7 +113,7 @@ Run from the worktree, before signing:
 | race | `go test -race ./<owned packages>/...` |
 | lint | `golangci-lint run ./...` (the coordinator's copy is in the session scratchpad) |
 | nocgo | `CGO_ENABLED=0 go build ./... && CGO_ENABLED=0 go vet ./...` (from gate G0 on) |
-| windows | `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet ./...` and the Windows lint run |
+| windows | with `GOOS=windows GOARCH=amd64 CGO_ENABLED=0` set for every command: `go list ./...` piped through `xargs go vet`, and the same list into the lint run. Take the list under GOOS=windows, so darwin only packages such as objcbridge are left out. |
 | dupl | `scripts/check-duplicate-code.sh` |
 
 ## Locks
@@ -179,11 +179,11 @@ A7; H1 then H2; H3.
 
 | ID | Task | Depends on | Owns | Status | Progress | Signed |
 | --- | --- | --- | --- | --- | --- | --- |
-| C1 | `platform_bridge` setting | none | `internal/config/` setting code and tests | open | | |
-| C2 | Bridge type, constructors, stubs, build lines, agreement helper | none | systemadapter: `bridge.go`, `cgo_absent_darwin.go`, `agreement_darwin_test.go`, the seven `*_purego_darwin.go` stubs, the build line in each cgo file, the constructors' signatures in every `*_windows.go` and cgo file | open | | |
-| C3 | HID driver interface under the watcher | none | `internal/deck/hidtransport/` except the drivers H1 to H3 own | open | | |
-| C4 | objcbridge package and the purego module | none | `internal/platform/objcbridge/`, `go.mod`, `go.sum`, `.golangci.yml` | open | | |
-| W1 | Daemon reads the setting and passes it on | C1, C2, C3 | `cmd/the-front-buttons/main.go` and its tests | open | | |
+| C1 | `platform_bridge` setting | none | `internal/config/` setting code and tests | integrated | 100%: setting, 6 tests, plants 4/4 caught; `PlatformBridge: ""` added to the 21 literals (accepted ask), eight wrapped for line length. D1 note: optional top level `platform_bridge: cgo` or `purego`, absent means cgo, any other value refused (`unknown_bridge`, wrong type `wrong_type`), kept on editor saves, written only when set | worker-1, 2026-11-16; tests 6 new; plants 4/4; checks: race, lint, windows, dupl |
+| C2 | Bridge type, constructors, stubs, build lines, agreement helper | none | systemadapter: `bridge.go`, `cgo_absent_darwin.go`, `agreement_darwin_test.go`, the seven `*_purego_darwin.go` stubs, the build line in each cgo file, the constructors' signatures in every `*_windows.go` and cgo file | integrated | 100%; main.go passes BridgeCgo everywhere for W1 to replace, CgoAvailable for W1's log; for D1: a CGO_ENABLED=0 macOS build gives the purego stubs (ErrBridgeUnavailable) until A1 to A7 land; see contract log | worker-2, 2026-11-16; tests 8 new; plants 7/7; checks: race, lint, nocgo, windows, dupl |
+| C3 | HID driver interface under the watcher | none | `internal/deck/hidtransport/` except the drivers H1 to H3 own | integrated | driver interface, hidapi driver and contract in; checks passing, 100%. For D1: no fallback files, drivers add themselves to `builtDrivers` (see contract log); `Watcher.DriverChoice()` says asked and used driver for W1 to log; a `CGO_ENABLED=0` build of hidtransport now compiles, with no driver until H1 and H3 | worker-3, 2026-11-16; tests 15 new; plants 7/7; checks: race, lint, nocgo, windows, dupl |
+| C4 | objcbridge package and the purego module | none | `internal/platform/objcbridge/`, `go.mod`, `go.sum`, `.golangci.yml` | integrated | all checks pass, 100%; additions in the contract log; for D1: SECURITY.md could name purego and the libraries objcbridge opens (CoreFoundation, Foundation, AppKit, ApplicationServices, libobjc; IOKit later), not demanded by its test | worker-4, 2026-11-16; tests 38 new; plants 6/6; checks: race, lint, nocgo (objcbridge test and vet only; whole tree from G0), windows, dupl |
+| W1 | Daemon reads the setting and passes it on | C1, C2, C3 | `cmd/the-front-buttons/main.go` and its tests | integrated | 100%: bridge read once at start (`OnDisk`, missing or unreadable file gives cgo), passed to every constructor, `NewWatcher` and the `-accessibility-check` one shot; start line `platform bridge` (asked, platform, hid, fall backs); reload line once per change; new files `cmd/the-front-buttons/bridge.go` and `bridge_test.go`. D1 note: log lines `platform bridge` (INFO, WARN on a fall back), `platform bridge not read from the configuration file; using cgo`, `platform bridge change takes effect at the next start` (running, file) | worker-5, 2026-11-16; tests 9 new; plants 11/11; checks: race, lint, nocgo, windows, dupl |
 | A1 | Clipboard through purego | C2, C4 | `clipboard_purego_darwin.go`, `clipboard_agreement_darwin_test.go` | open | | |
 | A2 | Quit through purego | C2, C4 | `quit_purego_darwin.go`, `quit_agreement_darwin_test.go` | open | | |
 | A3 | Keys and Accessibility trust through purego | C2, C4 | `keys_purego_darwin.go`, `keys_agreement_darwin_test.go` | open | | |
@@ -194,7 +194,7 @@ A7; H1 then H2; H3.
 | X1 | objcbridge helpers asked for during wave 2 | C4 | `internal/platform/objcbridge/` (from G0 on) | open | | |
 | H1 | IOKit driver: enumerate, open, reports out, features, close | C3, C4 | `iokit_darwin.go`, `iokit_darwin_test.go` | open | | |
 | H2 | IOKit driver: input reports and removal | H1 | `iokit_input_darwin.go`, `iokit_input_darwin_test.go`, `reportqueue.go`, `reportqueue_test.go` | open | | |
-| H3 | Windows HID driver | C3 | `winhid_windows.go`, `winhid_windows_test.go` | open | | |
+| H3 | Windows HID driver | C3 | `winhid_windows.go`, `winhid_windows_test.go` | claimed: worker-6 2026-11-16 | writing tests; pure logic goes in untagged `winhidcore.go` and `winhidcore_internal_test.go`, 15% | |
 | D1 | Docs for the setting and the new code | C1 | the files D1 owns above | open | | |
 | H4 | Both drivers on the deck: contract, experiments, parity | H1, H2, W1; deck lock | the evaluation's deck section (with D1) | open | | |
 | V1 | A week of use on purego, then decide | G1 | the evaluation's verdict | open | | |
@@ -316,7 +316,112 @@ done while waiting.
 Append only. Each line: date, worker, contract, change asked for, why;
 then the coordinator's `accepted` or `refused`, with the tasks it touches.
 
+- 2026-11-16, coordinator, files nobody else touches: C2 and C3 change
+  constructor signatures that `cmd/the-front-buttons/main.go` and its tests
+  call, so each may change those call sites only, passing
+  `systemadapter.BridgeCgo` or `hidtransport.DriverHIDAPI`, so the tree
+  builds; W1 then owns the file. Accepted; touches C2, C3, W1.
+- 2026-11-16, worker-1, the setting (C1) and C1's Owns cell: the new
+  `Configuration.PlatformBridge` field makes exhaustruct report 21 literals
+  outside `internal/config/`: 15 in `internal/daemon/*_test.go`, and in the
+  editor `deckrender.go` (2), `reorder.go`, `pages.go` and
+  `icons_pages_test.go` (2). Asked: let C1 add `PlatformBridge: ""` to those
+  literals only, with no other change, as the C2 and C3 call site allowance
+  does; the other way, an exhaustruct ignore for `config.Configuration`,
+  would need C4's `.golangci.yml` and lose the check for every later field.
+  Why: lint on `./...` cannot pass otherwise. Accepted: those literals
+  only, adding `PlatformBridge: ""` and nothing else; touches C1, and W1
+  later where it builds a Configuration.
+- 2026-11-16, worker-4, the bridge helpers (C4): additions to the contract,
+  nothing in it changed. (1) Exported library paths `PathCoreFoundation`,
+  `PathFoundation`, `PathAppKit`, `PathApplicationServices`, `PathIOKit`
+  for `Framework`, so no two adapters spell a path. (2) `type AXError int32`
+  (an error; `Error()` names the code) with `ErrAXIllegalArgument`,
+  `ErrAXCannotComplete`, `ErrAXAttributeUnsupported`,
+  `ErrAXActionUnsupported`, `ErrAXAPIDisabled`, `ErrAXNoValue`; every AX
+  helper wraps one, read with `errors.As`, and a nil element gives
+  `ErrAXIllegalArgument` without calling macOS, a nil value from a
+  successful copy `ErrAXNoValue`. (3) `Function` panics on a missing
+  function, as purego's `RegisterLibFunc` does; `Constant` is the call that
+  reports `ErrSymbolMissing`. (4) Note, no change: AX attribute and action
+  names such as `kAXFocusedApplicationAttribute` are `CFSTR` macros, not
+  exported symbols, so `Constant` cannot read them; adapters pass the
+  string ("AXFocusedApplication") to `AXCopy`. Real exported constants such
+  as `kAXTrustedCheckOptionPrompt` do read. (5) depguard also permits
+  `internal/platform/systemadapter`, since adapters send messages with
+  purego's objc package directly; the plan's layout row names only
+  objcbridge and hidtransport. (6) `objcbridge` added to the repository
+  check's permitted operating system directories in
+  `internal/repositorychecks/operatingsystem.go`, with a test; without it
+  `TestRepository_HasNoViolations` fails on every `_darwin.go` file.
+  Accepted, all six. On (3): a missing function must never panic the
+  daemon, so each adapter and the IOKit driver bind their functions once,
+  in one place that recovers a panic and then answers
+  `ErrBridgeUnavailable`; touches A1 to A7, H1, H2.
+- 2026-11-16, worker-2, the bridge in systemadapter (C2): additions, and
+  one reading of the contract. (1) `newPure<Name>` takes the same arguments
+  as its constructor less the bridge: `newPureKeyPresser(watchContext,
+  granted)` and `newPureWindowCycler(ask)`, as the real adapters need the
+  watcher and the prompt; the other five take none. The key presser stub
+  also has `pureAccessibilityTrusted() bool`, and its `ForThisPlatform` and
+  `DescribeShortcut`, which reach no system call and return no error,
+  answer as the cgo adapter does. (2) The cgo files' constructors became
+  unexported `cgo<Name>` helpers returning their concrete types, and the
+  eight exported constructors dispatch in a new `bridge_darwin.go`, which
+  compiles with and without cgo; `cgo_absent_darwin.go` gives the helpers
+  in a build without cgo. (3) `CgoAvailable` is a const in two new files,
+  `cgo_present.go` (`cgo`) and `cgo_missing.go` (`!cgo`), so it exists on
+  every system for W1's log. (4) `AskingKeyPresser` in `bridge.go` is the
+  key presser interface (KeyPresser, ShortcutPresser,
+  RequestAccessibility). (5) The Windows constructors take the bridge and
+  keep their concrete return types, which satisfy the same ports. (6) Note,
+  no change: Go leaves out a file importing "C" when cgo is off whatever
+  its build line, so the nocgo build cannot catch a cgo file missing
+  `//go:build darwin && cgo`; `bridge_darwin_test.go` (new) checks the
+  line by parsing the package's files. Touches W1, A1 to A7. Accepted, all
+  six.
+- 2026-11-16, worker-3, the HID driver (C3): two additions and one
+  departure, no signature in the contract changed. (1) No
+  `driver_absent_*.go` files: each driver's own file adds itself from one
+  init line, `func init() { builtDrivers[DriverPurego] = &iokitDriver{} }
+  //nolint:gochecknoinits // registers the driver`, and `chooseDriver` in
+  `drivers.go` picks the one asked for or else the first built in of
+  `DriverHIDAPI`, `DriverPurego`, or `ErrNoDriver`. Why: absent files keyed
+  by build constraints would need H1 and H3 each to edit the same shared
+  file's constraint; this way they add only their own file. (2)
+  `Watcher.DriverChoice() DriverChoice` (`Asked`, `Using`, `Unavailable`,
+  `FellBack()`) so the daemon can log a fall back, as the plan asks;
+  NewWatcher has no logger. With no driver, `Enumerate` fails with
+  `ErrEnumerationFailed` and `Open` with `deck.ErrDisconnected`, both
+  wrapping `ErrNoDriver`. (3) `Close` reports `errHandleGone` as
+  `deck.ErrDisconnected`; hidapi never returns it, so nothing changes today.
+  Touches H1, H3 (the registration line), W1 (logging the choice).
+  Accepted, all three.
+
 ## Integration log
 
 Kept by the coordinator. Each line: date, task, worker, what was integrated,
 whole tree checks run.
+
+- 2026-11-16, wave 1 started from `abac687`: worktrees C1 to C4 made beside
+  the checkout.
+- 2026-11-16, C1, worker-1: the setting, its tests and the 21 literals, copied
+  into the main checkout; whole tree race tests, lint and dupl pass.
+- 2026-11-16, C4, worker-4: purego in go.mod, objcbridge, the depguard rule
+  and the permitted directory, copied into the main checkout; whole tree race
+  tests, objcbridge without cgo, lint, Windows vet and lint, and dupl pass.
+- 2026-11-16, C2, worker-2, and C3, worker-3: the bridge, the stubs and the
+  build lines, and the driver interface with the hidapi driver behind it,
+  copied into the main checkout. Whole tree checks with C1 to C4 together:
+  race tests, lint, dupl, and for the first time the whole tree without cgo
+  (`CGO_ENABLED=0 go build ./...` and `go vet ./...`, cmd included), and
+  Windows vet and lint with hidtransport included; all pass.
+- 2026-11-16, worktrees W1 and H3 made from `abac687` with the main checkout's
+  uncommitted C1 to C4 work copied in.
+- 2026-11-16, W1, worker-5: the daemon reads the setting at start, passes it
+  to every constructor and the watcher, and logs it; copied into the main
+  checkout. Whole tree race tests, lint, dupl, nocgo, Windows vet, lint and
+  build all pass. Installed on the arm64 Mac: the log reads `platform
+  bridge` asked cgo, platform cgo, hid cgo, and the deck connected. Gate G0
+  reached; waiting on the person's commit. For A3: `-accessibility-check`,
+  spawned by the daemon without `-config`, reads the default file's bridge.

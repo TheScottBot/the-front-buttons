@@ -53,6 +53,10 @@ func (decoder Decoder) Encode(configuration Configuration) ([]byte, error) {
 
 	root := mappingNode(textNode(schemaVersionName), integerNode(int64(configuration.SchemaVersion)))
 
+	if configuration.PlatformBridge != "" {
+		root.Content = append(root.Content, textNode(platformBridgeName), textNode(string(configuration.PlatformBridge)))
+	}
+
 	if configuration.WorldClocks != nil {
 		clocksNode := sequenceNode()
 		for _, clock := range configuration.WorldClocks {

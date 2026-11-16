@@ -54,8 +54,9 @@ func keystrokeButton(name string, column int) config.Key {
 // that counted it would reach it from either regular page.
 func appScreenConfiguration() config.Configuration {
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion,
-		WorldClocks:   nil,
+		SchemaVersion:  config.CurrentSchemaVersion,
+		WorldClocks:    nil,
+		PlatformBridge: "",
 		Pages: []config.Page{
 			{Name: "Blue", Application: knownApplication, Keys: []config.Key{button("in app", 1, false)}},
 			{Name: firstPageName, Application: "", Keys: []config.Key{appScreenKey(true), button("first", 1, false)}},
@@ -215,8 +216,9 @@ func TestDaemon_KeepsTheAppScreenThroughAReload(t *testing.T) {
 // that has a key sending key presses of its own.
 func keystrokeConfiguration(application string) config.Configuration {
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion,
-		WorldClocks:   nil,
+		SchemaVersion:  config.CurrentSchemaVersion,
+		WorldClocks:    nil,
+		PlatformBridge: "",
 		Pages: []config.Page{
 			{Name: firstPageName, Application: "", Keys: []config.Key{
 				appKeyFor(application, true), keystrokeButton("elsewhere", besideKeyIndex+1),

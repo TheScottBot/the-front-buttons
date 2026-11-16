@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -210,12 +212,12 @@ import (
 // errWindowNotRaised reports a window macOS would not raise.
 var errWindowNotRaised = errors.New("macOS did not raise the window")
 
-// NewWindowCycler returns this machine's WindowCycler: the Accessibility API,
+// cgoWindowCycler returns this machine's WindowCycler: the Accessibility API,
 // which reads and raises any application's windows once the daemon is trusted
 // for Accessibility, as F13 already needs. A refusal calls ask, the key
 // presser's RequestAccessibility, so both share one prompt and one restart.
-func NewWindowCycler(ask func()) WindowCycler {
-	return NewWindowCyclerWith(AccessibilityTrusted, listMacOSWindows, ask)
+func cgoWindowCycler(ask func()) WindowCycler {
+	return NewWindowCyclerWith(cgoAccessibilityTrusted, listMacOSWindows, ask)
 }
 
 // macOSWindows is a snapshot of windows held in C memory until released.

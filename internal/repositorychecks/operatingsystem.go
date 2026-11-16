@@ -17,10 +17,13 @@ import (
 // segments so a sibling sharing a prefix is not permitted by accident.
 //
 // Ports live in internal/platform and stay pure; their adapters live in
-// internal/platform/systemadapter, so only the adapter directory is listed.
+// internal/platform/systemadapter, and the macOS framework helpers those
+// adapters share live in internal/platform/objcbridge, so only those two
+// directories under internal/platform are listed.
 func permittedOperatingSystemDirectories() []string {
 	return []string{
 		"internal/platform/systemadapter",
+		"internal/platform/objcbridge",
 		"internal/deck/hidtransport",
 	}
 }

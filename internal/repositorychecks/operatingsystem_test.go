@@ -57,6 +57,18 @@ func TestScanOperatingSystemUse_AllowsRuntimeGOOS_WhenInHIDTransport(t *testing.
 	}
 }
 
+func TestScanOperatingSystemUse_AllowsDarwinFile_WhenInObjcBridge(t *testing.T) {
+	t.Parallel()
+
+	const relativePath = "internal/platform/objcbridge/strings_darwin.go"
+
+	violations := repositorychecks.ScanOperatingSystemUse(relativePath, []byte("package objcbridge\n"))
+
+	if len(violations) != 0 {
+		t.Fatalf("want no violations in a permitted package, got %v", violations)
+	}
+}
+
 func TestScanOperatingSystemUse_ReportsRuntimeGOOS_WhenDirectoryOnlySharesPermittedPrefix(t *testing.T) {
 	t.Parallel()
 

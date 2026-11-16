@@ -1,3 +1,5 @@
+//go:build darwin && cgo
+
 package systemadapter
 
 /*
@@ -96,8 +98,8 @@ var frontStates = map[C.int]FrontState{1: FrontYes, 2: FrontNotYet}
 // ApplicationActivator brings applications to the front on macOS.
 type ApplicationActivator struct{}
 
-// NewApplicationActivator returns this machine's ApplicationActivator.
-func NewApplicationActivator() ApplicationActivator { return ApplicationActivator{} }
+// cgoApplicationActivator returns this machine's ApplicationActivator.
+func cgoApplicationActivator() ApplicationActivator { return ApplicationActivator{} }
 
 // ActivateApplication brings the application to the front, if it is not there
 // already, and waits until it is: through Accessibility first, and through
