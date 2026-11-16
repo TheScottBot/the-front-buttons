@@ -360,6 +360,35 @@ func TestStore_OnDisk_ReadsTheFileWithoutChangingWhatIsRunning(t *testing.T) {
 	requireOutcome(t, store, config.ReloadAccepted)
 }
 
+func TestStore_OnDisk_ReadsAMissingFileAsEmpty_OnAFirstRun(t *testing.T) {
+	t.Parallel()
+
+	store := config.NewStore(filepath.Join(t.TempDir(), "config.yaml"), newTestDecoder(t), config.LocalFileSystem{})
+	requireOutcome(t, store, config.ReloadUnreadable)
+
+	onDisk, diskError := store.OnDisk()
+	if diskError != nil || len(onDisk.Pages) != 0 || onDisk.SchemaVersion != config.CurrentSchemaVersion {
+		t.Fatalf("want an empty configuration the editor can save from, got %+v (%v)", onDisk, diskError)
+	}
+}
+
+func TestStore_OnDisk_ReportsAFileGoneMissing_AfterOneHasRun(t *testing.T) {
+	t.Parallel()
+
+	store, configPath := newStoreWithFile(t, validConfiguration)
+	requireOutcome(t, store, config.ReloadAccepted)
+
+	removeError := os.Remove(configPath)
+	if removeError != nil {
+		t.Fatalf("removing: %v", removeError)
+	}
+
+	_, diskError := store.OnDisk()
+	if diskError == nil {
+		t.Fatal("want an error, so a save from empty cannot discard the running pages")
+	}
+}
+
 func TestStore_OnDisk_ReportsAnInvalidFile(t *testing.T) {
 	t.Parallel()
 

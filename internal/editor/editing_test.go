@@ -241,6 +241,33 @@ func TestEditor_AddsRenamesAndDeletesPages(t *testing.T) {
 	}
 }
 
+// TestEditor_AFirstRunWithNoFile_AddsItsFirstPage: on a machine with no
+// configuration file yet, the editor reports no problem and its first page
+// creates the file, rather than refusing every edit for a file it cannot read.
+func TestEditor_AFirstRunWithNoFile_AddsItsFirstPage(t *testing.T) {
+	t.Parallel()
+
+	harness := newHarness(t, nil)
+
+	removeError := os.Remove(harness.configPath)
+	if removeError != nil {
+		t.Fatal(removeError)
+	}
+
+	if body := harness.get(t, firstPagePath).Body.String(); strings.Contains(body, "could not be read") {
+		t.Fatal("want no problem reported for a configuration file not created yet")
+	}
+
+	recorder := harness.post(t, "/page/add", url.Values{nameField: {playName}})
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("want a redirect, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+
+	if pages := harness.onDisk(t).Pages; len(pages) != 1 || pages[0].Name != playName {
+		t.Fatalf("want the file created with the one page, got %+v", pages)
+	}
+}
+
 // The credential the credential tests store, and the secret's form field.
 const (
 	workCredential = "github-work"

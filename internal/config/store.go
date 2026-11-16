@@ -3,7 +3,9 @@ package config
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"sync"
 	"time"
@@ -219,15 +221,33 @@ func (store *Store) Watch(
 // without consuming the change, so the watcher still reloads it. The editor shows
 // this, so a person sees a change they saved a moment ago, and a hand edit that
 // the store refused, with its problems.
+//
+// A file that does not exist, while no configuration has ever been read, is a
+// first run: it reads as an empty configuration, so the editor can create the
+// file with its first save rather than refusing every edit. A file that goes
+// missing after one has run is still an error, since it may be mid replacement,
+// and a save from empty would discard its pages.
 func (store *Store) OnDisk() (Configuration, error) {
 	fileContent, readError := store.fileSystem.ReadBounded(store.path, MaximumFileBytes)
 	if readError != nil {
+		if errors.Is(readError, fs.ErrNotExist) && !store.everRead() {
+			return Configuration{SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, Pages: nil}, nil
+		}
+
 		empty := Configuration{SchemaVersion: 0, WorldClocks: nil, Pages: nil}
 
 		return empty, fmt.Errorf("reading the configuration file: %w", readError)
 	}
 
 	return store.decoder.Decode(fileContent)
+}
+
+// everRead reports whether a valid configuration has run since the store began.
+func (store *Store) everRead() bool {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	return store.hasCurrent
 }
 
 func (store *Store) report(

@@ -186,3 +186,15 @@ func TestScheduledTaskXML_StartsTheDaemonAtThisUsersLogon_WithoutElevation(t *te
 		t.Error("the logon trigger's Enabled must come before its UserId, which the schema orders")
 	}
 }
+
+// TestScheduledTaskXML_DeclaresNoEncoding: Register-ScheduledTask passes the
+// definition to Task Scheduler as UTF-16, which rejects one declaring UTF-8.
+func TestScheduledTaskXML_DeclaresNoEncoding(t *testing.T) {
+	t.Parallel()
+
+	definition := platform.ScheduledTaskXML(`C:\the-front-buttons.exe`, `WORK\person`)
+
+	if strings.Contains(definition, "<?xml") {
+		t.Error("want no XML declaration, which Task Scheduler refuses when its encoding is not UTF-16")
+	}
+}

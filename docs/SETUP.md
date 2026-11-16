@@ -17,6 +17,18 @@ go run ./cmd/the-front-buttons
 go build -o the-front-buttons ./cmd/the-front-buttons
 ```
 
+On Windows, build it without a console window, which the install script
+requires (otherwise a console stays open at every logon, and closing it stops
+the program; the log is in the state folder below either way):
+
+```powershell
+go build -ldflags "-H=windowsgui" -o the-front-buttons.exe ./cmd/the-front-buttons
+```
+
+The Windows build needs a gcc on the `PATH` for cgo; without one Go turns cgo
+off and the build fails in `go-hid` with `undefined: BusUnknown`. MSYS2's
+`mingw-w64-ucrt-x86_64-gcc`, with `C:\msys64\ucrt64\bin` on the `PATH`, works.
+
 It reads its configuration from the per machine file and prints the editor's
 address:
 
@@ -46,7 +58,21 @@ scripts\install-windows.ps1 -BinaryPath .\the-front-buttons.exe
 ```
 
 This registers a task that runs at your logon, in your session, at least
-privilege. `scripts\uninstall-windows.ps1` removes it. Both scripts take the
+privilege. `scripts\uninstall-windows.ps1` stops it and removes it.
+
+Windows has no way to signal a program with no console, and
+`Stop-ScheduledTask` kills the program, which leaves its last images on the
+deck. To stop it cleanly, with the deck left blank, use the binary itself:
+
+```powershell
+.\the-front-buttons.exe -stop | Out-Null
+```
+
+The `| Out-Null` makes PowerShell wait for the windowless binary to finish.
+The task runs the binary from where you built it, so stop it before
+rebuilding, and start it again with `Start-ScheduledTask -TaskName "The Front Buttons"`.
+
+Both scripts take the
 start up definition from the binary itself (`-print-launch-agent` and
 `-print-scheduled-task`), so it is written in one place.
 

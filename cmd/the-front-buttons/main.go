@@ -108,6 +108,8 @@ func run() int {
 		"open the running daemon's editor in the browser with a one time login link, then exit")
 	editorPort := flag.Int("editor-port", editor.DefaultPort,
 		"the editor's port on 127.0.0.1; if another program holds it, any free port is used instead; 0 for any")
+	stopFlag := flag.Bool("stop", false,
+		"ask the running daemon to blank the deck and stop, then exit without waiting (Windows)")
 
 	flag.Parse()
 
@@ -118,6 +120,10 @@ func run() int {
 
 	if *openEditorFlag {
 		return openEditor()
+	}
+
+	if *stopFlag {
+		return requestStop()
 	}
 
 	if *editorPort < 0 || *editorPort > maximumPort {
@@ -131,12 +137,40 @@ func run() int {
 		defer func() { _ = logFile.Close() }()
 	}
 
-	runContext, stop := signal.NotifyContext(context.Background(), systemadapter.ShutdownSignals()...)
-	defer stop()
+	runContext, stopListening := listenForStop(logger)
+	defer stopListening()
 
 	logger.InfoContext(runContext, "state", slog.String("directory", stateDirectory))
 
-	startError := start(runContext, logger, *configPathOverride, *editorPort, stateDirectory)
+	return exitStatus(runContext, logger, start(runContext, logger, *configPathOverride, *editorPort, stateDirectory))
+}
+
+// listenForStop returns the daemon's context, which ends on a shutdown signal
+// or a stop request, and a function that stops listening for either. On
+// Windows nothing can signal a daemon with no console, so -stop asks it to stop
+// instead; without that it could only be killed, leaving stale images on the
+// deck.
+func listenForStop(logger *slog.Logger) (context.Context, func()) {
+	signalContext, stopSignals := signal.NotifyContext(context.Background(), systemadapter.ShutdownSignals()...)
+
+	runContext, stopRequests, requestError := systemadapter.NewStopRequest().Notify(signalContext)
+	if requestError != nil {
+		logger.WarnContext(runContext, "stop requests unavailable; -stop will not work",
+			slog.String("error", requestError.Error()))
+	}
+
+	return runContext, func() {
+		stopRequests()
+		stopSignals()
+	}
+}
+
+// exitStatus logs how the daemon stopped and gives the status to exit with.
+func exitStatus(runContext context.Context, logger *slog.Logger, startError error) int {
+	if errors.Is(context.Cause(runContext), systemadapter.ErrStopRequested) {
+		logger.InfoContext(context.WithoutCancel(runContext), "stopped on request")
+	}
+
 	if errors.Is(startError, errRestartForPermission) {
 		logger.InfoContext(runContext, "restarting to use the Accessibility permission just granted")
 
@@ -176,6 +210,27 @@ func answerOneShot(
 	}
 }
 
+// requestStop asks the running daemon to stop. Finding none running is not a
+// failure: the daemon is stopped either way.
+func requestStop() int {
+	requestError := systemadapter.NewStopRequest().Request()
+
+	switch {
+	case errors.Is(requestError, systemadapter.ErrNotRunning):
+		printOut(platform.ProductDisplayName + " is not running.\n")
+
+		return 0
+	case requestError != nil:
+		printError(requestError.Error())
+
+		return 1
+	default:
+		printOut("Asked " + platform.ProductDisplayName + " to stop.\n")
+
+		return 0
+	}
+}
+
 // openLog sends the log to standard error and to the rotating file in the state
 // folder. If the file cannot be opened the daemon still runs, logging to
 // standard error, and says so, so the missing file is a fact in the log rather
@@ -200,7 +255,26 @@ func openLog() (string, *diagnostics.RotatingFile, *slog.Logger) {
 		return stateDirectory, nil, logger
 	}
 
-	return stateDirectory, logFile, slog.New(slog.NewJSONHandler(io.MultiWriter(os.Stderr, logFile), nil))
+	return stateDirectory, logFile, slog.New(slog.NewJSONHandler(logDestination(logFile, os.Stderr), nil))
+}
+
+// logDestination writes the log to the file, and to standard error if it can.
+// A Windows build with no console, started by its logon task, has no standard
+// error, and io.MultiWriter stops at the first writer that fails, so without
+// bestEffort the log file was never written at all.
+func logDestination(file io.Writer, standardError io.Writer) io.Writer {
+	return io.MultiWriter(file, bestEffort{standardError})
+}
+
+// bestEffort is a writer whose failures are ignored.
+type bestEffort struct {
+	writer io.Writer
+}
+
+func (sink bestEffort) Write(text []byte) (int, error) {
+	_, _ = sink.writer.Write(text)
+
+	return len(text), nil
 }
 
 // printStartup prints the start at login definition for this binary, which the

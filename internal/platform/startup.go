@@ -56,9 +56,13 @@ func escapeXML(text string) string {
 // privilege, which Microsoft documents a non administrator may register for
 // their own account without a password; it runs on battery, has no time limit,
 // and never starts a second copy.
+//
+// It has no XML declaration: Register-ScheduledTask hands the text to Task
+// Scheduler as UTF-16, which refuses a document that declares UTF-8 ("unable
+// to switch the encoding"), and without a declaration there is nothing to
+// disagree with.
 func ScheduledTaskXML(binaryPath string, userID string) string {
-	return `<?xml version="1.0" encoding="UTF-8"?>
-<Task version="1.3" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+	return `<Task version="1.3" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
     <Description>` + escapeXML(ProductDisplayName) + `: drives the Stream Deck.</Description>
   </RegistrationInfo>

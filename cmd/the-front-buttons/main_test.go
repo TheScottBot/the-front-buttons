@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -142,4 +143,25 @@ pages:
 	}
 
 	return configuration
+}
+
+// brokenStandardError fails every write, as standard error does in a Windows
+// build with no console started by its logon task.
+type brokenStandardError struct{}
+
+func (brokenStandardError) Write([]byte) (int, error) { return 0, os.ErrInvalid }
+
+// TestLog_ReachesTheFile_WhenStandardErrorFails: the log file is the only log a
+// daemon with no console has, so a failing standard error must not stop it.
+func TestLog_ReachesTheFile_WhenStandardErrorFails(t *testing.T) {
+	t.Parallel()
+
+	var file bytes.Buffer
+
+	logger := slog.New(slog.NewJSONHandler(logDestination(&file, brokenStandardError{}), nil))
+	logger.InfoContext(t.Context(), "written")
+
+	if !strings.Contains(file.String(), `"msg":"written"`) {
+		t.Fatalf("want the line in the file, got %q", file.String())
+	}
 }
