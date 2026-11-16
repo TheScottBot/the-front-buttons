@@ -381,6 +381,12 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
 ### Fixed
 
+- Quitting an application by name, and window cycling, missed every
+  application launched after the daemon first listed running applications:
+  NSWorkspace keeps that list current only through the main run loop, which
+  the daemon never runs. Both bridges now look up each process as it is now,
+  and a key quits or cycles an application whatever its age; verified on the
+  arm64 Mac by quitting a freshly opened Calculator by name.
 - Pressing Zoom out on the editor's pages screen a second time made the button
   vanish; it now stays, reading Zoom in while zoomed out. The zoomed out pages
   and All pages reach across a wide window rather than the editor's column.

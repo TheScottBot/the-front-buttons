@@ -10,6 +10,10 @@ package systemadapter
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 
+// frontButtonsRunningApplications, in quit_darwin.go, lists every running
+// application as it is now.
+extern NSArray<NSRunningApplication *> *frontButtonsRunningApplications(void);
+
 // frontButtonsWindow is one standard window, retained until released.
 typedef struct {
 	AXUIElementRef element;
@@ -128,7 +132,7 @@ static frontButtonsWindows frontButtonsListWindows(const char *prefix) {
 		NSString *wanted = [NSString stringWithUTF8String:prefix];
 		AXUIElementRef focused = frontButtonsFocusedWindow();
 
-		for (NSRunningApplication *running in [[NSWorkspace sharedWorkspace] runningApplications]) {
+		for (NSRunningApplication *running in frontButtonsRunningApplications()) {
 			NSString *identifier = [running bundleIdentifier];
 			if ([running activationPolicy] != NSApplicationActivationPolicyRegular || identifier == nil ||
 				wanted == nil || ![identifier hasPrefix:wanted]) {

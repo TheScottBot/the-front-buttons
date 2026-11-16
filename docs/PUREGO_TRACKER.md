@@ -577,3 +577,14 @@ whole tree checks run.
   test process, whichever application is in front. Not run.
   (4) the window raise test needs a frontmost application with two standard
   windows; skipped.
+
+- 2026-11-16, coordinator: finding (2) fixed in both bridges. The purego
+  `objcbridge.RunningApplications` and a shared C function in
+  `quit_darwin.go`, used by the cgo quitter and window cycler, list
+  applications process by process (`proc_listallpids` and
+  `runningApplicationWithProcessIdentifier:`) in process order. Tests: the
+  list matches NSWorkspace's at its first call; cgo and purego lists agree;
+  no file lists applications through NSWorkspace; and, acting, a Calculator
+  launched after the first call is listed and then gone, and quitting it by
+  name now passes through both bridges. Plants 4/4. Whole tree checks pass;
+  installed on cgo.

@@ -29,3 +29,6 @@ var cgoAccessibilityTrusted = pureAccessibilityTrusted
 func cgoClipboardWriter() pureClipboardWriter { return newPureClipboardWriter() }
 
 func cgoApplicationQuitter() pureApplicationQuitter { return newPureApplicationQuitter() }
+
+// cgoRunningProcessIDs has no cgo list to give in this build.
+func cgoRunningProcessIDs() []int32 { return nil }
