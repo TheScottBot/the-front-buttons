@@ -194,7 +194,7 @@ A7; H1 then H2; H3.
 | X1 | objcbridge helpers asked for during wave 2 | C4 | `internal/platform/objcbridge/` (from G0 on) | open | | |
 | H1 | IOKit driver: enumerate, open, reports out, features, close | C3, C4 | `iokit_darwin.go`, `iokit_darwin_test.go` | open | | |
 | H2 | IOKit driver: input reports and removal | H1 | `iokit_input_darwin.go`, `iokit_input_darwin_test.go`, `reportqueue.go`, `reportqueue_test.go` | open | | |
-| H3 | Windows HID driver | C3 | `winhid_windows.go`, `winhid_windows_test.go` | claimed: worker-6 2026-11-16 | writing tests; pure logic goes in untagged `winhidcore.go` and `winhidcore_internal_test.go`, 15% | |
+| H3 | Windows HID driver | C3 | `winhid_windows.go`, `winhid_windows_test.go` | integrated | 100%: driver in; pure logic (padding, report ID, error mapping, paths, struct layouts, the handle's pending read and removal state) in untagged `winhidcore.go` and `winhidcore_internal_test.go`, run on macOS. Device tests in `winhid_windows_test.go` skip without THE_FRONT_BUTTONS_EXPERIMENT and wait for the Dell (with the contract test's purego run). For D1: SECURITY.md should name hid.dll and setupapi.dll (kernel32 through x/sys) | worker-6, 2026-11-16; tests 30 new; plants 9/9; checks: race, lint, nocgo, windows, dupl |
 | D1 | Docs for the setting and the new code | C1 | the files D1 owns above | open | | |
 | H4 | Both drivers on the deck: contract, experiments, parity | H1, H2, W1; deck lock | the evaluation's deck section (with D1) | open | | |
 | V1 | A week of use on purego, then decide | G1 | the evaluation's verdict | open | | |
@@ -425,3 +425,10 @@ whole tree checks run.
   bridge` asked cgo, platform cgo, hid cgo, and the deck connected. Gate G0
   reached; waiting on the person's commit. For A3: `-accessibility-check`,
   spawned by the daemon without `-config`, reads the default file's bridge.
+- 2026-11-16, gate G0 committed as `67ffac5`.
+- 2026-11-16, H3, worker-6: the Windows HID driver (`winhid_windows.go`,
+  `winhidcore.go` and their tests), copied into the main checkout; deck race
+  tests, lint, dupl, nocgo, Windows vet, lint, test build and daemon build
+  pass. No Windows call has run yet: the Dell runs the WinHID tests, the
+  on the deck tests under `THE_FRONT_BUTTONS_EXPERIMENT`, and an unplug by
+  hand.
