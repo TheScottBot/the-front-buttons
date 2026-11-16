@@ -2,12 +2,15 @@ package hidtransport //nolint:testpackage // drives the driver's run loop and ca
 
 import (
 	"bytes"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+
+	"github.com/TheScottBot/the-front-buttons/internal/platform/objcbridge"
 )
 
 // The macOS driver's run loop and callbacks, on the Mac, with no device: a
@@ -21,6 +24,26 @@ type bareRunLoop struct {
 }
 
 func (loop *bareRunLoop) interrupt() { loop.stopLoop() }
+
+// waitUntilRunning waits until the thread's run loop is blocked waiting for
+// events, which is when it is running: CFRunLoopStop stops only a running
+// loop. It waits on the loop's own state, not on a clock.
+func waitUntilRunning(t *testing.T, loop *bareRunLoop) {
+	t.Helper()
+
+	foundation, loadError := objcbridge.Framework(objcbridge.PathCoreFoundation)
+	if loadError != nil {
+		t.Fatal(loadError)
+	}
+
+	var isWaiting func(runLoop uintptr) bool
+
+	objcbridge.Function(&isWaiting, foundation, "CFRunLoopIsWaiting")
+
+	for !isWaiting(loop.runLoop) {
+		runtime.Gosched()
+	}
+}
 
 func newBareRunLoop(t *testing.T) *bareRunLoop {
 	t.Helper()
@@ -44,7 +67,7 @@ func TestIOKitRunLoop_RunsOnItsThreadUntilClosed(t *testing.T) {
 		t.Fatalf("want a run loop and source once started, got %#x and %#x", loop.runLoop, loop.source)
 	}
 
-	time.Sleep(50 * time.Millisecond)
+	waitUntilRunning(t, loop)
 
 	if isClosed(thread.done) || gone.Load() != 0 {
 		t.Fatal("want the run loop kept running by its source, not finished or taken for removal")
@@ -71,15 +94,14 @@ func TestIOKitRunLoop_StoppedAloneMarksTheDeviceGone(t *testing.T) {
 	gone := make(chan struct{})
 	thread := startInputThread(loop, func() { close(gone) })
 
-	// The removal callback stops the run loop like this, on its thread;
-	// CFRunLoopStop may be called from any thread.
+	// The removal callback stops the run loop like this, from inside it, so
+	// always while it runs. CFRunLoopStop may be called from any thread but
+	// stops only a running loop, and a slow machine may not have entered it
+	// yet, so the stop is sent once the loop is running.
+	waitUntilRunning(t, loop)
 	loop.stopLoop()
 
-	select {
-	case <-gone:
-	case <-time.After(threadWait):
-		t.Fatal("want the device marked gone")
-	}
+	<-gone
 
 	thread.stop()
 
