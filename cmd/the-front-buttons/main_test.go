@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/daemon"
@@ -23,15 +23,25 @@ import (
 
 const leakCheckToken = "github_pat_MUST_NEVER_BE_LOGGED_0123456789" //nolint:gosec // made up, to catch a leak
 
-// lockedLog is a log destination safe to read while the daemon writes.
+// lockedLog is a log destination safe to read while the daemon writes. It
+// broadcasts on written after each write, so a test can wait for a line.
 type lockedLog struct {
-	mutex  sync.Mutex
-	buffer bytes.Buffer
+	mutex   sync.Mutex
+	buffer  bytes.Buffer
+	written *sync.Cond
+}
+
+func newLockedLog() *lockedLog {
+	log := &lockedLog{mutex: sync.Mutex{}, buffer: bytes.Buffer{}, written: nil}
+	log.written = sync.NewCond(&log.mutex)
+
+	return log
 }
 
 func (log *lockedLog) Write(content []byte) (int, error) {
 	log.mutex.Lock()
 	defer log.mutex.Unlock()
+	defer log.written.Broadcast()
 
 	return log.buffer.Write(content) //nolint:wrapcheck // a bytes.Buffer write cannot fail
 }
@@ -69,7 +79,7 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 		t.Fatal(bindError)
 	}
 
-	logs := &lockedLog{mutex: sync.Mutex{}, buffer: bytes.Buffer{}}
+	logs := newLockedLog()
 	logger := slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{
 		AddSource: false, Level: slog.LevelDebug, ReplaceAttr: nil,
 	}))
@@ -89,7 +99,9 @@ func TestComposition_NeverLogsTheToken(t *testing.T) {
 			systemadapter.BridgeCgo)).Run(runContext, configurations)
 	}()
 
-	waitForLog(logs, `"reason":"unauthorised"`)
+	// The wait also ends on the token, so a leak that changes the reason is
+	// still reported as a leak.
+	waitForLog(logs, `"reason":"unauthorised"`, leakCheckToken, "MUST_NEVER")
 	cancel()
 
 	runError := <-done
@@ -125,11 +137,13 @@ func testCore(t *testing.T) core {
 	return built
 }
 
-// waitForLog waits up to ten seconds for a log to hold some text.
-func waitForLog(logs *lockedLog, wanted string) {
-	deadline := time.Now().Add(10 * time.Second)
-	for !strings.Contains(logs.String(), wanted) && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
+// waitForLog waits, write by write, until a log holds any of some texts.
+func waitForLog(logs *lockedLog, wanted ...string) {
+	logs.mutex.Lock()
+	defer logs.mutex.Unlock()
+
+	for !slices.ContainsFunc(wanted, func(text string) bool { return strings.Contains(logs.buffer.String(), text) }) {
+		logs.written.Wait()
 	}
 }
 

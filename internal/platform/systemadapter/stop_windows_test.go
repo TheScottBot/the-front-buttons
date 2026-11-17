@@ -10,26 +10,12 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/platform/systemadapter"
 )
 
-// stopWait bounds each wait for a context to end; the event is set in the same
-// process, so it ends at once or not at all.
-const stopWait = 5 * time.Second
-
 // testStopRequest is a stop request on an event named for this test alone.
 func testStopRequest(t *testing.T) systemadapter.StopRequest {
 	t.Helper()
 
 	return systemadapter.NewStopRequestNamed(`Local\the-front-buttons-test.` +
 		strings.ReplaceAll(t.Name(), "/", ".") + "." + time.Now().Format("150405.000000000"))
-}
-
-func requireEnds(stopped context.Context, t *testing.T) {
-	t.Helper()
-
-	select {
-	case <-stopped.Done():
-	case <-time.After(stopWait):
-		t.Fatal("want the context ended, still running")
-	}
 }
 
 func TestStopRequest_ReportsNotRunning_WhenNothingListens(t *testing.T) {
@@ -58,7 +44,7 @@ func TestStopRequest_EndsTheListeningContext_WithStopRequestedAsTheCause(t *test
 		t.Fatalf("request: %v", requestError)
 	}
 
-	requireEnds(stopped, t)
+	<-stopped.Done()
 
 	cause := context.Cause(stopped)
 	if !errors.Is(cause, systemadapter.ErrStopRequested) {
@@ -77,7 +63,7 @@ func TestStopRequest_StopsListening_WhenReleased(t *testing.T) {
 	}
 
 	release()
-	requireEnds(stopped, t)
+	<-stopped.Done()
 
 	cause := context.Cause(stopped)
 	if errors.Is(cause, systemadapter.ErrStopRequested) {
@@ -101,18 +87,9 @@ func TestStopRequest_EndsWithItsParent(t *testing.T) {
 	}
 
 	cancelParent()
-	requireEnds(stopped, t)
+	<-stopped.Done()
 
-	released := make(chan struct{})
-
-	go func() {
-		release()
-		close(released)
-	}()
-
-	select {
-	case <-released:
-	case <-time.After(stopWait):
-		t.Fatal("want release to return once the parent ended, still waiting")
-	}
+	// Release returns once the parent has ended; were it to wait on, go
+	// test's own timeout would end the run.
+	release()
 }

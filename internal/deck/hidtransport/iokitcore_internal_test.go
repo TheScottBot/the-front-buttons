@@ -5,7 +5,6 @@ import (
 	"errors"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/deck"
 )
@@ -450,10 +449,6 @@ func sameSent(got, want sentReport) bool {
 	return got.reportType == want.reportType && got.reportID == want.reportID && bytes.Equal(got.payload, want.payload)
 }
 
-// threadWait is how long a test waits for a run loop thread to do something
-// it should do at once.
-const threadWait = 2 * time.Second
-
 func TestRunLoopOutcome_FollowsHIDAPIsReadThread(t *testing.T) {
 	t.Parallel()
 
@@ -557,19 +552,21 @@ func TestIOKitHandle_ReadsQueuedReportsThenReportsRemoval(t *testing.T) {
 	}
 }
 
-// fakeRunLoop stands in for a device's run loop: it times out until stopped,
-// as a run loop with a device scheduled does.
+// fakeRunLoop stands in for a device's run loop: each run waits until the
+// test takes a slice from slices, when it times out, as a run loop with a
+// device scheduled does, or until the loop is stopped.
 type fakeRunLoop struct {
 	prepared    atomic.Bool
 	interrupted atomic.Bool
 	finished    atomic.Bool
 	stopped     chan struct{}
+	slices      chan struct{}
 }
 
 func newFakeRunLoop() *fakeRunLoop {
 	return &fakeRunLoop{
 		prepared: atomic.Bool{}, interrupted: atomic.Bool{}, finished: atomic.Bool{},
-		stopped: make(chan struct{}),
+		stopped: make(chan struct{}), slices: make(chan struct{}),
 	}
 }
 
@@ -579,7 +576,7 @@ func (loop *fakeRunLoop) run() int32 {
 	select {
 	case <-loop.stopped:
 		return runLoopRunStopped
-	case <-time.After(time.Millisecond):
+	case loop.slices <- struct{}{}:
 		return runLoopRunTimedOut
 	}
 }
@@ -619,7 +616,10 @@ func TestInputThread_RunsUntilStoppedThenEnds(t *testing.T) {
 		t.Error("want the device prepared before the thread is used")
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	// Two slices taken means the run loop timed out once and the thread ran
+	// it again rather than ending.
+	<-loop.slices
+	<-loop.slices
 
 	if isClosed(thread.done) {
 		t.Fatal("want the thread running until stopped")
@@ -646,11 +646,7 @@ func TestInputThread_MarksTheDeviceGoneWhenItsRunLoopStopsAlone(t *testing.T) {
 
 	loop.stopLoop()
 
-	select {
-	case <-gone:
-	case <-time.After(threadWait):
-		t.Fatal("want the device marked gone")
-	}
+	<-gone
 
 	if isClosed(thread.done) || loop.finished.Load() {
 		t.Error("want the thread kept until close, as the device is still scheduled on its run loop")

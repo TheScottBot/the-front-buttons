@@ -7,42 +7,36 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
+	"testing/synctest"
 )
 
 // TestFilePageMemory_KeepsThePageAcrossRestarts: a page remembered by one
-// daemon is the page the next one reads, from the state folder.
+// daemon is the page the next one reads, from the state folder. It runs in a
+// synctest bubble, whose Wait returns once the writer has written the name it
+// was given and is waiting for another.
 func TestFilePageMemory_KeepsThePageAcrossRestarts(t *testing.T) {
 	t.Parallel()
 
-	stateDirectory := t.TempDir()
-	runContext, cancel := context.WithCancel(t.Context())
-	logger := slog.New(slog.DiscardHandler)
+	synctest.Test(t, func(t *testing.T) {
+		stateDirectory := t.TempDir()
+		runContext, cancel := context.WithCancel(t.Context())
+		logger := slog.New(slog.DiscardHandler)
 
-	first := newFilePageMemory(runContext, stateDirectory, logger)
-	if _, kept := first.Remembered(); kept {
-		t.Fatal("want nothing remembered in a new state folder")
-	}
-
-	first.Remember("Work")
-	first.Remember("Play")
-
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		content, _ := os.ReadFile(filepath.Clean(filepath.Join(stateDirectory, deckPageFileName)))
-		if strings.TrimSpace(string(content)) == "Play" {
-			break
+		first := newFilePageMemory(runContext, stateDirectory, logger)
+		if _, kept := first.Remembered(); kept {
+			t.Fatal("want nothing remembered in a new state folder")
 		}
 
-		time.Sleep(10 * time.Millisecond)
-	}
+		first.Remember("Work")
+		first.Remember("Play")
+		synctest.Wait()
+		cancel()
 
-	cancel()
-
-	second := newFilePageMemory(t.Context(), stateDirectory, logger)
-	if name, kept := second.Remembered(); !kept || name != "Play" {
-		t.Fatalf("want Play remembered across the restart, got %q", name)
-	}
+		second := newFilePageMemory(t.Context(), stateDirectory, logger)
+		if name, kept := second.Remembered(); !kept || name != "Play" {
+			t.Fatalf("want Play remembered across the restart, got %q", name)
+		}
+	})
 }
 
 // TestFilePageMemory_IgnoresAFileItDidNotWrite: an empty or overlong file is

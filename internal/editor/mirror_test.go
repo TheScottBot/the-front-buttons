@@ -3,12 +3,17 @@ package editor_test
 import (
 	"bufio"
 	"context"
+	"errors"
+	"fmt"
 	"image"
 	"image/color"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/TheScottBot/the-front-buttons/internal/deckmirror"
@@ -98,10 +103,12 @@ func eventServer(t *testing.T, harness *editorHarness) *httptest.Server {
 
 // openEvents asks for the event stream with the session and the deck render
 // switch as given.
-func openEvents(requestContext context.Context, t *testing.T, server *httptest.Server, render string) *http.Response {
+func openEvents(
+	requestContext context.Context, t *testing.T, client *http.Client, baseURL string, render string,
+) *http.Response {
 	t.Helper()
 
-	request, requestError := http.NewRequestWithContext(requestContext, http.MethodGet, server.URL+eventsPath, http.NoBody)
+	request, requestError := http.NewRequestWithContext(requestContext, http.MethodGet, baseURL+eventsPath, http.NoBody)
 	if requestError != nil {
 		t.Fatal(requestError)
 	}
@@ -112,7 +119,7 @@ func openEvents(requestContext context.Context, t *testing.T, server *httptest.S
 		withCookie(request, deckRenderCookie, render)
 	}
 
-	response, responseError := server.Client().Do(request)
+	response, responseError := client.Do(request)
 	if responseError != nil {
 		t.Fatal(responseError)
 	}
@@ -128,10 +135,7 @@ func TestEditor_StreamsTileEventsFromTheMirror(t *testing.T) {
 	harness := newHarness(t, nil)
 	server := eventServer(t, harness)
 
-	streamContext, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
-
-	response := openEvents(streamContext, t, server, "on")
+	response := openEvents(t.Context(), t, server.Client(), server.URL, "on")
 	defer func() { _ = response.Body.Close() }()
 
 	contentType := response.Header.Get("Content-Type")
@@ -171,7 +175,7 @@ func TestEditor_RefusesTheEventStream_WhenOffOrFull(t *testing.T) {
 	server := eventServer(t, harness)
 
 	for _, render := range []string{"", "off"} {
-		response := openEvents(t.Context(), t, server, render)
+		response := openEvents(t.Context(), t, server.Client(), server.URL, render)
 		_ = response.Body.Close()
 
 		if response.StatusCode != http.StatusNotFound {
@@ -184,7 +188,7 @@ func TestEditor_RefusesTheEventStream_WhenOffOrFull(t *testing.T) {
 		defer cancel()
 	}
 
-	response := openEvents(t.Context(), t, server, "on")
+	response := openEvents(t.Context(), t, server.Client(), server.URL, "on")
 	_ = response.Body.Close()
 
 	if response.StatusCode != http.StatusServiceUnavailable {
@@ -194,35 +198,110 @@ func TestEditor_RefusesTheEventStream_WhenOffOrFull(t *testing.T) {
 
 // TestEditor_KeepsTheEventStreamPastTheServersTimeouts: the editor's server
 // bounds each request's reading and writing, as the binary sets it; the stream
-// outlives both and still carries events.
+// outlives both and still carries events. The connection is in memory, so the
+// server's timeouts run on synctest's fake clock.
 func TestEditor_KeepsTheEventStreamPastTheServersTimeouts(t *testing.T) {
 	t.Parallel()
 
-	harness := newHarness(t, nil)
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		request.Host = testAddress
-		harness.handler.ServeHTTP(writer, request)
-	}))
-	server.Config.ReadTimeout = 200 * time.Millisecond
-	server.Config.WriteTimeout = 200 * time.Millisecond
-	server.Start()
-	t.Cleanup(server.Close)
+	synctest.Test(t, func(t *testing.T) {
+		harness := newHarness(t, nil)
+		listener := newPipeListener()
 
-	streamContext, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
+		server := new(http.Server)
+		server.Handler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			request.Host = testAddress
+			harness.handler.ServeHTTP(writer, request)
+		})
+		server.ReadTimeout = 200 * time.Millisecond
+		server.WriteTimeout = 200 * time.Millisecond
 
-	response := openEvents(streamContext, t, server, "on")
-	defer func() { _ = response.Body.Close() }()
+		served := make(chan error, 1)
 
-	time.Sleep(time.Second)
-	harness.mirror.Press(docsTile)
+		go func() { served <- server.Serve(listener) }()
 
-	reader := bufio.NewScanner(response.Body)
-	for reader.Scan() {
-		if reader.Text() == "event: press" {
-			return
+		transport, _ := http.DefaultTransport.(*http.Transport)
+		transport = transport.Clone()
+		transport.DialContext = listener.dial
+
+		streamContext, cancel := context.WithCancel(t.Context())
+		response := openEvents(streamContext, t, &http.Client{
+			Transport: transport, CheckRedirect: nil, Jar: nil, Timeout: 0,
+		}, "http://"+testAddress, "on")
+
+		// Past both of the server's timeouts on the fake clock.
+		time.Sleep(time.Second)
+		harness.mirror.Press(docsTile)
+
+		heard := false
+
+		for reader := bufio.NewScanner(response.Body); !heard && reader.Scan(); {
+			heard = reader.Text() == "event: press"
 		}
-	}
 
-	t.Fatalf("want the press heard after the server's timeouts, the stream ended: %v", reader.Err())
+		cancel()
+
+		_ = response.Body.Close()
+
+		transport.CloseIdleConnections()
+
+		closeError := server.Close()
+
+		serveError := <-served
+		if closeError != nil || !errors.Is(serveError, http.ErrServerClosed) {
+			t.Errorf("want the server closed cleanly, got %v and %v", closeError, serveError)
+		}
+
+		if !heard {
+			t.Fatal("want the press heard after the server's timeouts, the stream ended")
+		}
+	})
 }
+
+// pipeListener serves connections made in memory by its dial, so a server and
+// its client share synctest's fake clock.
+type pipeListener struct {
+	connections chan net.Conn
+	closed      chan struct{}
+	closeOnce   sync.Once
+}
+
+func newPipeListener() *pipeListener {
+	return &pipeListener{connections: make(chan net.Conn), closed: make(chan struct{}), closeOnce: sync.Once{}}
+}
+
+func (listener *pipeListener) Accept() (net.Conn, error) {
+	select {
+	case connection := <-listener.connections:
+		return connection, nil
+	case <-listener.closed:
+		return nil, net.ErrClosed
+	}
+}
+
+func (listener *pipeListener) Close() error {
+	listener.closeOnce.Do(func() { close(listener.closed) })
+
+	return nil
+}
+
+func (listener *pipeListener) Addr() net.Addr { return pipeAddress{} }
+
+// dial makes a connection in memory and hands the server its other end.
+func (listener *pipeListener) dial(dialContext context.Context, _, _ string) (net.Conn, error) {
+	client, served := net.Pipe()
+
+	select {
+	case listener.connections <- served:
+		return client, nil
+	case <-listener.closed:
+		return nil, net.ErrClosed
+	case <-dialContext.Done():
+		return nil, fmt.Errorf("dialling in memory: %w", context.Cause(dialContext))
+	}
+}
+
+// pipeAddress names the in memory connections.
+type pipeAddress struct{}
+
+func (pipeAddress) Network() string { return "pipe" }
+func (pipeAddress) String() string  { return testAddress }
