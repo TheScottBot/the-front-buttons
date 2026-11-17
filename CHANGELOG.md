@@ -417,6 +417,14 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   the daemon never runs. Both bridges now look up each process as it is now,
   and a key quits or cycles an application whatever its age; verified on the
   arm64 Mac by quitting a freshly opened Calculator by name.
+- The cgo deck driver could abort the process inside `hid_enumerate` on
+  macOS. hidapi schedules its HID manager on the run loop of whichever thread
+  first calls it, and Go shares threads between goroutines, so the IOKit
+  driver's input thread could later run that manager, or end the thread with
+  the manager still on it. Every hidapi initialisation, enumeration and open
+  now runs on one goroutine locked to its own thread for the life of the
+  process, and a panic there is raised again in the caller. Six of 60 test
+  runs crashed before; none of 230 since.
 - Pressing Zoom out on the editor's pages screen a second time made the button
   vanish; it now stays, reading Zoom in while zoomed out. The zoomed out pages
   and All pages reach across a wide window rather than the editor's column.
