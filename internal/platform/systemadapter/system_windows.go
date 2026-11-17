@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"runtime"
 
 	"golang.org/x/sys/windows"
@@ -68,7 +67,7 @@ func NewApplicationCatalogue() ApplicationLister {
 	return ApplicationLister{list: func(listContext context.Context) ([]platform.Application, error) {
 		// A fixed program and a fixed command, with no part taken from
 		// configuration.
-		output, runError := exec.CommandContext(listContext, windowsPowerShellProgram,
+		output, runError := hiddenProgram(listContext, windowsPowerShellProgram,
 			"-NoProfile", "-NonInteractive", "-Command", windowsStartAppsCommand).Output()
 		if runError != nil {
 			return nil, fmt.Errorf("listing Start menu applications: %w", runError)

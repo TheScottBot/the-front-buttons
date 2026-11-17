@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"sync"
 	"unsafe"
 
@@ -91,7 +90,7 @@ func windowsProcessRule(ruleContext context.Context, target WindowsQuitTarget) (
 	case WindowsQuitByPackage:
 		return WindowsProcessRule{Path: "", Directory: "", FileName: "", Package: target.Value}, nil
 	case WindowsQuitByAppID:
-		command := exec.CommandContext(ruleContext, windowsPowerShellProgram,
+		command := hiddenProgram(ruleContext, windowsPowerShellProgram,
 			"-NoProfile", "-NonInteractive", "-Command", windowsAppLinkCommand)
 
 		command.Env = append(os.Environ(), windowsAppIDVariable+"="+target.Value)

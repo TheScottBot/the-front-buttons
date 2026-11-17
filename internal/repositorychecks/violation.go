@@ -33,6 +33,9 @@ const (
 	// RuleUnparseableGoFile reports a Go file the operating system check could
 	// not parse, so a syntax error can never hide a violation.
 	RuleUnparseableGoFile RuleName = "unparseable-go-file"
+	// RuleWindowsVisibleProcess reports a program started on Windows other than
+	// through the hidden program helper, which would flash a console window.
+	RuleWindowsVisibleProcess RuleName = "windows-visible-process"
 )
 
 // Violation is one breach of a repository rule at a place in the tree.

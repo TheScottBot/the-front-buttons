@@ -42,7 +42,7 @@ func knownOperatingSystems() map[string]bool {
 		"aix": true, "android": true, "darwin": true, "dragonfly": true, "freebsd": true,
 		"hurd": true, "illumos": true, "ios": true, "js": true, "linux": true, "nacl": true,
 		"netbsd": true, "openbsd": true, "plan9": true, "solaris": true, "wasip1": true,
-		"windows": true, "zos": true, unixBuildTag: true,
+		windowsBuildTag: true, "zos": true, unixBuildTag: true,
 	}
 }
 

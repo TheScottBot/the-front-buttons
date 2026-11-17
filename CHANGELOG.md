@@ -417,6 +417,14 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   the daemon never runs. Both bridges now look up each process as it is now,
   and a key quits or cycles an application whatever its age; verified on the
   arm64 Mac by quitting a freshly opened Calculator by name.
+- On Windows, pressing an application key, or opening the editor's
+  application list, flashed a console window: the daemon is a windowed
+  program with no console, so each `powershell.exe` it started to read the
+  Start menu got a console window of its own. Every program the daemon starts
+  on Windows now goes through one helper that starts it with
+  `CREATE_NO_WINDOW` and a hidden window, and a repository check refuses any
+  other way of starting a program in Windows code. Not yet run on the Windows
+  machine.
 - The cgo deck driver could abort the process inside `hid_enumerate` on
   macOS. hidapi schedules its HID manager on the run loop of whichever thread
   first calls it, and Go shares threads between goroutines, so the IOKit

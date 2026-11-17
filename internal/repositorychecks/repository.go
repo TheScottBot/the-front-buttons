@@ -136,6 +136,7 @@ func scanOneFile(repositoryFileSystem fs.FS, slashPath string) ([]Violation, err
 
 	if path.Ext(slashPath) == ".go" {
 		violations = append(violations, ScanOperatingSystemUse(slashPath, fileContent)...)
+		violations = append(violations, ScanWindowsProcessStarts(slashPath, fileContent)...)
 	}
 
 	if slashPath == readmeRelativePath {
