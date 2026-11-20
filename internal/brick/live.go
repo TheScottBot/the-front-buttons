@@ -16,8 +16,15 @@ type LiveState struct {
 	// Picture is an image a source shows, such as the album art of the track
 	// playing; nil for none. It is always a pointer, so states compare.
 	Picture image.Image
-	// Playing reports a player playing rather than paused or stopped.
+	// Playing reports a player playing rather than paused or stopped, or a
+	// timer running rather than paused.
 	Playing bool
+	// Text is a short text a source shows in place of the key's label, such
+	// as a timer's time left; empty for none.
+	Text string
+	// Urgent marks a state that wants attention soon, such as a timer in its
+	// last minute.
+	Urgent bool
 }
 
 // LiveDrawn is a live brick that draws part of its key from its latest state,

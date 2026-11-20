@@ -116,7 +116,8 @@ func watch(watchContext context.Context, player platform.MediaPlayer, publish fu
 		cancel()
 
 		state := brick.LiveState{
-			Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+			Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false, Text: "",
+			Urgent: false,
 		}
 
 		switch {

@@ -13,6 +13,13 @@ code since the previous tag, and which author gates were cleared at which commit
   `mural_pause_timer` pauses it while it runs and resumes it while it is
   paused, reading the timer first to know which; pressed with no timer
   running it changes nothing and shows `no_timer`.
+- `mural_timer` shows a board's timer counting down on the key, with an
+  hourglass while it runs, a pause icon while it is paused, and a red
+  background in its last minute. A press starts the timer when none runs,
+  pauses it while it runs and resumes it while it is paused. It reads the
+  board every ten seconds and counts down each second in between; a press
+  has it read again at once. Live keys can now show a short text in place of
+  their label, and mark a state as urgent.
 
 ### Changed
 

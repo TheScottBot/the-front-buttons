@@ -118,6 +118,7 @@ func TestDaemon_RepaintsALiveKey_WhenItsSourcePublishes(t *testing.T) {
 
 		running.live.Set("shared", brick.LiveState{
 			Status: render.StatusInProgress, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()
@@ -144,6 +145,7 @@ func TestDaemon_ShowsAnOffPageUpdate_TheMomentThePageIsShown(t *testing.T) {
 
 		running.live.Set("shared", brick.LiveState{
 			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()
@@ -176,6 +178,7 @@ func TestDaemon_PressesALiveKeyWithItsLatestState(t *testing.T) {
 
 		running.live.Set("shared", brick.LiveState{
 			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()
@@ -288,6 +291,7 @@ func TestDaemon_NewerLiveNewsReplacesAnOlderPressError(t *testing.T) {
 
 		running.live.Set("shared", brick.LiveState{
 			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()
@@ -322,7 +326,7 @@ func TestDaemon_DrawsALiveKeysPicture(t *testing.T) {
 		draw.Draw(red, red.Bounds(), redColour, image.Point{X: 0, Y: 0}, draw.Src)
 
 		running.live.Set("shared", brick.LiveState{
-			Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: red, Playing: false,
+			Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: red, Playing: false, Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()

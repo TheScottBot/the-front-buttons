@@ -162,6 +162,7 @@ func TestDaemon_OffKeyBlanksTheOthers_AndAnyPressBringsThemBack(t *testing.T) {
 		// News for a live key while off draws nothing.
 		running.live.Set("controls", brick.LiveState{
 			Status: render.StatusInProgress, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()

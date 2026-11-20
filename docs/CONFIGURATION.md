@@ -209,6 +209,15 @@ for a board Mural does not know or the person cannot reach, refused for
 anything else Mural turns down, or network; the pause key says no_timer when
 the board has no timer running.
 
+`mural_timer` is the timer on one key: it shows the board's timer as it runs,
+in minutes and seconds, with an hourglass while it runs, a pause icon while it
+is paused, and a red background in its last minute. A press starts the timer
+when none runs, for `duration` (five minutes if left out) with its sound unless
+`silent` is ticked, pauses it while it runs, and resumes it while it is paused.
+It reads the board every ten seconds and counts down in between, so a timer
+started or changed on the board itself shows within ten seconds, and a press
+shows at once. Like the pause key, it needs the `murals:read` scope.
+
 ```yaml
       - row: 2
         column: 0
@@ -236,6 +245,12 @@ the board has no timer running.
         kind: mural_stop_timer
         parameters:
           link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+      - row: 2
+        column: 5
+        kind: mural_timer
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          duration: 10m
 ```
 
 ### Signing in to Mural

@@ -64,6 +64,7 @@ func TestDaemon_MirrorsLiveKeysOnEveryPage(t *testing.T) {
 
 		running.live.Set("shared", brick.LiveState{
 			Status: render.StatusFailure, ErrorReason: "", TargetURL: liveRunURL, Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 		time.Sleep(settle)
 		synctest.Wait()

@@ -126,8 +126,14 @@ func TestSpotify_AlbumAndPlayKeysDrawWhatIsPlaying(t *testing.T) {
 	t.Parallel()
 
 	art := image.NewRGBA(image.Rect(0, 0, 4, 4))
-	playing := brick.LiveState{Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: art, Playing: true}
-	paused := brick.LiveState{Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: art, Playing: false}
+	playing := brick.LiveState{
+		Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: art, Playing: true,
+		Text: "", Urgent: false,
+	}
+	paused := brick.LiveState{
+		Status: render.StatusNone, ErrorReason: "", TargetURL: "", Picture: art, Playing: false,
+		Text: "", Urgent: false,
+	}
 
 	album, _ := construct(t, spotify.AlbumKindName, newPlayerFake()).(brick.LiveDrawn)
 	play, _ := construct(t, spotify.PlayPauseKindName, newPlayerFake()).(brick.LiveDrawn)

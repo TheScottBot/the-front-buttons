@@ -206,6 +206,7 @@ func TestPipelineStatus_PressOpensTheRunFromItsState(t *testing.T) {
 	pressError := pressable.PressWithState(t.Context(),
 		brick.LiveState{
 			Status: render.StatusFailure, ErrorReason: "", TargetURL: failedRunURL, Picture: nil, Playing: false,
+			Text: "", Urgent: false,
 		})
 
 	if pressError != nil || len(recorder.Launched()) != 1 || recorder.Launched()[0] != failedRunURL {
@@ -213,7 +214,10 @@ func TestPipelineStatus_PressOpensTheRunFromItsState(t *testing.T) {
 	}
 
 	noRunError := pressable.PressWithState(t.Context(),
-		brick.LiveState{Status: render.StatusUnknown, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false})
+		brick.LiveState{
+			Status: render.StatusUnknown, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+			Text: "", Urgent: false,
+		})
 	if brick.ReasonCategoryOf(noRunError) != "no_run" {
 		t.Fatalf("want no_run when there is nothing to open, got %v", noRunError)
 	}

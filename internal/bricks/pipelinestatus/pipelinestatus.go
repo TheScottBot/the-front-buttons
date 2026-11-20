@@ -126,7 +126,7 @@ func (watcher pipelineBrick) Watch(watchContext context.Context, publish func(st
 		if pollError != nil {
 			publish(brick.LiveState{
 				Status: render.StatusNone, ErrorReason: brick.ReasonCategoryOf(pollError), TargetURL: "",
-				Picture: nil, Playing: false,
+				Picture: nil, Playing: false, Text: "", Urgent: false,
 			})
 
 			if failure, isFailure := errors.AsType[*pipeline.PollError](pollError); isFailure {
@@ -135,6 +135,7 @@ func (watcher pipelineBrick) Watch(watchContext context.Context, publish func(st
 		} else {
 			publish(brick.LiveState{
 				Status: statusOf(result.Run.State), ErrorReason: "", TargetURL: result.Run.TargetURL, Picture: nil, Playing: false,
+				Text: "", Urgent: false,
 			})
 
 			if result.Run.State == pipeline.StateQueued || result.Run.State == pipeline.StateInProgress {

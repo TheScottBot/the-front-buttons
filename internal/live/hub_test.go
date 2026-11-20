@@ -58,7 +58,10 @@ func (source sourceTestDouble) Watch(watchContext context.Context, publish func(
 	defer ticker.Stop()
 
 	for {
-		publish(brick.LiveState{Status: source.status, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false})
+		publish(brick.LiveState{
+			Status: source.status, ErrorReason: "", TargetURL: "", Picture: nil, Playing: false,
+			Text: "", Urgent: false,
+		})
 
 		select {
 		case <-watchContext.Done():
