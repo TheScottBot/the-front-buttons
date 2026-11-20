@@ -17,7 +17,7 @@ with no Elgato software. Set it up from a web editor on your own machine.
   repaints the moment it arrives.
 
 Runs on macOS (Apple silicon), tested on the deck. Windows (amd64) is built and
-tested in CI but not yet run on a Windows machine.
+tested in CI, and runs on a Windows machine with the deck.
 
 ## Run it
 

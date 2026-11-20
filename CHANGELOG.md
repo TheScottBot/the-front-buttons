@@ -5,7 +5,7 @@ Keep a Changelog. Each tag will name the contract digest it was built against
 (none yet: the configuration contract is provisional), every change to shared
 code since the previous tag, and which author gates were cleared at which commit.
 
-## 0.1.0 - 2026-11-16
+## 0.1.0 - 2026-11-20
 
 Built ahead of the hardware (deviation DV1). No author gate has been cleared.
 
@@ -77,8 +77,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   `open_character`, `open_chat`, `open_channel`) rather than by `open_url`.
 
 - An app picker on the Application field lists the installed applications by
-  name on macOS and Windows and fills in the identifier (Windows not yet run
-  on a machine).
+  name on macOS and Windows and fills in the identifier; run on the Windows
+  machine.
 - The Icons page pages through all the icons, 120 at a time, keeping the
   search.
 
@@ -409,7 +409,7 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   finding its processes, which for a Start menu entry runs PowerShell, is read
   once while the daemon runs. App screens on Windows now bring their
   application forward before sending its key presses, and refuse them when it
-  is not open, as on macOS. Not yet run on the Windows machine.
+  is not open, as on macOS. Run on the Windows machine.
 
 - Quitting an application by name, and window cycling, missed every
   application launched after the daemon first listed running applications:
@@ -423,8 +423,8 @@ Built ahead of the hardware (deviation DV1). No author gate has been cleared.
   Start menu got a console window of its own. Every program the daemon starts
   on Windows now goes through one helper that starts it with
   `CREATE_NO_WINDOW` and a hidden window, and a repository check refuses any
-  other way of starting a program in Windows code. Not yet run on the Windows
-  machine.
+  other way of starting a program in Windows code. Run on the Windows
+  machine, where no window shows.
 - The cgo deck driver could abort the process inside `hid_enumerate` on
   macOS. hidapi schedules its HID manager on the run loop of whichever thread
   first calls it, and Go shares threads between goroutines, so the IOKit
