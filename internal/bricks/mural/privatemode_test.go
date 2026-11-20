@@ -21,10 +21,13 @@ type boardFake struct {
 	calls   []string
 	failure error
 	active  bool
+	tally   murals.VotingTally
 }
 
 func newBoardFake(failure error, active bool) *boardFake {
-	return &boardFake{mutex: sync.Mutex{}, calls: nil, failure: failure, active: active}
+	return &boardFake{
+		mutex: sync.Mutex{}, calls: nil, failure: failure, active: active, tally: murals.VotingTally{Total: 0, Top: 0},
+	}
 }
 
 func (fake *boardFake) StartPrivateMode(_ context.Context, muralID string, hideAuthors bool) error {
@@ -52,6 +55,41 @@ func (fake *boardFake) ReadPrivateMode(_ context.Context, muralID string) (bool,
 	fake.calls = append(fake.calls, "read "+muralID)
 
 	return fake.active, fake.failure
+}
+
+func (fake *boardFake) StartVoting(_ context.Context, muralID string, options murals.VotingOptions) (string, error) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.calls = append(fake.calls, fmt.Sprintf("vote %s %q votes=%d anyone=%v", muralID, options.Title,
+		options.Votes, options.AnyoneCanEnd))
+
+	return "session-1", fake.failure
+}
+
+func (fake *boardFake) EndVoting(_ context.Context, muralID string) error {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.calls = append(fake.calls, "end vote "+muralID)
+
+	return fake.failure
+}
+
+func (fake *boardFake) TallyVoting(_ context.Context, muralID string, sessionID string) (murals.VotingTally, error) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.calls = append(fake.calls, "tally "+muralID+" "+sessionID)
+
+	return fake.tally, fake.failure
+}
+
+func (fake *boardFake) setTally(tally murals.VotingTally) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.tally = tally
 }
 
 func (fake *boardFake) setActive(active bool) {
@@ -277,7 +315,7 @@ func TestPrivateMode_SharesOneWatchPerBoard(t *testing.T) {
 	kind, _ := registry.Kind(mural.PrivateModeKindName)
 
 	constructed, _ := kind.Construct(&mural.PrivateModeParameters{
-		Appearance: noAppearance(), Link: "https://app.mural.co/t/team/m/team/1799999999999/0a1b2c3d", HideAuthors: false,
+		Appearance: noAppearance(), Link: otherBoardLink, HideAuthors: false,
 	}, brick.Ports{MuralBoard: newBoardFake(nil, false)})
 
 	other, _ := constructed.(brick.LiveSource)

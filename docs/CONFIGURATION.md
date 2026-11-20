@@ -253,6 +253,17 @@ what while it is on. It reads the board every ten seconds, so private mode
 turned on or off on the board itself shows within ten seconds, and needs the
 `murals:read` scope too.
 
+`mural_voting` runs a voting session on the board. The first press starts one,
+titled `title` (Vote if left out), with `votes` votes each (three if left out);
+tick `anyone_can_end` to let anyone end it, not only a facilitator. While it
+runs, the key turns green with a check box and shows the votes cast, read every
+ten seconds. The next press ends it, and the key then shows a trophy and the
+most votes any one item has, such as Top 4; a press after that starts a new
+session. Mural's API cannot say which session is running, so the key knows
+only the session it started, while the daemon runs: a session started on the
+board itself, or one left running when the daemon restarted, is not shown, and
+must be ended on the board. It needs the `murals:read` scope too.
+
 ```yaml
       - row: 2
         column: 0
@@ -292,6 +303,13 @@ turned on or off on the board itself shows within ten seconds, and needs the
         parameters:
           link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
           hide_authors: true
+      - row: 2
+        column: 7
+        kind: mural_voting
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          title: Which idea first?
+          votes: 3
 ```
 
 ### Signing in to Mural

@@ -25,6 +25,12 @@ code since the previous tag, and which author gates were cleared at which commit
   purple key while private mode is on and an open eye while it is off,
   reading the board every ten seconds and at once after a press. Mural keys
   reach the board through a new `MuralBoard` port beside the timer's.
+- `mural_voting` starts a voting session on a board with one press and ends
+  it with the next. While it runs the key is green with a check box and shows
+  the votes cast, read every ten seconds; once it ends it shows a trophy and
+  the most votes any one item has. The title, the votes each and whether
+  anyone can end it are the key's to set. The keys remember the session they
+  started while the daemon runs, since Mural's API cannot say which one runs.
 - The navigation keys' colour. `navigation_background`, written `#RRGGBB`,
   colours the back and forward keys on every page and app screen, and the
   dashboard's paging tiles; their arrow and words are drawn in black or

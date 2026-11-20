@@ -237,7 +237,7 @@ func TestCountdown_PressStartsPausesOrResumes(t *testing.T) {
 	failing := newTimerFake(fmt.Errorf("wrapped: %w", murals.ErrRefused), noTimer())
 
 	failure := countdownKey(t, failing).PressWithState(t.Context(), nothingShown())
-	if category := brick.ReasonCategoryOf(failure); category != "refused" {
+	if category := brick.ReasonCategoryOf(failure); category != refusedReason {
 		t.Errorf("want a refused press to show refused, got %q", category)
 	}
 }
@@ -325,7 +325,7 @@ func TestCountdown_SharesOneWatchPerBoard(t *testing.T) {
 	second := countdownKey(t, newTimerFake(nil, noTimer()))
 
 	parameters := countdownParameters(0)
-	parameters.Link = "https://app.mural.co/t/team/m/team/1799999999999/0a1b2c3d"
+	parameters.Link = otherBoardLink
 
 	other, _ := timerKey(t, mural.CountdownKindName, parameters, newTimerFake(nil, noTimer())).(brick.LiveSource)
 

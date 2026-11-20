@@ -360,6 +360,7 @@ type timerMural struct {
 	statuses []int
 	refreshs int
 	answer   string
+	answers  []string
 }
 
 func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request) {
@@ -379,8 +380,14 @@ func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request)
 	}
 
 	body, _ := io.ReadAll(request.Body)
+
+	path := request.URL.Path
+	if request.URL.RawQuery != "" {
+		path += "?" + request.URL.RawQuery
+	}
+
 	fake.requests = append(fake.requests,
-		request.Method+" "+request.URL.Path+" "+request.Header.Get("Authorization")+" "+string(body))
+		request.Method+" "+path+" "+request.Header.Get("Authorization")+" "+string(body))
 
 	status := http.StatusOK
 	if len(fake.statuses) > 0 {
@@ -396,7 +403,12 @@ func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request)
 		_, _ = writer.Write([]byte(`{"code":"INVALID_SCOPE","message":"no"}`))
 	case http.StatusNoContent:
 	default:
-		_, _ = writer.Write([]byte(fake.answer))
+		answer := fake.answer
+		if len(fake.answers) > 0 {
+			answer, fake.answers = fake.answers[0], fake.answers[1:]
+		}
+
+		_, _ = writer.Write([]byte(answer))
 	}
 }
 
@@ -412,7 +424,9 @@ func newTimerFake(t *testing.T, statuses ...int) (*timerMural, *muralapi.Client)
 func newTimerFakeAnswering(t *testing.T, answer string, statuses ...int) (*timerMural, *muralapi.Client) {
 	t.Helper()
 
-	fake := &timerMural{mutex: sync.Mutex{}, requests: nil, statuses: statuses, refreshs: 0, answer: answer}
+	fake := &timerMural{
+		mutex: sync.Mutex{}, requests: nil, statuses: statuses, refreshs: 0, answer: answer, answers: nil,
+	}
 	server := httptest.NewServer(http.HandlerFunc(fake.serve))
 	t.Cleanup(server.Close)
 
@@ -581,6 +595,78 @@ func TestClient_StartsReadsAndEndsPrivateMode(t *testing.T) {
 	_, garbledError := garbled.ReadPrivateMode(t.Context(), "team.1712345678901")
 	if !errors.Is(garbledError, murals.ErrUnreachable) {
 		t.Errorf("want an answer that is not private mode unreachable, got %v", garbledError)
+	}
+}
+
+// TestClient_StartsAndEndsVoting: starting posts the session's title, its
+// votes each and whether anyone can end it, and gives back the session's ID;
+// ending posts to the end with no body.
+func TestClient_StartsAndEndsVoting(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFakeAnswering(t, `{"value":{"id":"1632235215717","title":"Ideas"}}`,
+		http.StatusOK, http.StatusNoContent)
+
+	sessionID, startError := client.StartVoting(t.Context(), "team.1712345678901",
+		murals.VotingOptions{Title: "Ideas", Votes: 3, AnyoneCanEnd: true})
+	endError := client.EndVoting(t.Context(), "team.1712345678901")
+
+	if startError != nil || endError != nil || sessionID != "1632235215717" {
+		t.Fatalf("want started as 1632235215717 and ended, got %q (%v) and %v", sessionID, startError, endError)
+	}
+
+	want := []string{
+		`POST /api/public/v1/murals/team.1712345678901/voting-sessions/start Bearer access-1 ` +
+			`{"title":"Ideas","numberOfVotes":3,"anyoneCanEnd":true}`,
+		`POST /api/public/v1/murals/team.1712345678901/voting-sessions/end Bearer access-1 `,
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+
+	_, unnamed := newTimerFakeAnswering(t, `{"value":{"id":"../../users","title":"Ideas"}}`)
+
+	_, unnamedError := unnamed.StartVoting(t.Context(), "team.1712345678901",
+		murals.VotingOptions{Title: "Ideas", Votes: 3, AnyoneCanEnd: false})
+	if !errors.Is(unnamedError, murals.ErrUnreachable) {
+		t.Errorf("want a session ID that is not one refused, got %v", unnamedError)
+	}
+}
+
+// TestClient_TalliesAVotingSessionsResults: the results are read page by
+// page, following Mural's next token, and tallied as the votes cast in all
+// and the most any one widget has.
+func TestClient_TalliesAVotingSessionsResults(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFakeAnswering(t, "")
+	fake.answers = []string{
+		`{"value":[{"widgetId":"a","totalVotes":3,"uniqueVoters":2},{"widgetId":"b","totalVotes":5,"uniqueVoters":3}],` +
+			`"next":"page-2"}`,
+		`{"value":[{"widgetId":"c","totalVotes":1,"uniqueVoters":1}]}`,
+	}
+
+	tally, tallyError := client.TallyVoting(t.Context(), "team.1712345678901", "1632235215717")
+	if tallyError != nil || tally != (murals.VotingTally{Total: 9, Top: 5}) {
+		t.Fatalf("want 9 votes, 5 the most, got %+v (%v)", tally, tallyError)
+	}
+
+	results := "GET /api/public/v1/murals/team.1712345678901/voting-sessions/1632235215717/results"
+	want := []string{
+		results + "?limit=99 Bearer access-1 ",
+		results + "?limit=99&next=page-2 Bearer access-1 ",
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+
+	unsentFake, unsent := newTimerFakeAnswering(t, "")
+
+	_, unsentError := unsent.TallyVoting(t.Context(), "team.1712345678901", "../users")
+	if !errors.Is(unsentError, murals.ErrNotFound) || len(unsentFake.requests) != 0 {
+		t.Errorf("want a session ID that is not one never sent, got %v", unsentError)
 	}
 }
 

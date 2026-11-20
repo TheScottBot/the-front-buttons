@@ -55,11 +55,30 @@ type Timer interface {
 
 // Board is the rest of a mural's facilitation, through Mural's API, for the
 // person signed in: starting and ending private mode, hiding who wrote what
-// or not, and reading whether it is on.
+// or not, and reading whether it is on; and starting a voting session, ending
+// it, and tallying its results.
 type Board interface {
 	StartPrivateMode(boardContext context.Context, muralID string, hideAuthors bool) error
 	EndPrivateMode(boardContext context.Context, muralID string) error
 	ReadPrivateMode(boardContext context.Context, muralID string) (bool, error)
+	StartVoting(boardContext context.Context, muralID string, options VotingOptions) (string, error)
+	EndVoting(boardContext context.Context, muralID string) error
+	TallyVoting(boardContext context.Context, muralID string, sessionID string) (VotingTally, error)
+}
+
+// VotingOptions is how a voting session starts: its title, the votes each
+// person has, and whether anyone, not only a facilitator, can end it.
+type VotingOptions struct {
+	Title        string
+	Votes        int
+	AnyoneCanEnd bool
+}
+
+// VotingTally is a voting session's results in brief: the votes cast in all,
+// and the most any one widget has.
+type VotingTally struct {
+	Total int
+	Top   int
 }
 
 // TimerState is a mural's timer as it is now: running or not, paused or not,

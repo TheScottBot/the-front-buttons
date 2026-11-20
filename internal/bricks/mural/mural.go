@@ -49,7 +49,12 @@ func Register(registry *brick.Registry) error {
 		return countdownError
 	}
 
-	return registerPrivateMode(registry, shared)
+	privateModeError := registerPrivateMode(registry, shared)
+	if privateModeError != nil {
+		return privateModeError
+	}
+
+	return registerVoting(registry, shared, newBallots())
 }
 
 func constructShare(parameters ShareParameters, ports brick.Ports) (any, error) {

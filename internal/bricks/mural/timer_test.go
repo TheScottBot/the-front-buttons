@@ -13,6 +13,12 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/murals"
 )
 
+// otherBoardLink is a second board's address, to tell boards apart.
+const otherBoardLink = "https://app.mural.co/t/team/m/team/1799999999999/0a1b2c3d"
+
+// refusedReason is the reason a key shows when Mural refuses a request.
+const refusedReason = "refused"
+
 // notConnected is the reason a key shows when Mural's sign in is not good.
 const notConnected = "not_connected"
 
@@ -249,7 +255,7 @@ func TestTimerKeys_ShowWhyMuralRefused(t *testing.T) {
 		murals.ErrNotSetUp:     "not_set_up",
 		murals.ErrNotConnected: notConnected,
 		murals.ErrNotFound:     "not_found",
-		murals.ErrRefused:      "refused",
+		murals.ErrRefused:      refusedReason,
 		murals.ErrUnreachable:  "network",
 	} {
 		fake := newTimerFake(fmt.Errorf("wrapped: %w", failure), noTimer())
