@@ -14,7 +14,7 @@ import (
 // beside the grid opens a drawer under it instead, where one colour is chosen
 // for both navigation keys on every page and app screen, and for the
 // dashboard's paging tiles in the same corners, or taken out of the file for
-// the usual grey. It saves through the same path as every other change, so
+// the usual black. It saves through the same path as every other change, so
 // the store checks it and it can be undone.
 
 // The navigation colour's query, which opens its drawer, and its message.
@@ -24,7 +24,7 @@ const (
 )
 
 // navigationColourValue is the colour the drawer's colour input starts at:
-// the navigation keys' own, or the usual grey, in the lowercase a colour
+// the navigation keys' own, or the usual black, in the lowercase a colour
 // input gives back.
 func navigationColourValue(configuration config.Configuration) string {
 	colour := render.NavigationBackgroundFrom(configuration.NavigationBackground)
@@ -40,7 +40,7 @@ func navigationDrawer(request *http.Request, configuration config.Configuration)
 }
 
 // colourNavigationKeys sets the navigation keys' background, or with Back to
-// the usual grey takes it out of the file.
+// the usual black takes it out of the file.
 func (pages *pageHandlers) colourNavigationKeys(writer http.ResponseWriter, request *http.Request) {
 	pageIndex := integerParameter(request.PostForm, "page")
 	colour := strings.ToUpper(strings.TrimSpace(request.PostForm.Get(backgroundFieldName)))

@@ -135,7 +135,7 @@ type Configuration struct {
 	PlatformBridge PlatformBridge
 	// NavigationBackground is the background colour of the navigation keys,
 	// written #RRGGBB, the same on every page and app screen, or empty when
-	// the file names none, meaning the usual grey. The decoder never fills the
+	// the file names none, meaning the usual black. The decoder never fills the
 	// default in, so saving a file never writes it into it.
 	NavigationBackground string
 	Pages                []Page

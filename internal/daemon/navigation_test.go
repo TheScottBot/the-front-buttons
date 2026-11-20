@@ -11,7 +11,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/testsupport"
 )
 
-// paleAmber is a navigation colour far from the usual grey, written as the
+// paleAmber is a navigation colour far from the usual black, written as the
 // configuration names it.
 const paleAmber = "#FFE066"
 
@@ -30,7 +30,7 @@ func requireNavigationIn(
 }
 
 // TestDaemon_RepaintsTheNavigationKeysInTheirColour: the navigation keys
-// start grey, and a reload naming a colour for them repaints both in it.
+// start usual, and a reload naming a colour for them repaints both in it.
 func TestDaemon_RepaintsTheNavigationKeysInTheirColour(t *testing.T) {
 	t.Parallel()
 
@@ -40,7 +40,7 @@ func TestDaemon_RepaintsTheNavigationKeysInTheirColour(t *testing.T) {
 
 		device := deckAttached(t, running)
 
-		amber, grey := render.NavigationBackgroundFrom(paleAmber), render.DefaultNavigationBackground()
+		amber, usual := render.NavigationBackgroundFrom(paleAmber), render.DefaultNavigationBackground()
 		onFirst := layout.PageIndication{
 			Number: 1, Count: 2, CurrentName: firstPageName, PreviousName: secondPageName, NextName: secondPageName,
 		}
@@ -48,7 +48,7 @@ func TestDaemon_RepaintsTheNavigationKeysInTheirColour(t *testing.T) {
 		for keyIndex, direction := range map[int]render.Direction{
 			backKey: render.DirectionBack, forwardKey: render.DirectionForward,
 		} {
-			requireNavigationIn(t, device, keyIndex, running.renderer.RenderNavigation(direction, onFirst, true, grey),
+			requireNavigationIn(t, device, keyIndex, running.renderer.RenderNavigation(direction, onFirst, true, usual),
 				running.renderer.RenderNavigation(direction, onFirst, true, amber))
 		}
 
@@ -64,7 +64,7 @@ func TestDaemon_RepaintsTheNavigationKeysInTheirColour(t *testing.T) {
 			backKey: render.DirectionBack, forwardKey: render.DirectionForward,
 		} {
 			requireNavigationIn(t, device, keyIndex, running.renderer.RenderNavigation(direction, onFirst, true, amber),
-				running.renderer.RenderNavigation(direction, onFirst, true, grey))
+				running.renderer.RenderNavigation(direction, onFirst, true, usual))
 		}
 
 		running.stop(t)
@@ -88,11 +88,11 @@ func TestDaemon_DashboardPagingTilesTakeTheNavigationColour(t *testing.T) {
 		holdMarker(device)
 
 		rows := layout.PageIndication{Number: 1, Count: 2, CurrentName: "", PreviousName: "", NextName: ""}
-		amber, grey := render.NavigationBackgroundFrom(paleAmber), render.DefaultNavigationBackground()
+		amber, usual := render.NavigationBackgroundFrom(paleAmber), render.DefaultNavigationBackground()
 
 		requireNavigationIn(t, device, forwardKey,
 			running.renderer.RenderNavigation(render.DirectionForward, rows, true, amber),
-			running.renderer.RenderNavigation(render.DirectionForward, rows, true, grey))
+			running.renderer.RenderNavigation(render.DirectionForward, rows, true, usual))
 
 		running.stop(t)
 	})

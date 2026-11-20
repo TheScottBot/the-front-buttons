@@ -39,7 +39,7 @@ func TestEditor_PreviewsThePagingTilesInTheNavigationColour(t *testing.T) {
 
 // TestEditor_ColoursTheNavigationKeys: the form saves the colour for the
 // navigation keys, written as the file writes colours, comes back to the
-// page with its drawer open, and Back to the usual grey takes it out again.
+// page with its drawer open, and Back to the usual black takes it out again.
 func TestEditor_ColoursTheNavigationKeys(t *testing.T) {
 	t.Parallel()
 
@@ -89,7 +89,7 @@ func TestEditor_RefusesABadNavigationColour(t *testing.T) {
 
 // TestEditor_OffersAShortcutToTheNavigationColour: clicking a paging tile
 // pages, so beside the grid a shortcut opens the drawer for their colour,
-// shut until it is followed, filled in with the usual grey.
+// shut until it is followed, filled in with the usual black.
 func TestEditor_OffersAShortcutToTheNavigationColour(t *testing.T) {
 	t.Parallel()
 
@@ -97,7 +97,7 @@ func TestEditor_OffersAShortcutToTheNavigationColour(t *testing.T) {
 
 	page := harness.get(t, "/page?page=0").Body.String()
 	requireBody(t, page, navigationShortcut, `<details class="maintenance navigation-colour" id="navigation-colour">`,
-		`id="navigation-background" name="background" value="#24242a"`)
+		`id="navigation-background" name="background" value="#000000"`)
 
 	opened := harness.get(t, "/page?page=0&navigation=1").Body.String()
 	requireBody(t, opened, `<details class="maintenance navigation-colour" id="navigation-colour" open>`)

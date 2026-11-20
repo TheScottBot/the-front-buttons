@@ -245,7 +245,7 @@ type loopState struct {
 	// zones are the world clocks the dashboard's world icon shows.
 	zones []dashboard.Zone
 	// navigationBackground is the navigation keys' background, the
-	// configuration's or the usual grey, which the dashboard's paging tiles
+	// configuration's or the usual black, which the dashboard's paging tiles
 	// take too.
 	navigationBackground color.RGBA
 	// allPageNames names every page by its index in pages, for an app

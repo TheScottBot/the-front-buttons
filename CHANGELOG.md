@@ -27,11 +27,12 @@ code since the previous tag, and which author gates were cleared at which commit
   reach the board through a new `MuralBoard` port beside the timer's.
 - The navigation keys' colour. `navigation_background`, written `#RRGGBB`,
   colours the back and forward keys on every page and app screen, and the
-  dashboard's paging tiles, in place of the fixed grey; their arrow and words
-  are drawn in black or white, whichever reads better on it. The deck repaints
-  them on a reload. In the editor, where clicking those keys pages, **Colour
-  the back and forward keys** under the grid opens a drawer to set it or go
-  back to the grey, and Render like deck shows them in it.
+  dashboard's paging tiles; their arrow and words are drawn in black or
+  white, whichever reads better on it. The deck repaints them on a reload. In
+  the editor, where clicking those keys pages, **Colour the back and forward
+  keys** under the grid opens a drawer to set it or go back to the usual
+  black, and Render like deck shows them in it.
+- The navigation keys are black by default, in place of the fixed dark grey.
 
 ### Changed
 

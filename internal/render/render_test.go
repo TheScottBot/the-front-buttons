@@ -76,12 +76,12 @@ func TestRenderNavigation_MatchesGoldenImages(t *testing.T) {
 	renderer := newTestRenderer(t)
 	indication := layout.PageIndication{Number: 2, Count: 5, CurrentName: "Work", PreviousName: "Home", NextName: "Games"}
 
-	grey := render.DefaultNavigationBackground()
+	usual := render.DefaultNavigationBackground()
 
-	compareWithGolden(t, "navigation_back", renderer.RenderNavigation(render.DirectionBack, indication, true, grey))
-	compareWithGolden(t, "navigation_forward", renderer.RenderNavigation(render.DirectionForward, indication, true, grey))
+	compareWithGolden(t, "navigation_back", renderer.RenderNavigation(render.DirectionBack, indication, true, usual))
+	compareWithGolden(t, "navigation_forward", renderer.RenderNavigation(render.DirectionForward, indication, true, usual))
 	compareWithGolden(t, "navigation_no_pages",
-		renderer.RenderNavigation(render.DirectionForward, indication, false, grey))
+		renderer.RenderNavigation(render.DirectionForward, indication, false, usual))
 	compareWithGolden(t, "blank", renderer.RenderBlank())
 }
 
@@ -335,7 +335,7 @@ func TestFramedRenderer_ContainsEveryKeyInABlackSquare(t *testing.T) {
 		"key": renderer.Render(render.Appearance{Label: buildLabel, Background: light}),
 		"navigation": renderer.RenderNavigation(render.DirectionForward, layout.PageIndication{
 			Number: 1, Count: 1, CurrentName: "", PreviousName: "", NextName: "",
-		}, false, render.DefaultNavigationBackground()),
+		}, false, light),
 		"blank": renderer.RenderBlank(),
 	}
 
@@ -380,6 +380,8 @@ func TestFramedRenderer_ContainsEveryKeyInABlackSquare(t *testing.T) {
 		{X: middle, Y: testInset.Top + inner + bulge - 1},
 	})
 
+	// The navigation key is given a colour of its own here, since its usual
+	// black could not be told from the frame.
 	if isBlack(keys["navigation"].At(testInset.Left+3, testInset.Top+3)) {
 		t.Error("want the navigation key drawn inside the frame")
 	}

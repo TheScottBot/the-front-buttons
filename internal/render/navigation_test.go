@@ -8,23 +8,23 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
-// navigationGrey is the navigation keys' usual background.
-var navigationGrey = color.RGBA{R: 0x24, G: 0x24, B: 0x2a, A: 0xff} //nolint:gochecknoglobals // a fixed colour
+// navigationBlack is the navigation keys' usual background.
+var navigationBlack = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xff} //nolint:gochecknoglobals // a fixed colour
 
 // TestNavigationBackgroundFrom: a configured colour is used as written, and
-// none, or one the renderer cannot read, leaves the usual grey.
+// none, or one the renderer cannot read, leaves the usual black.
 func TestNavigationBackgroundFrom(t *testing.T) {
 	t.Parallel()
 
-	if got := render.DefaultNavigationBackground(); got != navigationGrey {
-		t.Errorf("want the usual grey by default, got %v", got)
+	if got := render.DefaultNavigationBackground(); got != navigationBlack {
+		t.Errorf("want the usual black by default, got %v", got)
 	}
 
 	for written, want := range map[string]color.RGBA{
 		"#1F6FEB": {R: 0x1f, G: 0x6f, B: 0xeb, A: 0xff},
 		"#ffe066": {R: 0xff, G: 0xe0, B: 0x66, A: 0xff},
-		"":        navigationGrey,
-		"blue":    navigationGrey,
+		"":        navigationBlack,
+		"blue":    navigationBlack,
 	} {
 		if got := render.NavigationBackgroundFrom(written); got != want {
 			t.Errorf("%q: want %v, got %v", written, want, got)

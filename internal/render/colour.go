@@ -43,7 +43,7 @@ const (
 const (
 	blackPacked                = 0x000000
 	whitePacked                = 0xffffff
-	navigationBackgroundPacked = 0x24242a
+	navigationBackgroundPacked = 0x000000
 	successPacked              = 0x3fb950
 	failurePacked              = 0xf85149
 	inProgressPacked           = 0xe3b341

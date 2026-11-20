@@ -89,11 +89,11 @@ func TestDaemon_NumbersAnApplicationsScreensOnItsPagingTiles(t *testing.T) {
 		onScreen := layout.PageIndication{
 			Number: 1, Count: 2, CurrentName: appIconTestLabel, PreviousName: secondScreenName, NextName: secondScreenName,
 		}
-		grey := render.DefaultNavigationBackground()
-		screens := running.renderer.RenderNavigation(render.DirectionForward, onScreen, true, grey)
+		usual := render.DefaultNavigationBackground()
+		screens := running.renderer.RenderNavigation(render.DirectionForward, onScreen, true, usual)
 		regular := running.renderer.RenderNavigation(render.DirectionForward, layout.PageIndication{
 			Number: 1, Count: 2, CurrentName: firstPageName, PreviousName: secondPageName, NextName: secondPageName,
-		}, true, grey)
+		}, true, usual)
 
 		drawn := drawnImage(t, device, forwardKey)
 		if distance(drawn, screens) >= distance(drawn, regular) {

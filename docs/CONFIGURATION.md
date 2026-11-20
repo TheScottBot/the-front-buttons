@@ -177,7 +177,7 @@ for the four above. A change shows the next time the world view opens.
 ## Navigation keys
 
 The navigation keys, back at row 3, column 0 and forward at row 3, column 7,
-are grey on every page unless the file names a colour for them. Add
+are black on every page unless the file names a colour for them. Add
 `navigation_background` beside `pages`, written `#RRGGBB` as a key's own
 `background` is, and quoted, since YAML reads an unquoted `#` as the start of a
 comment:
@@ -193,7 +193,7 @@ It is one colour for both keys, the same on every page and app screen, and
 the dashboard's paging tiles in the same corners take it too. Their arrow,
 page count and page name are drawn in black or white, whichever reads better
 on it, as a key's label is. Anything not written `#RRGGBB`, empty text
-included, refuses the file. Leave the field out for the usual grey. The deck
+included, refuses the file. Leave the field out for the usual black. The deck
 repaints both keys within a second of the file being saved.
 
 In the editor, clicking a navigation key on the grid pages, as it does on the

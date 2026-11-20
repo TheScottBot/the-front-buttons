@@ -8,13 +8,14 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
 )
 
-// DefaultNavigationBackground is the navigation keys' usual grey, set apart
-// from an unassigned key's black.
+// DefaultNavigationBackground is the navigation keys' usual black. The chevron,
+// page number and page name drawn on it set them apart from an unassigned
+// key, which is black and empty.
 func DefaultNavigationBackground() color.RGBA { return rgb(navigationBackgroundPacked) }
 
 // NavigationBackgroundFrom is the navigation keys' background for a colour
-// written #RRGGBB, as the configuration names it, or the usual grey when it
-// names none. A colour the renderer cannot read also leaves the grey; the
+// written #RRGGBB, as the configuration names it, or the usual black when it
+// names none. A colour the renderer cannot read also leaves the black; the
 // configuration decoder has already refused malformed colours.
 func NavigationBackgroundFrom(written string) color.RGBA {
 	background, parseError := ParseColour(written)
