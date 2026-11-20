@@ -23,12 +23,27 @@ static int frontButtonsWriteClipboard(const char *text) {
 		return [pasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString] ? 1 : 0;
 	}
 }
+
+// frontButtonsReadClipboard copies the general pasteboard's plain text, as
+// UTF-8 the caller frees, or returns NULL when it holds none.
+static char *frontButtonsReadClipboard(void) {
+	@autoreleasepool {
+		NSString *text = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
+		if (text == nil) {
+			return NULL;
+		}
+
+		return strdup([text UTF8String]);
+	}
+}
 */
 import "C"
 
 import (
 	"context"
 	"errors"
+
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
 // errClipboardRefused reports a pasteboard that would not take the text.
@@ -51,4 +66,16 @@ func (ClipboardWriter) WriteClipboard(_ context.Context, text string) error {
 	}
 
 	return nil
+}
+
+// ReadClipboard reads the plain text on the clipboard.
+func (ClipboardWriter) ReadClipboard(_ context.Context) (string, error) {
+	read := C.frontButtonsReadClipboard()
+	if read == nil {
+		return "", platform.ErrClipboardEmpty
+	}
+
+	defer C.frontButtonsFreeClipboardText(read)
+
+	return C.GoString(read), nil
 }

@@ -60,6 +60,16 @@ type ClipboardWriter interface {
 	WriteClipboard(writeContext context.Context, text string) error
 }
 
+// ErrClipboardEmpty reports a clipboard holding no text, such as one holding
+// only a picture, or nothing at all.
+var ErrClipboardEmpty = errors.New("the clipboard holds no text")
+
+// ClipboardReader reads the text on the clipboard, for a key that sends it
+// somewhere, as the parking lot key puts it on a sticky note.
+type ClipboardReader interface {
+	ReadClipboard(readContext context.Context) (string, error)
+}
+
 // URLOpener opens a URL or deep link with the system's handler for it.
 type URLOpener interface {
 	OpenURL(openContext context.Context, address string) error

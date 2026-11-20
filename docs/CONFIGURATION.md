@@ -270,6 +270,16 @@ its title, as the board shows it, ignoring case. It counts every thirty
 seconds, and a press counts again at once. An area the board does not have
 shows no_area. It needs the `murals:read` scope too.
 
+`mural_parking_lot` puts the text on the clipboard on a sticky note in the
+area `area` names by title, such as a parking lot for questions to come back
+to: copy the text, press the key. Each note goes in the next free place of a
+grid five notes wide, after the notes already in the area, so notes added from
+the deck do not pile up. The key reads the clipboard when it is pressed, and
+only then; the text goes to the board, where everyone who can see it can read
+it. A clipboard with no text, or only spaces, shows clipboard_empty, and one
+that cannot be read clipboard_failed; an area the board does not have shows
+no_area. It needs the `murals:read` scope too.
+
 ```yaml
       - row: 2
         column: 0
@@ -319,6 +329,12 @@ shows no_area. It needs the `murals:read` scope too.
       - row: 1
         column: 0
         kind: mural_sticky_count
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          area: Parking lot
+      - row: 1
+        column: 1
+        kind: mural_parking_lot
         parameters:
           link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
           area: Parking lot

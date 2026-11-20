@@ -32,13 +32,17 @@ Nothing listens on any other interface, so no other machine can reach it.
   cannot send the token anywhere else (`internal/platform/credentials.go`,
   `CredentialHost`). Redirects to another domain drop the token (Go's
   `net/http`).
-- **Mural's API**, for the Mural timer keys only: its token endpoint,
+- **Mural's API**, for the Mural keys only: its token endpoint,
   `https://app.mural.co/api/public/v1/authorization/oauth2/token`, sent the
   code Mural returns, or the stored refresh token, with the client ID and
-  secret of the person's own Mural app (`internal/muralapi/client.go`); and a
-  board's timer, `/api/public/v1/murals/<workspace>.<number>/timer`, started
-  or added to with the access token, for the one board a key's link names
-  (`internal/muralapi/timer.go`). Each
+  secret of the person's own Mural app (`internal/muralapi/client.go`); and,
+  with the access token, for the one board a key's link names, under
+  `/api/public/v1/murals/<workspace>.<number>/`: its timer, read, started,
+  added to, paused and stopped (`timer.go`); its private mode, read, started
+  and ended (`privatemode.go`); its voting sessions, started, ended and their
+  results read (`voting.go`); and its widgets, its areas and sticky notes
+  listed and a sticky note added (`widgets.go`). The live Mural keys read
+  their board every ten or thirty seconds while the daemon runs. Each
   of the three is bound to `app.mural.co` in the credential store, and the
   client refuses to send one bound anywhere else, so a configuration naming
   one as a GitHub key's credential cannot send it to GitHub, nor the GitHub
@@ -113,8 +117,11 @@ window on the taskbar does the key launch it through `ShellExecuteW`.
   reading and writing, as hidapi does there (`winhid_windows.go`).
 - **AppKit**: reads applications' icons and the running applications.
 - **The clipboard**: a `mural_share_link` key writes its configured message
-  and link to the clipboard, in place of what was there, and pastes it; the
-  daemon never reads the clipboard (`clipboard_darwin.go`, `clipboard_windows.go`).
+  and link to the clipboard, in place of what was there, and pastes it. A
+  `mural_parking_lot` key reads the clipboard's plain text when it is pressed,
+  and only then, and sends it to Mural as a sticky note; nothing else reads
+  the clipboard, and what is read is never logged or kept
+  (`clipboard_darwin.go`, `clipboard_purego_darwin.go`, `clipboard_windows.go`).
 
 Installs signed with the person's own code signing certificate keep the
 Accessibility grant across reinstalls; ad hoc signed ones need it granted again

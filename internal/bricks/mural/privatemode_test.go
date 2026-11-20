@@ -114,6 +114,16 @@ func (fake *boardFake) CountStickyNotes(_ context.Context, muralID string, areaI
 	return fake.stickies, fake.failure
 }
 
+func (fake *boardFake) AddStickyNote(_ context.Context, muralID string, note murals.StickyNote) error {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.calls = append(fake.calls, fmt.Sprintf("add %s %q in %s at %d,%d", muralID, note.Text, note.AreaID,
+		note.X, note.Y))
+
+	return fake.failure
+}
+
 func (fake *boardFake) setStickies(count int) {
 	fake.mutex.Lock()
 	defer fake.mutex.Unlock()

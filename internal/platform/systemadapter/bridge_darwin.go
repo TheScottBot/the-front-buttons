@@ -100,6 +100,18 @@ func NewClipboardWriter(bridge Bridge) platform.ClipboardWriter {
 	return cgoClipboardWriter()
 }
 
+// NewClipboardReader returns this machine's ClipboardReader through the
+// bridge.
+//
+//nolint:ireturn // the bridge chooses the adapter behind the port
+func NewClipboardReader(bridge Bridge) platform.ClipboardReader {
+	if bridge == BridgePurego {
+		return newPureClipboardWriter()
+	}
+
+	return cgoClipboardWriter()
+}
+
 // NewApplicationQuitter returns this machine's ApplicationQuitter through the
 // bridge.
 //

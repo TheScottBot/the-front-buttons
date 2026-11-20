@@ -9,6 +9,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
 // ClipboardWriter puts text on the clipboard on Windows: the clipboard is
@@ -32,6 +34,8 @@ var (
 	procOpenClipboard    = windows.NewLazySystemDLL("user32.dll").NewProc("OpenClipboard")
 	procEmptyClipboard   = windows.NewLazySystemDLL("user32.dll").NewProc("EmptyClipboard")
 	procSetClipboardData = windows.NewLazySystemDLL("user32.dll").NewProc("SetClipboardData")
+	procGetClipboardData = windows.NewLazySystemDLL("user32.dll").NewProc("GetClipboardData")
+	procGlobalSize       = windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalSize")
 	procCloseClipboard   = windows.NewLazySystemDLL("user32.dll").NewProc("CloseClipboard")
 	procGlobalAlloc      = windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalAlloc")
 	procGlobalLock       = windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalLock")
@@ -49,6 +53,56 @@ var (
 // NewClipboardWriter returns this machine's ClipboardWriter. The bridge is
 // ignored.
 func NewClipboardWriter(_ Bridge) ClipboardWriter { return ClipboardWriter{} }
+
+// NewClipboardReader returns this machine's ClipboardReader, the writer,
+// which reads the clipboard too. The bridge is ignored.
+func NewClipboardReader(_ Bridge) ClipboardWriter { return ClipboardWriter{} }
+
+// ReadClipboard reads the Unicode text on the clipboard. The text is copied
+// out of the clipboard's memory, which stays the clipboard's. Not yet run on
+// a Windows machine.
+func (ClipboardWriter) ReadClipboard(_ context.Context) (string, error) {
+	// The clipboard is opened for the thread that opens it.
+	runtime.LockOSThread()
+
+	defer runtime.UnlockOSThread()
+
+	openError := openClipboard()
+	if openError != nil {
+		return "", openError
+	}
+
+	defer closeClipboard()
+
+	memory, _, _ := procGetClipboardData.Call(clipboardUnicodeText)
+	if memory == 0 {
+		return "", platform.ErrClipboardEmpty
+	}
+
+	size, _, _ := procGlobalSize.Call(memory)
+	unitSize := unsafe.Sizeof(uint16(0))
+
+	if size < unitSize {
+		return "", platform.ErrClipboardEmpty
+	}
+
+	locked, _, lockError := procGlobalLock.Call(memory)
+	if locked == 0 {
+		return "", fmt.Errorf("%w: %w", errClipboardRefused, lockError)
+	}
+
+	// Unlocking cannot usefully fail.
+	defer func() { _, _, _ = procGlobalUnlock.Call(memory) }()
+
+	units := make([]uint16, size/unitSize)
+
+	// Windows copies the text into the buffer itself; unsafe is the only way
+	// to pass the buffer's address.
+	buffer := uintptr(unsafe.Pointer(&units[0]))                                //nolint:gosec // see above
+	_, _, _ = procMoveMemory.Call(buffer, locked, uintptr(len(units))*unitSize) //nolint:dogsled // copying cannot fail
+
+	return windows.UTF16ToString(units), nil
+}
 
 // WriteClipboard puts the text on the clipboard in place of what was there.
 func (ClipboardWriter) WriteClipboard(_ context.Context, text string) error {

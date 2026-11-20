@@ -26,6 +26,9 @@ func stickyCountKey(t *testing.T, fake murals.Board, area string) liveBoardKey {
 		&mural.StickyCountParameters{Appearance: noAppearance(), Link: boardLink, Area: area}, fake)
 }
 
+// parkingAreaID is the ID of the board's parking lot area.
+const parkingAreaID = "0-2"
+
 // watchKey watches a key into a collection until the test ends.
 func watchKey(t *testing.T, key brick.LiveSource) *published {
 	t.Helper()
@@ -73,7 +76,7 @@ func TestStickyCount_CountsTheBoardOrAnArea(t *testing.T) {
 
 	synctest.Test(t, func(t *testing.T) {
 		fake := newBoardFake(nil, false)
-		fake.area = "0-2"
+		fake.area = parkingAreaID
 		fake.setStickies(4)
 
 		collected := watchKey(t, stickyCountKey(t, fake, "Parking lot"))

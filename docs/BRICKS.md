@@ -1585,6 +1585,19 @@ A brick kind.
 | `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
 | `link` | text | required | 1 to 2048 characters | mural_board | The board's address, as its browser shows it; the time is added to that board's timer. |
 
+### `mural_parking_lot`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `link` | text | required | 1 to 2048 characters | mural_board | The board's address, as its browser shows it; the note goes on that board. |
+| `area` | text | required | 1 to 200 characters |  | The title of the area the note goes in, as the board shows it, ignoring case. |
+
 ### `mural_pause_timer`
 
 A brick kind.

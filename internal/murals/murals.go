@@ -58,8 +58,8 @@ type Timer interface {
 // Board is the rest of a mural's facilitation, through Mural's API, for the
 // person signed in: starting and ending private mode, hiding who wrote what
 // or not, and reading whether it is on; starting a voting session, ending it,
-// and tallying its results; and finding an area by its title, and counting
-// the sticky notes on the board or in an area.
+// and tallying its results; and finding an area by its title, counting the
+// sticky notes on the board or in an area, and adding one to an area.
 type Board interface {
 	StartPrivateMode(boardContext context.Context, muralID string, hideAuthors bool) error
 	EndPrivateMode(boardContext context.Context, muralID string) error
@@ -69,6 +69,16 @@ type Board interface {
 	TallyVoting(boardContext context.Context, muralID string, sessionID string) (VotingTally, error)
 	FindArea(boardContext context.Context, muralID string, title string) (string, error)
 	CountStickyNotes(boardContext context.Context, muralID string, areaID string) (int, error)
+	AddStickyNote(boardContext context.Context, muralID string, note StickyNote) error
+}
+
+// StickyNote is a sticky note to add: its plain text, the area it goes in,
+// and where in the area, in pixels from the area's top left corner.
+type StickyNote struct {
+	Text   string
+	AreaID string
+	X      int
+	Y      int
 }
 
 // VotingOptions is how a voting session starts: its title, the votes each

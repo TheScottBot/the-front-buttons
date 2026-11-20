@@ -59,7 +59,12 @@ func Register(registry *brick.Registry) error {
 		return votingError
 	}
 
-	return registerStickyCount(registry, shared)
+	stickyCountError := registerStickyCount(registry, shared)
+	if stickyCountError != nil {
+		return stickyCountError
+	}
+
+	return registerParkingLot(registry)
 }
 
 func constructShare(parameters ShareParameters, ports brick.Ports) (any, error) {

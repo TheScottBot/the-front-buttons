@@ -2,11 +2,16 @@
 
 ## What is collected
 
-Nothing leaves the machine except two kinds of request a person configures. A
-pipeline key's GitHub request names a repository, workflow and branch and
+Nothing leaves the machine except three kinds of request a person configures.
+A pipeline key's GitHub request names a repository, workflow and branch and
 carries that person's token, sent only to the host the token was stored for. A
 Spotify album key fetches the current track's art from Spotify's image server.
-There is no telemetry, analytics or crash reporting.
+A Mural key's requests go to app.mural.co with the person's own sign in, for
+the one board its link names: running its timer, private mode and voting,
+reading them, and counting its sticky notes. A parking lot key sends the
+clipboard's text, read when it is pressed and only then, to that board as a
+sticky note, where everyone who can see the board can read it. There is no
+telemetry, analytics or crash reporting.
 
 ## What is stored, and where
 

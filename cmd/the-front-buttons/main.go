@@ -696,6 +696,7 @@ func daemonOptions(
 			ApplicationLauncher: systemadapter.NewApplicationLauncher(),
 			ApplicationQuitter:  systemadapter.NewApplicationQuitter(bridge),
 			ClipboardWriter:     systemadapter.NewClipboardWriter(bridge),
+			ClipboardReader:     systemadapter.NewClipboardReader(bridge),
 			MuralTimer:          built.mural,
 			MuralBoard:          built.mural,
 			PipelineProvider:    pipelineProvider,

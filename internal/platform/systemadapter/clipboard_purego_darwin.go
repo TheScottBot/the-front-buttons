@@ -9,6 +9,7 @@ import (
 
 	"github.com/ebitengine/purego/objc"
 
+	"github.com/TheScottBot/the-front-buttons/internal/platform"
 	"github.com/TheScottBot/the-front-buttons/internal/platform/objcbridge"
 )
 
@@ -23,6 +24,7 @@ type clipboardNames struct {
 	generalPasteboard string
 	clearContents     string
 	setStringForType  string
+	stringForType     string
 	stringType        string
 }
 
@@ -33,6 +35,7 @@ func systemClipboardNames() clipboardNames {
 		generalPasteboard: "generalPasteboard",
 		clearContents:     "clearContents",
 		setStringForType:  "setString:forType:",
+		stringForType:     "stringForType:",
 		stringType:        "NSPasteboardTypeString",
 	}
 }
@@ -43,6 +46,7 @@ type clipboardMessages struct {
 	generalPasteboard objc.SEL
 	clearContents     objc.SEL
 	setStringForType  objc.SEL
+	stringForType     objc.SEL
 	stringType        objc.ID
 }
 
@@ -63,9 +67,10 @@ func bindClipboard(names clipboardNames) (clipboardMessages, error) {
 	general, generalError := objcbridge.ClassSelector(class, names.generalPasteboard)
 	clearContents, clearError := objcbridge.InstanceSelector(class, names.clearContents)
 	setString, setError := objcbridge.InstanceSelector(class, names.setStringForType)
+	readString, readError := objcbridge.InstanceSelector(class, names.stringForType)
 	stringType, typeError := objcbridge.Constant(appKit, names.stringType)
 
-	bindError := errors.Join(classError, generalError, clearError, setError, typeError)
+	bindError := errors.Join(classError, generalError, clearError, setError, readError, typeError)
 	if bindError != nil {
 		return clipboardMessages{}, bindError
 	}
@@ -75,6 +80,7 @@ func bindClipboard(names clipboardNames) (clipboardMessages, error) {
 		generalPasteboard: general,
 		clearContents:     clearContents,
 		setStringForType:  setString,
+		stringForType:     readString,
 		stringType:        objc.ID(stringType),
 	}, nil
 }
@@ -126,4 +132,40 @@ func writePasteboard(messages clipboardMessages, pasteboard objc.ID, text string
 	}
 
 	return nil
+}
+
+// ReadClipboard reads the plain text on the clipboard.
+func (pureClipboardWriter) ReadClipboard(_ context.Context) (string, error) {
+	return readClipboard(clipboardBinding)
+}
+
+// readClipboard reads the general pasteboard's plain text with the messages
+// binding gives, or reports the bridge unavailable when they could not be
+// bound.
+func readClipboard(binding func() (clipboardMessages, error)) (string, error) {
+	messages, bindError := binding()
+	if bindError != nil {
+		return "", fmt.Errorf("%w: %w", ErrBridgeUnavailable, bindError)
+	}
+
+	var (
+		text      string
+		readError error
+	)
+
+	objcbridge.WithAutoreleasePool(func() {
+		text, readError = readPasteboard(messages, messages.pasteboardClass.Send(messages.generalPasteboard))
+	})
+
+	return text, readError
+}
+
+// readPasteboard reads a pasteboard's plain text, or says it holds none.
+func readPasteboard(messages clipboardMessages, pasteboard objc.ID) (string, error) {
+	read := pasteboard.Send(messages.stringForType, messages.stringType)
+	if read == 0 {
+		return "", platform.ErrClipboardEmpty
+	}
+
+	return objcbridge.GoStringFromNS(read), nil
 }

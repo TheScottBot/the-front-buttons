@@ -743,6 +743,30 @@ func TestClient_CountsStickyNotes(t *testing.T) {
 	}
 }
 
+// TestClient_AddsAStickyNoteToAnArea: adding posts one rectangular sticky
+// note, as plain text, at a place inside its area, in the array Mural
+// documents.
+func TestClient_AddsAStickyNoteToAnArea(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFakeAnswering(t, `{"value":[{"id":"0-9","type":"sticky note"}]}`, http.StatusCreated)
+
+	addError := client.AddStickyNote(t.Context(), "team.1712345678901",
+		murals.StickyNote{Text: "Ask legal <b>first</b>", AreaID: "0-2", X: 168, Y: 20})
+	if addError != nil {
+		t.Fatal(addError)
+	}
+
+	want := []string{
+		`POST /api/public/v1/murals/team.1712345678901/widgets/sticky-note Bearer access-1 ` +
+			`[{"shape":"rectangle","text":"Ask legal \u003cb\u003efirst\u003c/b\u003e","x":168,"y":20,"parentId":"0-2"}]`,
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+}
+
 // TestClient_SaysWhyMuralRefusedTheTimer: no such mural is not found, a
 // refusal is refused by Mural's code, a sign in without the scope a request
 // needs must sign in again, and a mural ID that is not one is never sent.

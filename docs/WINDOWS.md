@@ -139,7 +139,7 @@ leaves the configuration, the log and any secrets in Credential Manager.
 | Opening a link or launching an application | Work, through the shell; an application key switches to the application instead when it is running |
 | `press_key` and `press_shortcut` | Work, through SendInput |
 | Quitting on a triple press | Closes the application's own windows |
-| Pasting a Mural link, the Mural timer keys | Written; the clipboard is untried on Windows |
+| Pasting a Mural link, the Mural keys | Written; the clipboard, written and read, is untried on Windows |
 | GitHub Actions, Mural sign in | Work; secrets live in Credential Manager |
 | Application icons on keys | Work, through the shell. An application the shell cannot find shows the crossed box that marks an icon not available |
 | Bringing an application forward | Works. An application key, and an app screen's key before its key presses, restores the application's window and puts it in front, holding Alt for that moment so Windows lets a background program take the focus. An application whose only window is hidden, as one closed to the notification area, counts as not running and is launched, which brings most such applications back. A Store app whose window belongs to ApplicationFrameHost is launched too, and the shell brings back the one running. |

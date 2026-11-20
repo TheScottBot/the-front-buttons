@@ -125,3 +125,28 @@ func (client *Client) listWidgets(
 
 	return nil
 }
+
+// stickyNotePath is the address sticky notes are added at, under a mural's
+// own, as Mural documents it: a post of an array of notes.
+const stickyNotePath = "/widgets/sticky-note"
+
+// stickyNoteShape is the shape every added note takes.
+const stickyNoteShape = "rectangle"
+
+// stickyNoteBody is one sticky note as adding posts it: plain text, so
+// nothing in it is read as markup, at a place inside its area.
+type stickyNoteBody struct {
+	Shape    string `json:"shape"`
+	Text     string `json:"text"`
+	X        int    `json:"x"`
+	Y        int    `json:"y"`
+	ParentID string `json:"parentId"`
+}
+
+// AddStickyNote adds one sticky note to an area of a board.
+func (client *Client) AddStickyNote(boardContext context.Context, muralID string, note murals.StickyNote) error {
+	_, callError := client.call(boardContext, http.MethodPost, muralsPath+muralID+stickyNotePath, muralID,
+		[]stickyNoteBody{{Shape: stickyNoteShape, Text: note.Text, X: note.X, Y: note.Y, ParentID: note.AreaID}})
+
+	return callError
+}

@@ -34,6 +34,9 @@ type Ports struct {
 	ShortcutPresser platform.ShortcutPresser
 	// ClipboardWriter puts text on the clipboard, for a key that pastes it.
 	ClipboardWriter platform.ClipboardWriter
+	// ClipboardReader reads the text on the clipboard, for a key that sends
+	// it somewhere.
+	ClipboardReader platform.ClipboardReader
 	// MuralTimer starts and adds to a mural's timer, for the Mural timer
 	// keys.
 	MuralTimer murals.Timer

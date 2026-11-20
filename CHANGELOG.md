@@ -34,6 +34,12 @@ code since the previous tag, and which author gates were cleared at which commit
 - `mural_sticky_count` shows how many sticky notes are on a board, or in the
   area its `area` names by title, counting every thirty seconds and at once
   after a press. An area the board does not have shows `no_area`.
+- `mural_parking_lot` puts the clipboard's text on a sticky note in the area
+  its `area` names, in the next free place of a grid five notes wide. The
+  daemon reads the clipboard for the first time, through a new
+  `ClipboardReader` port on both Mac bridges and on Windows (not yet run
+  there); only this key reads it, when pressed. `SECURITY.md` and
+  `PRIVACY.md` say so, and now list every Mural request.
 - The navigation keys' colour. `navigation_background`, written `#RRGGBB`,
   colours the back and forward keys on every page and app screen, and the
   dashboard's paging tiles; their arrow and words are drawn in black or
