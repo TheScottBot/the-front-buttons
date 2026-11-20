@@ -53,6 +53,15 @@ type Timer interface {
 	ReadTimer(timerContext context.Context, muralID string) (TimerState, error)
 }
 
+// Board is the rest of a mural's facilitation, through Mural's API, for the
+// person signed in: starting and ending private mode, hiding who wrote what
+// or not, and reading whether it is on.
+type Board interface {
+	StartPrivateMode(boardContext context.Context, muralID string, hideAuthors bool) error
+	EndPrivateMode(boardContext context.Context, muralID string) error
+	ReadPrivateMode(boardContext context.Context, muralID string) (bool, error)
+}
+
 // TimerState is a mural's timer as it is now: running or not, paused or not,
 // and the time it has left, to the second.
 type TimerState struct {

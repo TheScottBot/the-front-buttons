@@ -56,34 +56,45 @@ type CountdownParameters struct {
 	Silent   bool          `brick:"silent"        description:"Start the timer without its sound at the end."`
 }
 
-// wakes holds, for each board, the channel a press uses to have the board's
-// countdown read the timer again at once. Keys made from one registry share
-// them, so a press on any key for a board wakes the one watch the live hub
-// runs for it.
+// wakes holds, for each live source, the channel a press uses to have the
+// source's watch read the board again at once. Keys made from one registry
+// share them, so a press on any key for a source wakes the one watch the live
+// hub runs for it.
 type wakes struct {
 	mutex    sync.Mutex
 	channels map[string]chan struct{}
 }
 
-// forBoard is the board's wake channel, made on first use. It holds one wake,
-// so a press never blocks and wakes made together read once.
-func (board *wakes) forBoard(muralID string) chan struct{} {
-	board.mutex.Lock()
-	defer board.mutex.Unlock()
+// newWakes is an empty set of wake channels.
+func newWakes() *wakes {
+	return &wakes{mutex: sync.Mutex{}, channels: map[string]chan struct{}{}}
+}
 
-	channel, found := board.channels[muralID]
+// forSource is the live source's wake channel, made on first use. It holds
+// one wake, so a press never blocks and wakes made together read once.
+func (sources *wakes) forSource(identity string) chan struct{} {
+	sources.mutex.Lock()
+	defer sources.mutex.Unlock()
+
+	channel, found := sources.channels[identity]
 	if !found {
 		channel = make(chan struct{}, 1)
-		board.channels[muralID] = channel
+		sources.channels[identity] = channel
 	}
 
 	return channel
 }
 
-// registerCountdown adds the countdown kind to a registry.
-func registerCountdown(registry *brick.Registry) error {
-	shared := &wakes{mutex: sync.Mutex{}, channels: map[string]chan struct{}{}}
+// wakeUp has a watch read again at once, unless a wake already waits.
+func wakeUp(wake chan struct{}) {
+	select {
+	case wake <- struct{}{}:
+	default:
+	}
+}
 
+// registerCountdown adds the countdown kind to a registry.
+func registerCountdown(registry *brick.Registry, shared *wakes) error {
 	return brick.Register(registry, CountdownKindName, func( //nolint:wrapcheck // Register already names the kind
 		parameters CountdownParameters, ports brick.Ports,
 	) (any, error) {
@@ -102,7 +113,7 @@ func registerCountdown(registry *brick.Registry) error {
 
 		return countdown{
 			muralID: muralID, timer: ports.MuralTimer, duration: duration, sound: !parameters.Silent,
-			wake: shared.forBoard(muralID),
+			wake: shared.forSource(countdownIdentity + muralID),
 		}, nil
 	})
 }
@@ -215,10 +226,7 @@ func (key countdown) PressWithState(pressContext context.Context, state brick.Li
 		return fmt.Errorf("using the board's timer: %w", brick.Categorised(timerFailureCategory(actError), actError))
 	}
 
-	select {
-	case key.wake <- struct{}{}:
-	default:
-	}
+	wakeUp(key.wake)
 
 	return nil
 }

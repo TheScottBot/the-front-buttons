@@ -542,6 +542,48 @@ func TestClient_ReadsAMuralsTimer(t *testing.T) {
 	}
 }
 
+// TestClient_StartsReadsAndEndsPrivateMode: starting posts whether authors are
+// hidden, ending posts to its end with no body, and reading gets whether it
+// is on, as Mural documents.
+func TestClient_StartsReadsAndEndsPrivateMode(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFakeAnswering(t, `{"value":{"active":true,"initialTimestamp":1,"hideAuthors":true}}`,
+		http.StatusOK, http.StatusOK, http.StatusNoContent)
+
+	startError := client.StartPrivateMode(t.Context(), "team.1712345678901", true)
+	active, readError := client.ReadPrivateMode(t.Context(), "team.1712345678901")
+	endError := client.EndPrivateMode(t.Context(), "team.1712345678901")
+
+	if startError != nil || readError != nil || endError != nil || !active {
+		t.Fatalf("want all done and private mode on, got %v, %v (%v) and %v", startError, readError, active, endError)
+	}
+
+	want := []string{
+		`POST /api/public/v1/murals/team.1712345678901/private-mode/start Bearer access-1 {"hideAuthors":true}`,
+		`GET /api/public/v1/murals/team.1712345678901/private-mode Bearer access-1 `,
+		`POST /api/public/v1/murals/team.1712345678901/private-mode/end Bearer access-1 `,
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+
+	_, off := newTimerFakeAnswering(t, `{"value":{"active":false,"hideAuthors":false}}`)
+
+	inactive, offError := off.ReadPrivateMode(t.Context(), "team.1712345678901")
+	if offError != nil || inactive {
+		t.Errorf("want private mode read as off, got %v (%v)", inactive, offError)
+	}
+
+	_, garbled := newTimerFakeAnswering(t, `{"value":`)
+
+	_, garbledError := garbled.ReadPrivateMode(t.Context(), "team.1712345678901")
+	if !errors.Is(garbledError, murals.ErrUnreachable) {
+		t.Errorf("want an answer that is not private mode unreachable, got %v", garbledError)
+	}
+}
+
 // TestClient_SaysWhyMuralRefusedTheTimer: no such mural is not found, a
 // refusal is refused by Mural's code, a sign in without the scope a request
 // needs must sign in again, and a mural ID that is not one is never sent.

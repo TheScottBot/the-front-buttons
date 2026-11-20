@@ -201,7 +201,7 @@ func TestCountdown_ShowsWhyItCannotRead(t *testing.T) {
 
 		synctest.Wait()
 
-		if state := collected.last(); state.ErrorReason != "not_connected" {
+		if state := collected.last(); state.ErrorReason != notConnected {
 			t.Errorf("want not_connected, got %+v", state)
 		}
 	})

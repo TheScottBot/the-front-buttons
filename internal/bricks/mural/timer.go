@@ -110,7 +110,7 @@ func registerTimers(registry *brick.Registry) error {
 		return pauseError //nolint:wrapcheck // Register already names the kind
 	}
 
-	return registerCountdown(registry)
+	return nil
 }
 
 // constructStop builds a stop key.

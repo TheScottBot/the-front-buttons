@@ -37,6 +37,8 @@ type Ports struct {
 	// MuralTimer starts and adds to a mural's timer, for the Mural timer
 	// keys.
 	MuralTimer murals.Timer
+	// MuralBoard runs a mural's private mode, for the Mural private mode key.
+	MuralBoard murals.Board
 }
 
 // Kind is one registered brick kind: its name, its derived schema and its

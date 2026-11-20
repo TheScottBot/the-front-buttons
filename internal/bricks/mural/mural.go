@@ -37,7 +37,19 @@ func Register(registry *brick.Registry) error {
 		return shareError //nolint:wrapcheck // Register already names the kind
 	}
 
-	return registerTimers(registry)
+	timersError := registerTimers(registry)
+	if timersError != nil {
+		return timersError
+	}
+
+	shared := newWakes()
+
+	countdownError := registerCountdown(registry, shared)
+	if countdownError != nil {
+		return countdownError
+	}
+
+	return registerPrivateMode(registry, shared)
 }
 
 func constructShare(parameters ShareParameters, ports brick.Ports) (any, error) {

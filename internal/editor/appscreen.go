@@ -185,6 +185,7 @@ func (pages *pageHandlers) kindTitle(kind brick.Kind) string {
 		EditorAddress: nil, KeyPresser: nil,
 		MediaPlayer: nil, WindowCycler: nil, ShortcutPresser: nil, ClipboardWriter: nil,
 		MuralTimer: nil,
+		MuralBoard: nil,
 	})
 	if labelled, isLabelled := constructed.(brick.DefaultLabelled); isLabelled && constructError == nil {
 		return labelled.DefaultLabel()

@@ -13,6 +13,9 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/murals"
 )
 
+// notConnected is the reason a key shows when Mural's sign in is not good.
+const notConnected = "not_connected"
+
 // boardID is the mural boardLink names, as Mural's API knows it.
 const boardID = "team.1712345678901"
 
@@ -244,7 +247,7 @@ func TestTimerKeys_ShowWhyMuralRefused(t *testing.T) {
 
 	for failure, want := range map[error]string{
 		murals.ErrNotSetUp:     "not_set_up",
-		murals.ErrNotConnected: "not_connected",
+		murals.ErrNotConnected: notConnected,
 		murals.ErrNotFound:     "not_found",
 		murals.ErrRefused:      "refused",
 		murals.ErrUnreachable:  "network",

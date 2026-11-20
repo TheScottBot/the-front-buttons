@@ -218,6 +218,14 @@ It reads the board every ten seconds and counts down in between, so a timer
 started or changed on the board itself shows within ten seconds, and a press
 shows at once. Like the pause key, it needs the `murals:read` scope.
 
+`mural_private_mode` runs the board's private mode, which hides everyone's
+work from everyone else until it ends, for a silent brainstorm. The key shows
+an open eye while private mode is off, and a closed eye on a purple key while
+it is on; a press turns it on or off. Tick `hide_authors` to hide who wrote
+what while it is on. It reads the board every ten seconds, so private mode
+turned on or off on the board itself shows within ten seconds, and needs the
+`murals:read` scope too.
+
 ```yaml
       - row: 2
         column: 0
@@ -251,6 +259,12 @@ shows at once. Like the pause key, it needs the `murals:read` scope.
         parameters:
           link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
           duration: 10m
+      - row: 2
+        column: 6
+        kind: mural_private_mode
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          hide_authors: true
 ```
 
 ### Signing in to Mural

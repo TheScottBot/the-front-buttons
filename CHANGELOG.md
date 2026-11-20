@@ -20,6 +20,11 @@ code since the previous tag, and which author gates were cleared at which commit
   board every ten seconds and counts down each second in between; a press
   has it read again at once. Live keys can now show a short text in place of
   their label, and mark a state as urgent.
+- `mural_private_mode` turns a board's private mode on or off, hiding who
+  wrote what if `hide_authors` is ticked. The key shows a closed eye on a
+  purple key while private mode is on and an open eye while it is off,
+  reading the board every ten seconds and at once after a press. Mural keys
+  reach the board through a new `MuralBoard` port beside the timer's.
 
 ### Changed
 
