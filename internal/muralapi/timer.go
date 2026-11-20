@@ -14,13 +14,20 @@ import (
 )
 
 // The timer's addresses, under a mural's own, as Mural documents them:
-// starting posts a duration and whether its sound plays, and adding patches
-// the time to add, both in seconds.
+// starting posts a duration and whether its sound plays; adding patches the
+// time to add, in seconds, and pausing patches whether it is paused; stopping
+// posts to its end, with no body; reading gets it.
 const (
 	muralsPath     = "/api/public/v1/murals/"
 	timerPath      = "/timer"
 	timerStartPath = "/timer/start"
+	timerEndPath   = "/timer/end"
 )
+
+// invalidScopeCode is Mural's code for a sign in that was not given the scope
+// a request needs, as one made before the keys read boards is not: it is
+// mended by signing in again.
+const invalidScopeCode = "INVALID_SCOPE"
 
 // codePattern is the shape of the code Mural names a refusal by, such as
 // MURAL_NOT_FOUND; nothing else it says is repeated.
@@ -35,6 +42,20 @@ type startBody struct {
 // addBody is what adding to a timer patches.
 type addBody struct {
 	Delta int64 `json:"delta"`
+}
+
+// pauseBody is what pausing or resuming a timer patches.
+type pauseBody struct {
+	Paused bool `json:"paused"`
+}
+
+// timerAnswer is the timer as Mural gives it: the seconds it has left, and
+// when it was paused, null if it is not. A timer never started has neither.
+type timerAnswer struct {
+	Value struct {
+		RemainingSeconds *float64 `json:"remainingSeconds"`
+		PausedTimestamp  *float64 `json:"pausedTimestamp"`
+	} `json:"value"`
 }
 
 // refusalAnswer is how Mural names a request it refuses.
@@ -57,34 +78,92 @@ func (client *Client) AddTime(timerContext context.Context, muralID string, extr
 		addBody{Delta: int64(extra / time.Second)})
 }
 
-// sendTimer sends one timer request with a current access token. An access
-// token Mural no longer takes is dropped and the request sent once more with
-// a fresh one; refused again, the sign in is no longer good.
+// StopTimer stops a mural's timer.
+func (client *Client) StopTimer(timerContext context.Context, muralID string) error {
+	return client.sendTimer(timerContext, http.MethodPost, muralID, timerEndPath, nil)
+}
+
+// PauseTimer pauses a mural's running timer, or resumes it when paused is
+// false.
+func (client *Client) PauseTimer(timerContext context.Context, muralID string, paused bool) error {
+	return client.sendTimer(timerContext, http.MethodPatch, muralID, timerPath, pauseBody{Paused: paused})
+}
+
+// ReadTimer reads a mural's timer as it is now. It is running while it has
+// time left, and paused when Mural gives the time it was paused.
+func (client *Client) ReadTimer(timerContext context.Context, muralID string) (murals.TimerState, error) {
+	answer, callError := client.call(timerContext, http.MethodGet, muralsPath+muralID+timerPath, muralID, nil)
+	if callError != nil {
+		return murals.TimerState{}, callError
+	}
+
+	var timer timerAnswer
+
+	decodeError := json.Unmarshal(answer, &timer)
+	if decodeError != nil {
+		return murals.TimerState{}, fmt.Errorf("%w: the answer is not a timer", murals.ErrUnreachable)
+	}
+
+	remaining := 0.0
+	if timer.Value.RemainingSeconds != nil {
+		remaining = *timer.Value.RemainingSeconds
+	}
+
+	if remaining <= 0 {
+		return murals.TimerState{Running: false, Paused: false, Remaining: 0}, nil
+	}
+
+	return murals.TimerState{
+		Running:   true,
+		Paused:    timer.Value.PausedTimestamp != nil,
+		Remaining: time.Duration(remaining) * time.Second,
+	}, nil
+}
+
+// sendTimer sends one timer request that changes the timer.
 func (client *Client) sendTimer(
 	timerContext context.Context, method string, muralID string, path string, body any,
 ) error {
+	_, callError := client.call(timerContext, method, muralsPath+muralID+path, muralID, body)
+
+	return callError
+}
+
+// call sends one request about a mural with a current access token, and
+// returns Mural's answer when it did what was asked. A body of nil sends no
+// body. An access token Mural no longer takes is dropped and the request sent
+// once more with a fresh one; refused again, the sign in is no longer good.
+func (client *Client) call(
+	callContext context.Context, method string, path string, muralID string, body any,
+) ([]byte, error) {
 	if !murals.IsID(muralID) {
-		return fmt.Errorf("%w: not a mural ID", murals.ErrNotFound)
+		return nil, fmt.Errorf("%w: not a mural ID", murals.ErrNotFound)
 	}
 
-	encoded, encodeError := json.Marshal(body)
-	if encodeError != nil {
-		return fmt.Errorf("%w: encoding the request", murals.ErrUnreachable)
+	var encoded []byte
+
+	if body != nil {
+		marshalled, encodeError := json.Marshal(body)
+		if encodeError != nil {
+			return nil, fmt.Errorf("%w: encoding the request", murals.ErrUnreachable)
+		}
+
+		encoded = marshalled
 	}
 
 	for attempt := range 2 {
-		token, tokenError := client.AccessToken(timerContext)
+		token, tokenError := client.AccessToken(callContext)
 		if tokenError != nil {
-			return tokenError
+			return nil, tokenError
 		}
 
-		status, answer, sendError := client.send(timerContext, method, muralsPath+muralID+path, token, encoded)
+		status, answer, sendError := client.send(callContext, method, path, token, encoded)
 		if sendError != nil {
-			return sendError
+			return nil, sendError
 		}
 
 		if status != http.StatusUnauthorized {
-			return timerOutcome(status, answer)
+			return answer, requestOutcome(status, answer)
 		}
 
 		client.forgetAccessToken()
@@ -94,7 +173,7 @@ func (client *Client) sendTimer(
 		}
 	}
 
-	return fmt.Errorf("%w: Mural refused the sign in", murals.ErrNotConnected)
+	return nil, fmt.Errorf("%w: Mural refused the sign in", murals.ErrNotConnected)
 }
 
 // send makes one request with the access token, returning its status and a
@@ -108,7 +187,11 @@ func (client *Client) send(
 	}
 
 	request.Header.Set("Authorization", "Bearer "+token)
-	request.Header.Set("Content-Type", "application/json")
+
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+
 	request.Header.Set("Accept", "application/json")
 
 	response, sendError := client.httpClient.Do(request)
@@ -126,9 +209,9 @@ func (client *Client) send(
 	return response.StatusCode, answer, nil
 }
 
-// timerOutcome reads a timer request's answer: done, the mural not found, or
-// refused by Mural's code.
-func timerOutcome(status int, answer []byte) error {
+// requestOutcome reads a request's answer: done, the mural not found, a sign
+// in without the scope the request needs, or refused by Mural's code.
+func requestOutcome(status int, answer []byte) error {
 	var refusal refusalAnswer
 
 	code := "status " + http.StatusText(status)
@@ -137,8 +220,10 @@ func timerOutcome(status int, answer []byte) error {
 	}
 
 	switch {
-	case status == http.StatusOK || status == http.StatusCreated:
+	case isSuccess(status):
 		return nil
+	case status == http.StatusForbidden && code == invalidScopeCode:
+		return fmt.Errorf("%w: %s; connect to Mural again", murals.ErrNotConnected, code)
 	case status == http.StatusNotFound:
 		return fmt.Errorf("%w: %s", murals.ErrNotFound, code)
 	case status >= http.StatusInternalServerError:
@@ -146,6 +231,12 @@ func timerOutcome(status int, answer []byte) error {
 	default:
 		return fmt.Errorf("%w: %s", murals.ErrRefused, code)
 	}
+}
+
+// isSuccess reports a status Mural answers a request it did with: 200, 201
+// with what it made, or 204 with nothing to say.
+func isSuccess(status int) bool {
+	return status == http.StatusOK || status == http.StatusCreated || status == http.StatusNoContent
 }
 
 // forgetAccessToken drops the access token, so the next request refreshes it.

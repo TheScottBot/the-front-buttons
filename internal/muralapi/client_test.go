@@ -168,11 +168,12 @@ func requireNoSecret(t *testing.T, failure error) {
 	}
 }
 
-// TestClient_AuthorisationAddressAsksForTheTimerOnly: signing in starts at
-// Mural's authorisation address, with the app's client ID, the editor's
-// callback, a state to check on return, and the one scope the timer keys
-// need; before a client ID is stored there is none.
-func TestClient_AuthorisationAddressAsksForTheTimerOnly(t *testing.T) {
+// TestClient_AuthorisationAddressAsksToReadAndWriteMurals: signing in starts
+// at Mural's authorisation address, with the app's client ID, the editor's
+// callback, a state to check on return, and the two scopes the keys need, to
+// read a board's state and to change it; before a client ID is stored there
+// is none.
+func TestClient_AuthorisationAddressAsksToReadAndWriteMurals(t *testing.T) {
 	t.Parallel()
 
 	_, client, store, _ := newFake(t, http.StatusOK, nil)
@@ -194,8 +195,8 @@ func TestClient_AuthorisationAddressAsksForTheTimerOnly(t *testing.T) {
 
 	if parsed.Path != "/api/public/v1/authorization/oauth2/" || query.Get("client_id") != clientID ||
 		query.Get("redirect_uri") != redirectURI || query.Get("state") != "state-1" ||
-		query.Get("scope") != "murals:write" || query.Get("response_type") != "code" {
-		t.Errorf("want Mural's authorisation address for the timer, got %s", address)
+		query.Get("scope") != "murals:read murals:write" || query.Get("response_type") != "code" {
+		t.Errorf("want Mural's authorisation address for reading and writing murals, got %s", address)
 	}
 }
 
@@ -358,6 +359,7 @@ type timerMural struct {
 	requests []string
 	statuses []int
 	refreshs int
+	answer   string
 }
 
 func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request) {
@@ -392,8 +394,9 @@ func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request)
 		_, _ = writer.Write([]byte(`{"code":"MURAL_NOT_FOUND","message":"Mural not found"}`))
 	case http.StatusForbidden:
 		_, _ = writer.Write([]byte(`{"code":"INVALID_SCOPE","message":"no"}`))
+	case http.StatusNoContent:
 	default:
-		_, _ = writer.Write([]byte(`{"value":{"duration":300}}`))
+		_, _ = writer.Write([]byte(fake.answer))
 	}
 }
 
@@ -402,7 +405,14 @@ func (fake *timerMural) serve(writer http.ResponseWriter, request *http.Request)
 func newTimerFake(t *testing.T, statuses ...int) (*timerMural, *muralapi.Client) {
 	t.Helper()
 
-	fake := &timerMural{mutex: sync.Mutex{}, requests: nil, statuses: statuses, refreshs: 0}
+	return newTimerFakeAnswering(t, `{"value":{"duration":300}}`, statuses...)
+}
+
+// newTimerFakeAnswering is newTimerFake whose successful answers are answer.
+func newTimerFakeAnswering(t *testing.T, answer string, statuses ...int) (*timerMural, *muralapi.Client) {
+	t.Helper()
+
+	fake := &timerMural{mutex: sync.Mutex{}, requests: nil, statuses: statuses, refreshs: 0, answer: answer}
 	server := httptest.NewServer(http.HandlerFunc(fake.serve))
 	t.Cleanup(server.Close)
 
@@ -458,23 +468,102 @@ func TestClient_SignsInAgainWhenMuralRefusesTheToken(t *testing.T) {
 	}
 }
 
+// TestClient_StopsAndPausesAMuralsTimer: stopping posts to the timer's end,
+// and pausing and resuming patch whether it is paused, as Mural documents.
+func TestClient_StopsAndPausesAMuralsTimer(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFake(t, http.StatusNoContent, http.StatusCreated, http.StatusCreated)
+
+	stopError := client.StopTimer(t.Context(), "team.1712345678901")
+	pauseError := client.PauseTimer(t.Context(), "team.1712345678901", true)
+	resumeError := client.PauseTimer(t.Context(), "team.1712345678901", false)
+
+	if stopError != nil || pauseError != nil || resumeError != nil {
+		t.Fatalf("want all done, got %v, %v and %v", stopError, pauseError, resumeError)
+	}
+
+	want := []string{
+		`POST /api/public/v1/murals/team.1712345678901/timer/end Bearer access-1 `,
+		`PATCH /api/public/v1/murals/team.1712345678901/timer Bearer access-1 {"paused":true}`,
+		`PATCH /api/public/v1/murals/team.1712345678901/timer Bearer access-1 {"paused":false}`,
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+}
+
+// TestClient_ReadsAMuralsTimer: reading gets the timer, and tells running,
+// paused and finished apart by its remaining seconds and paused timestamp.
+func TestClient_ReadsAMuralsTimer(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name   string
+		answer string
+		want   murals.TimerState
+	}{
+		{
+			"running", `{"value":{"duration":300,"initialTimestamp":1,"now":2,"pausedTimestamp":null,` +
+				`"remainingSeconds":125.4,"serverTimestamp":2,"soundEnabled":true}}`,
+			murals.TimerState{Running: true, Paused: false, Remaining: 125 * time.Second},
+		},
+		{
+			"paused", `{"value":{"duration":300,"initialTimestamp":1,"now":2,"pausedTimestamp":1655312720372,` +
+				`"remainingSeconds":60,"serverTimestamp":2,"soundEnabled":true}}`,
+			murals.TimerState{Running: true, Paused: true, Remaining: time.Minute},
+		},
+		{
+			"finished", `{"value":{"duration":300,"initialTimestamp":1,"now":2,"pausedTimestamp":null,` +
+				`"remainingSeconds":0,"serverTimestamp":2,"soundEnabled":true}}`,
+			murals.TimerState{Running: false, Paused: false, Remaining: 0},
+		},
+		{"never started", `{"value":{}}`, murals.TimerState{Running: false, Paused: false, Remaining: 0}},
+	} {
+		fake, client := newTimerFakeAnswering(t, test.answer)
+
+		state, readError := client.ReadTimer(t.Context(), "team.1712345678901")
+		if readError != nil || state != test.want {
+			t.Errorf("%s: want %+v, got %+v (%v)", test.name, test.want, state, readError)
+		}
+
+		if want := "GET /api/public/v1/murals/team.1712345678901/timer Bearer access-1 "; fmt.Sprint(fake.requests) !=
+			fmt.Sprint([]string{want}) {
+			t.Errorf("%s: want one get of the timer, got %v", test.name, fake.requests)
+		}
+	}
+
+	_, garbled := newTimerFakeAnswering(t, `{"value":`)
+
+	_, garbledError := garbled.ReadTimer(t.Context(), "team.1712345678901")
+	if !errors.Is(garbledError, murals.ErrUnreachable) {
+		t.Errorf("want an answer that is not a timer unreachable, got %v", garbledError)
+	}
+}
+
 // TestClient_SaysWhyMuralRefusedTheTimer: no such mural is not found, a
-// refusal is refused by Mural's code, and a mural ID that is not one is never
-// sent.
+// refusal is refused by Mural's code, a sign in without the scope a request
+// needs must sign in again, and a mural ID that is not one is never sent.
 func TestClient_SaysWhyMuralRefusedTheTimer(t *testing.T) {
 	t.Parallel()
 
-	_, client := newTimerFake(t, http.StatusNotFound, http.StatusForbidden)
+	_, client := newTimerFake(t, http.StatusNotFound, http.StatusConflict, http.StatusForbidden)
 
 	missing := client.AddTime(t.Context(), "team.1712345678901", time.Minute)
 	refused := client.AddTime(t.Context(), "team.1712345678901", time.Minute)
+	unscoped := client.AddTime(t.Context(), "team.1712345678901", time.Minute)
 
 	if !errors.Is(missing, murals.ErrNotFound) {
 		t.Errorf("want not found, got %v", missing)
 	}
 
-	if !errors.Is(refused, murals.ErrRefused) || !strings.Contains(refused.Error(), "INVALID_SCOPE") {
-		t.Errorf("want refused by its code, got %v", refused)
+	if !errors.Is(refused, murals.ErrRefused) || !strings.Contains(refused.Error(), "Conflict") {
+		t.Errorf("want refused by its status, got %v", refused)
+	}
+
+	if !errors.Is(unscoped, murals.ErrNotConnected) || !strings.Contains(unscoped.Error(), "INVALID_SCOPE") {
+		t.Errorf("want a sign in without the scope to sign in again, got %v", unscoped)
 	}
 
 	fake, unsent := newTimerFake(t)

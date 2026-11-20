@@ -5,6 +5,22 @@ Keep a Changelog. Each tag will name the contract digest it was built against
 (none yet: the configuration contract is provisional), every change to shared
 code since the previous tag, and which author gates were cleared at which commit.
 
+## Unreleased
+
+### Added
+
+- Two more Mural timer keys: `mural_stop_timer` stops the board's timer, and
+  `mural_pause_timer` pauses it while it runs and resumes it while it is
+  paused, reading the timer first to know which; pressed with no timer
+  running it changes nothing and shows `no_timer`.
+
+### Changed
+
+- Signing in to Mural asks for `murals:read` as well as `murals:write`, so
+  keys can read a board's state. A sign in made before has only
+  `murals:write`; a key that needs to read then shows not_connected, and the
+  Mural app needs `murals:read` ticked before connecting again.
+
 ## 0.1.0 - 2026-11-20
 
 Built ahead of the hardware (deviation DV1). No author gate has been cleared.

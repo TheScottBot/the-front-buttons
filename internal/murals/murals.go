@@ -43,11 +43,22 @@ var (
 )
 
 // Timer is a mural's timer, through Mural's API, for the person signed in:
-// starting it for a duration, with or without its sound at the end, and
-// adding time to it.
+// starting it for a duration, with or without its sound at the end, adding
+// time to it, stopping it, pausing or resuming it, and reading it.
 type Timer interface {
 	StartTimer(timerContext context.Context, muralID string, duration time.Duration, sound bool) error
 	AddTime(timerContext context.Context, muralID string, extra time.Duration) error
+	StopTimer(timerContext context.Context, muralID string) error
+	PauseTimer(timerContext context.Context, muralID string, paused bool) error
+	ReadTimer(timerContext context.Context, muralID string) (TimerState, error)
+}
+
+// TimerState is a mural's timer as it is now: running or not, paused or not,
+// and the time it has left, to the second.
+type TimerState struct {
+	Running   bool
+	Paused    bool
+	Remaining time.Duration
 }
 
 // boardPath is a board's address's path, as its browser shows it:

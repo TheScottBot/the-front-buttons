@@ -24,12 +24,13 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/platform"
 )
 
-// Mural's addresses and the one scope the timer keys need.
+// Mural's addresses and the scopes the keys need: reading a board's state, and
+// changing it.
 const (
 	defaultBaseURL    = "https://" + murals.Host
 	authorisationPath = "/api/public/v1/authorization/oauth2/"
 	tokenPath         = "/api/public/v1/authorization/oauth2/token" //nolint:gosec // an address, not a credential
-	timerScope        = "murals:write"
+	keysScope         = "murals:read murals:write"
 )
 
 // maximumResponseBytes bounds an answer before it is parsed; a token answer
@@ -85,7 +86,7 @@ func (client *Client) AuthorizationURL(redirectURI string, state string) (string
 	}
 
 	query := url.Values{
-		"client_id": {clientID}, "redirect_uri": {redirectURI}, "scope": {timerScope},
+		"client_id": {clientID}, "redirect_uri": {redirectURI}, "scope": {keysScope},
 		"state": {state}, "response_type": {"code"},
 	}
 

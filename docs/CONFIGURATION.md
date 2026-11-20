@@ -199,13 +199,15 @@ Mural's API, signed in once from the editor (below):
 `mural_start_timer` starts the board's timer, for five minutes unless
 `duration` says otherwise, up to 90 minutes, with its sound at the end unless
 `silent` is ticked; `mural_add_minute` and `mural_add_half_minute` add a minute
-and thirty seconds to it. The link is the board's own address, as its
-browser's address bar shows it; a key with no label says what it does, such as
-Start 5:00 or +0:30. The person signed in must be able to run the board's
-timer, as its owner or a facilitator. A key Mural refuses says why: not_set_up
-or not_connected for the sign in, not_found for a board Mural does not know or
-the person cannot reach, refused for anything else Mural turns down, or
-network.
+and thirty seconds to it; `mural_stop_timer` stops it; and `mural_pause_timer`
+pauses it while it runs and resumes it while it is paused. The link is the
+board's own address, as its browser's address bar shows it; a key with no label
+says what it does, such as Start 5:00, +0:30, Stop or Pause. The person signed
+in must be able to run the board's timer, as its owner or a facilitator. A key
+Mural refuses says why: not_set_up or not_connected for the sign in, not_found
+for a board Mural does not know or the person cannot reach, refused for
+anything else Mural turns down, or network; the pause key says no_timer when
+the board has no timer running.
 
 ```yaml
       - row: 2
@@ -224,18 +226,29 @@ network.
         kind: mural_add_half_minute
         parameters:
           link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+      - row: 2
+        column: 3
+        kind: mural_pause_timer
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+      - row: 2
+        column: 4
+        kind: mural_stop_timer
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
 ```
 
 ### Signing in to Mural
 
-The Mural timer keys use Mural's API, through an app of your own, signed in
-once from the editor:
+The Mural keys use Mural's API, through an app of your own, signed in once
+from the editor:
 
 1. In Mural, choose your avatar, then **Create and manage apps**, and
    **New app**. Name it as you like. Give it the redirect URL the editor's
    credentials page shows, `http://127.0.0.1:48080/mural/callback`, and tick
-   the scope `murals:write`. Mural shows the client secret once, so keep it to
-   hand.
+   the scopes `murals:read` and `murals:write`: the keys read a board's state,
+   such as whether its timer is paused, as well as change it. Mural shows the
+   client secret once, so keep it to hand.
 2. On the editor's credentials page, under **Mural**, enter the client ID and
    client secret and store them. They go to the Keychain, or Credential
    Manager on Windows, are sent only to app.mural.co, and are never shown again.
@@ -243,7 +256,8 @@ once from the editor:
    returns to the editor, which says it is connected.
 
 The sign in lasts until Mural ends it; connect again if a key says it is not
-connected. If the editor had to use another port than 48080, the redirect URL
+connected. A sign in made before the keys read boards has only `murals:write`:
+tick `murals:read` in the app as well, then connect again. If the editor had to use another port than 48080, the redirect URL
 the credentials page shows changes with it, and the app's redirect URL must
 match.
 

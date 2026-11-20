@@ -14,14 +14,24 @@ import (
 // API, signed in from the editor's credentials page. mural_start_timer starts
 // the board's timer, five minutes unless given another time, with its sound
 // at the end unless silent; mural_add_minute and mural_add_half_minute add a
-// minute and thirty seconds to it.
+// minute and thirty seconds to it; mural_stop_timer stops it; and
+// mural_pause_timer pauses it while it runs, or resumes it while it is paused.
 
 // The timer kinds' names in configuration.
 const (
 	StartKindName         = "mural_start_timer"
 	AddMinuteKindName     = "mural_add_minute"
 	AddHalfMinuteKindName = "mural_add_half_minute"
+	StopKindName          = "mural_stop_timer"
+	PauseKindName         = "mural_pause_timer"
 )
+
+// noTimerCategory is what the pause key shows when the board has no timer
+// running to pause or resume.
+const noTimerCategory = "no_timer"
+
+// errNoTimer reports a board with no timer running.
+var errNoTimer = errors.New("the board has no timer running")
 
 // The timer's times: Mural's own starting five minutes, and what each add key
 // adds.
@@ -45,6 +55,14 @@ type AddParameters struct {
 	brick.Appearance
 
 	Link string `brick:"link,required" bounds:"1,2048" format:"mural_board" description:"The board's address, as its browser shows it; the time is added to that board's timer."`
+}
+
+// BoardParameters is the stop and pause keys' one declaration of their
+// parameters.
+type BoardParameters struct {
+	brick.Appearance
+
+	Link string `brick:"link,required" bounds:"1,2048" format:"mural_board" description:"The board's address, as its browser shows it; the key acts on that board's timer."`
 }
 
 // registerTimers adds the timer kinds to a registry.
@@ -82,7 +100,46 @@ func registerTimers(registry *brick.Registry) error {
 		}
 	}
 
+	stopError := brick.Register(registry, StopKindName, constructStop)
+	if stopError != nil {
+		return stopError //nolint:wrapcheck // Register already names the kind
+	}
+
+	pauseError := brick.Register(registry, PauseKindName, constructPause)
+	if pauseError != nil {
+		return pauseError //nolint:wrapcheck // Register already names the kind
+	}
+
 	return nil
+}
+
+// constructStop builds a stop key.
+func constructStop(parameters BoardParameters, ports brick.Ports) (any, error) {
+	return newTimerKey(StopKindName, parameters.Link, ports, func(timerContext context.Context, timer murals.Timer,
+		muralID string,
+	) error {
+		return timer.StopTimer(timerContext, muralID)
+	}, "Stop")
+}
+
+// constructPause builds a pause key.
+func constructPause(parameters BoardParameters, ports brick.Ports) (any, error) {
+	return newTimerKey(PauseKindName, parameters.Link, ports, pauseOrResume, "Pause")
+}
+
+// pauseOrResume reads the board's timer, then pauses it if it runs or resumes
+// it if it is paused.
+func pauseOrResume(timerContext context.Context, timer murals.Timer, muralID string) error {
+	state, readError := timer.ReadTimer(timerContext, muralID)
+	if readError != nil {
+		return readError //nolint:wrapcheck // the key's press names what it was doing
+	}
+
+	if !state.Running {
+		return errNoTimer
+	}
+
+	return timer.PauseTimer(timerContext, muralID, !state.Paused) //nolint:wrapcheck // as above
 }
 
 // clockTime writes a time as a clock does, minutes and seconds.
@@ -139,6 +196,7 @@ func timerFailureCategory(actError error) string {
 		murals.ErrNotConnected: "not_connected",
 		murals.ErrNotFound:     "not_found",
 		murals.ErrRefused:      "refused",
+		errNoTimer:             noTimerCategory,
 	} {
 		if errors.Is(actError, failure) {
 			return category
