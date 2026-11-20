@@ -175,13 +175,13 @@ func TestEditor_PreviewsThePagingTilesAsTheDeckDrawsThem(t *testing.T) {
 
 	onWork := layout.PageIndication{Number: 1, Count: 2, CurrentName: workName, PreviousName: playName, NextName: playName}
 	if !testsupport.SameImage(previewImage(t, harness, backPreview),
-		renderer.RenderNavigation(render.DirectionBack, onWork, true)) {
+		renderer.RenderNavigation(render.DirectionBack, onWork, true, render.DefaultNavigationBackground())) {
 		t.Error("want Work's back tile previewed as the deck draws it")
 	}
 
 	onPlay := layout.PageIndication{Number: 2, Count: 2, CurrentName: playName, PreviousName: workName, NextName: workName}
 	if !testsupport.SameImage(previewImage(t, harness, forwardPreview),
-		renderer.RenderNavigation(render.DirectionForward, onPlay, true)) {
+		renderer.RenderNavigation(render.DirectionForward, onPlay, true, render.DefaultNavigationBackground())) {
 		t.Error("want Play's forward tile previewed as the deck draws it")
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/TheScottBot/the-front-buttons/internal/config"
 	"github.com/TheScottBot/the-front-buttons/internal/dashboard"
 	"github.com/TheScottBot/the-front-buttons/internal/layout"
+	"github.com/TheScottBot/the-front-buttons/internal/render"
 )
 
 // Dashboard: the page dashboard as the deck draws it, its pages and its world
@@ -219,6 +220,7 @@ func (pages *pageHandlers) dashboardScene(
 		ScreenIcon: func(pageIndex int) image.Image {
 			return pages.loadAppIcon(sceneContext, configuration.Pages[pageIndex].Application)
 		},
+		NavigationBackground: render.NavigationBackgroundFrom(configuration.NavigationBackground),
 	}
 
 	return scene, look

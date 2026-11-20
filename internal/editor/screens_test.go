@@ -78,7 +78,8 @@ func TestEditor_PagesBetweenAnApplicationsScreens(t *testing.T) {
 	onFirst := layout.PageIndication{
 		Number: 1, Count: 2, CurrentName: golandFirstName, PreviousName: golandSecond, NextName: golandSecond,
 	}
-	want := previewRenderer(t).RenderNavigation(render.DirectionForward, onFirst, true)
+	want := previewRenderer(t).RenderNavigation(render.DirectionForward, onFirst, true,
+		render.DefaultNavigationBackground())
 
 	if !testsupport.SameImage(previewImage(t, harness, "/preview.png?page=1&row=3&column=7"), want) {
 		t.Error("want the screen's forward tile drawn numbering the screens")

@@ -98,7 +98,7 @@ func placeAfterMove(pageIndex int, from int, destination int) int {
 // its own sort, numbered from one, with the page there now named.
 func reorderPlaces(allPages []config.Page, pageIndex int) []reorderPlace {
 	page := pageAt(config.Configuration{
-		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: allPages,
+		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: allPages,
 	}, pageIndex)
 	places := make([]reorderPlace, 0, len(allPages))
 

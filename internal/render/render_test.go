@@ -76,9 +76,12 @@ func TestRenderNavigation_MatchesGoldenImages(t *testing.T) {
 	renderer := newTestRenderer(t)
 	indication := layout.PageIndication{Number: 2, Count: 5, CurrentName: "Work", PreviousName: "Home", NextName: "Games"}
 
-	compareWithGolden(t, "navigation_back", renderer.RenderNavigation(render.DirectionBack, indication, true))
-	compareWithGolden(t, "navigation_forward", renderer.RenderNavigation(render.DirectionForward, indication, true))
-	compareWithGolden(t, "navigation_no_pages", renderer.RenderNavigation(render.DirectionForward, indication, false))
+	grey := render.DefaultNavigationBackground()
+
+	compareWithGolden(t, "navigation_back", renderer.RenderNavigation(render.DirectionBack, indication, true, grey))
+	compareWithGolden(t, "navigation_forward", renderer.RenderNavigation(render.DirectionForward, indication, true, grey))
+	compareWithGolden(t, "navigation_no_pages",
+		renderer.RenderNavigation(render.DirectionForward, indication, false, grey))
 	compareWithGolden(t, "blank", renderer.RenderBlank())
 }
 
@@ -332,7 +335,7 @@ func TestFramedRenderer_ContainsEveryKeyInABlackSquare(t *testing.T) {
 		"key": renderer.Render(render.Appearance{Label: buildLabel, Background: light}),
 		"navigation": renderer.RenderNavigation(render.DirectionForward, layout.PageIndication{
 			Number: 1, Count: 1, CurrentName: "", PreviousName: "", NextName: "",
-		}, false),
+		}, false, render.DefaultNavigationBackground()),
 		"blank": renderer.RenderBlank(),
 	}
 

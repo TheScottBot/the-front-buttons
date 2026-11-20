@@ -42,8 +42,9 @@ until it is let go, so every press is seen whether or not it changes anything
 else.
 
 Rows count from 0 at the top and columns from 0 at the left, on the XL's 4 by 8
-grid. Row 3, columns 0 and 7 are the navigation keys and cannot be assigned. A
-key names exactly one of `kind` with `parameters`, or `preset` with `fields`.
+grid. Row 3, columns 0 and 7 are the navigation keys and cannot be assigned;
+their colour is set once for the whole file, under
+[Navigation keys](#navigation-keys). A key names exactly one of `kind` with `parameters`, or `preset` with `fields`.
 Quote values YAML would read as numbers or booleans, such as IDs. Saving from
 the editor rewrites the file and drops hand written comments.
 
@@ -172,6 +173,32 @@ Asia/Tokyo, checked as the file loads; a city without a zone of its own takes
 its region's, as Araraquara takes America/Sao_Paulo. Any clock that breaks
 these refuses the file, as any other problem does. Leave `world_clocks` out
 for the four above. A change shows the next time the world view opens.
+
+## Navigation keys
+
+The navigation keys, back at row 3, column 0 and forward at row 3, column 7,
+are grey on every page unless the file names a colour for them. Add
+`navigation_background` beside `pages`, written `#RRGGBB` as a key's own
+`background` is, and quoted, since YAML reads an unquoted `#` as the start of a
+comment:
+
+```yaml
+schema_version: 1
+navigation_background: "#1F6FEB"
+pages:
+  # ...
+```
+
+It is one colour for both keys, the same on every page and app screen, and
+the dashboard's paging tiles in the same corners take it too. Their arrow,
+page count and page name are drawn in black or white, whichever reads better
+on it, as a key's label is. Anything not written `#RRGGBB`, empty text
+included, refuses the file. Leave the field out for the usual grey. The deck
+repaints both keys within a second of the file being saved.
+
+In the editor, clicking a navigation key on the grid pages, as it does on the
+deck, so the colour is set from **Colour the back and forward keys**, just under
+the grid, instead; [EDITOR.md](EDITOR.md#the-back-and-forward-keys) says more.
 
 ## Mural
 

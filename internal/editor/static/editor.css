@@ -296,6 +296,14 @@ body::after {
   margin: 0 0 2rem -0.5rem;
 }
 
+/* The shortcut to the back and forward keys' colour, just under the grid by
+   the back key: clicking those keys on the grid pages, as on the deck, so
+   their colour is reached from here instead. */
+.grid + .navigation-shortcut {
+  margin: -1.5rem 0 1.5rem;
+  font-size: 0.85rem;
+}
+
 .grid caption {
   caption-side: top;
   text-align: left;

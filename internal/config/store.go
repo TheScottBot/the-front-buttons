@@ -68,11 +68,13 @@ type Store struct {
 // until the first Reload.
 func NewStore(path string, decoder Decoder, fileSystem StoreFileSystem) *Store {
 	return &Store{
-		path:          path,
-		decoder:       decoder,
-		fileSystem:    fileSystem,
-		mutex:         sync.Mutex{},
-		current:       Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: nil},
+		path:       path,
+		decoder:    decoder,
+		fileSystem: fileSystem,
+		mutex:      sync.Mutex{},
+		current: Configuration{
+			SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: nil,
+		},
 		hasCurrent:    false,
 		lastDigest:    [sha256.Size]byte{},
 		hasDigest:     false,
@@ -231,10 +233,13 @@ func (store *Store) OnDisk() (Configuration, error) {
 	fileContent, readError := store.fileSystem.ReadBounded(store.path, MaximumFileBytes)
 	if readError != nil {
 		if errors.Is(readError, fs.ErrNotExist) && !store.everRead() {
-			return Configuration{SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil}, nil
+			return Configuration{
+				SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "",
+				NavigationBackground: "", Pages: nil,
+			}, nil
 		}
 
-		empty := Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: nil}
+		empty := Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: nil}
 
 		return empty, fmt.Errorf("reading the configuration file: %w", readError)
 	}

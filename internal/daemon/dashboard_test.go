@@ -51,7 +51,8 @@ func dashboardConfiguration(screens int) config.Configuration {
 	}
 
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: pages,
+		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "",
+		NavigationBackground: "", Pages: pages,
 	}
 }
 

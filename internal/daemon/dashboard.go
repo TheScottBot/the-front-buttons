@@ -91,6 +91,7 @@ func (state *loopState) look(runContext context.Context) dashboard.Look {
 
 			return state.appIcon(runContext, application)
 		},
+		NavigationBackground: state.navigationBackground,
 	}
 }
 

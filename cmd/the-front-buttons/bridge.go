@@ -37,7 +37,9 @@ func bridgesFor(configuration config.Configuration) bridgeChoice {
 // defaultBridges is the choice for a file that names no bridge or cannot be
 // read: cgo.
 func defaultBridges() bridgeChoice {
-	return bridgesFor(config.Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: nil})
+	return bridgesFor(config.Configuration{
+		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: nil,
+	})
 }
 
 // readBridges reads the configuration file as it is now, without consuming

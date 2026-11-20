@@ -18,9 +18,10 @@ const secondScreenName = "Blue 2"
 // later in the file than the regular pages, opened from an app key on First.
 func twoScreenConfiguration() config.Configuration {
 	return config.Configuration{
-		SchemaVersion:  config.CurrentSchemaVersion,
-		WorldClocks:    nil,
-		PlatformBridge: "",
+		SchemaVersion:        config.CurrentSchemaVersion,
+		WorldClocks:          nil,
+		PlatformBridge:       "",
+		NavigationBackground: "",
 		Pages: []config.Page{
 			{Name: appIconTestLabel, Application: knownApplication, Keys: []config.Key{button("screen one", 1, false)}},
 			{Name: firstPageName, Application: "", Keys: []config.Key{appScreenKey(true), button("first", 1, false)}},
@@ -88,10 +89,11 @@ func TestDaemon_NumbersAnApplicationsScreensOnItsPagingTiles(t *testing.T) {
 		onScreen := layout.PageIndication{
 			Number: 1, Count: 2, CurrentName: appIconTestLabel, PreviousName: secondScreenName, NextName: secondScreenName,
 		}
-		screens := running.renderer.RenderNavigation(render.DirectionForward, onScreen, true)
+		grey := render.DefaultNavigationBackground()
+		screens := running.renderer.RenderNavigation(render.DirectionForward, onScreen, true, grey)
 		regular := running.renderer.RenderNavigation(render.DirectionForward, layout.PageIndication{
 			Number: 1, Count: 2, CurrentName: firstPageName, PreviousName: secondPageName, NextName: secondPageName,
-		}, true)
+		}, true, grey)
 
 		drawn := drawnImage(t, device, forwardKey)
 		if distance(drawn, screens) >= distance(drawn, regular) {

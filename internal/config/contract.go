@@ -58,6 +58,8 @@ const (
 	clockLabelName     = "label"
 	clockZoneName      = "zone"
 	platformBridgeName = "platform_bridge"
+	// navigationBackgroundName is the navigation keys' background colour.
+	navigationBackgroundName = "navigation_background"
 )
 
 // Reason categorises why a configuration was rejected, so rejections are counted
@@ -131,7 +133,12 @@ type Configuration struct {
 	// empty when the file names none, meaning PlatformBridgeCgo. The decoder
 	// never fills the default in, so saving a file never writes it into it.
 	PlatformBridge PlatformBridge
-	Pages          []Page
+	// NavigationBackground is the background colour of the navigation keys,
+	// written #RRGGBB, the same on every page and app screen, or empty when
+	// the file names none, meaning the usual grey. The decoder never fills the
+	// default in, so saving a file never writes it into it.
+	NavigationBackground string
+	Pages                []Page
 }
 
 // WorldClock is one of the world view's clocks: the label on its first key,
@@ -228,10 +235,11 @@ func (configuration Configuration) Clone() Configuration {
 	}
 
 	return Configuration{
-		SchemaVersion:  configuration.SchemaVersion,
-		WorldClocks:    slices.Clone(configuration.WorldClocks),
-		PlatformBridge: configuration.PlatformBridge,
-		Pages:          pages,
+		SchemaVersion:        configuration.SchemaVersion,
+		WorldClocks:          slices.Clone(configuration.WorldClocks),
+		PlatformBridge:       configuration.PlatformBridge,
+		NavigationBackground: configuration.NavigationBackground,
+		Pages:                pages,
 	}
 }
 

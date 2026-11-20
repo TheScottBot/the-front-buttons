@@ -108,7 +108,8 @@ func TestBridgesFor_FollowsTheSetting(t *testing.T) {
 			t.Parallel()
 
 			choice := bridgesFor(config.Configuration{
-				SchemaVersion: 1, WorldClocks: nil, PlatformBridge: testCase.setting, Pages: nil,
+				SchemaVersion: 1, WorldClocks: nil, PlatformBridge: testCase.setting,
+				NavigationBackground: "", Pages: nil,
 			})
 			if choice.platform != testCase.platform || choice.driver != testCase.driver {
 				t.Fatalf("want %s and %s, got %s and %s",
@@ -251,7 +252,8 @@ type logBridgesCase struct {
 func logBridgesCases() []logBridgesCase {
 	cgoChoice := defaultBridges()
 	pureChoice := bridgesFor(config.Configuration{
-		SchemaVersion: 1, WorldClocks: nil, PlatformBridge: config.PlatformBridgePurego, Pages: nil,
+		SchemaVersion: 1, WorldClocks: nil, PlatformBridge: config.PlatformBridgePurego,
+		NavigationBackground: "", Pages: nil,
 	})
 	driver := func(asked, using hidtransport.DriverName, unavailable error) hidtransport.DriverChoice {
 		return hidtransport.DriverChoice{Asked: asked, Using: using, Unavailable: unavailable}
@@ -325,7 +327,8 @@ func TestAcceptConfigurations_LogsAChangedBridgeOnceAndPassesEveryFileOn(t *test
 
 	withBridge := func(bridge config.PlatformBridge, clocks int) config.Configuration {
 		return config.Configuration{
-			SchemaVersion: 1, WorldClocks: make([]config.WorldClock, clocks), PlatformBridge: bridge, Pages: nil,
+			SchemaVersion: 1, WorldClocks: make([]config.WorldClock, clocks), PlatformBridge: bridge,
+			NavigationBackground: "", Pages: nil,
 		}
 	}
 

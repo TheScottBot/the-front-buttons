@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"log/slog"
 	"slices"
 	"sync"
@@ -243,6 +244,10 @@ type loopState struct {
 	dashboard dashboardState
 	// zones are the world clocks the dashboard's world icon shows.
 	zones []dashboard.Zone
+	// navigationBackground is the navigation keys' background, the
+	// configuration's or the usual grey, which the dashboard's paging tiles
+	// take too.
+	navigationBackground color.RGBA
 	// allPageNames names every page by its index in pages, for an app
 	// screen's paging tiles.
 	allPageNames []string
@@ -288,6 +293,7 @@ func newLoopState(options Options) *loopState {
 		screenPages:             nil,
 		dashboard:               closedDashboard(),
 		zones:                   dashboard.LoadZones(config.DefaultWorldClocks(), options.Logger),
+		navigationBackground:    render.DefaultNavigationBackground(),
 		allPageNames:            nil,
 		appScreen:               "",
 		appScreenAt:             0,
@@ -362,7 +368,7 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.regular = nil
 	state.appScreens, state.screenPages, state.allPageNames = map[string][]int{}, nil, nil
 	state.closeDashboard()
-	state.zones = dashboard.LoadZones(configuration.WorldClocksOrDefault(), state.options.Logger)
+	state.applyLooks(configuration)
 
 	for pageIndex, page := range configuration.Pages {
 		state.allPageNames = append(state.allPageNames, page.Name)
@@ -418,6 +424,13 @@ func (state *loopState) applyConfiguration(runContext context.Context, configura
 	state.logMissingCredentials(runContext, configuration)
 	state.mirrorAll(runContext)
 	state.repaintAll(runContext)
+}
+
+// applyLooks takes what the configuration says of how the deck looks beyond
+// its keys: the dashboard's world clocks and the navigation keys' background.
+func (state *loopState) applyLooks(configuration config.Configuration) {
+	state.zones = dashboard.LoadZones(configuration.WorldClocksOrDefault(), state.options.Logger)
+	state.navigationBackground = render.NavigationBackgroundFrom(configuration.NavigationBackground)
 }
 
 // regularPageName is the name of the regular page the deck is on, or empty

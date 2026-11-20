@@ -37,9 +37,10 @@ func startBadgeHarness(t *testing.T, showNotifications bool) (*harness, *testsup
 
 	running := startHarness(t)
 	running.configurations <- config.Configuration{
-		SchemaVersion:  config.CurrentSchemaVersion,
-		WorldClocks:    nil,
-		PlatformBridge: "",
+		SchemaVersion:        config.CurrentSchemaVersion,
+		WorldClocks:          nil,
+		PlatformBridge:       "",
+		NavigationBackground: "",
 		Pages: []config.Page{
 			{Name: firstPageName, Application: "", Keys: []config.Key{badgeKey(showNotifications)}},
 		},

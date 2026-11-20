@@ -39,6 +39,19 @@ not yet drawn, such as Spotify's album key while nothing plays, shows a
 placeholder icon. Switched off, the editor shows none of the deck's live
 state.
 
+## The back and forward keys
+
+Clicking the back or forward key on the grid goes to the page before or after,
+as it does on the deck, so those keys cannot be opened to edit like the others.
+**Colour the back and forward keys**, just under the grid by the back key,
+opens a drawer of its own, **Back and forward keys**, with the colour they
+take. **Colour them** saves it for both keys on every page and app screen, and
+for the dashboard's paging tiles; **Back to the usual grey**, there while a
+colour is set, takes it out of the file. The page comes back with the drawer
+still open, the deck repaints both keys within a second, and Undo puts the
+previous colour back. With **Render like deck** on, the grid shows the keys in
+their colour.
+
 ## Zooming out
 
 Press - on the pages screen, or **Zoom out** beside Undo, to see the pages

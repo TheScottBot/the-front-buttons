@@ -100,7 +100,7 @@ func (pages *pageHandlers) deckFallbacks(
 	}
 
 	page := pageAt(config.Configuration{
-		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: allPages,
+		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: allPages,
 	}, pageIndex)
 	pageNumber := slices.Index(regularPages(allPages), pageIndex) + 1
 
@@ -112,7 +112,7 @@ func (pages *pageHandlers) deckFallbacks(
 // side, as the deck shows them. A lone screen shows none.
 func screenIndication(allPages []config.Page, pageIndex int) (layout.PageIndication, bool) {
 	page := pageAt(config.Configuration{
-		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: allPages,
+		SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: allPages,
 	}, pageIndex)
 	screens := screensOf(allPages, page.Application)
 	showing := slices.Index(screens, pageIndex)

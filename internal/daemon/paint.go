@@ -280,5 +280,5 @@ func (state *loopState) navigationImage(back bool) image.Image {
 		indication, hasIndication = state.paging.Indication(state.pageNames)
 	}
 
-	return state.options.Renderer.RenderNavigation(direction, indication, hasIndication)
+	return state.options.Renderer.RenderNavigation(direction, indication, hasIndication, state.navigationBackground)
 }

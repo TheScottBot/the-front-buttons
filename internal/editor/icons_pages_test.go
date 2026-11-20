@@ -50,13 +50,15 @@ type validFile struct{}
 
 func (validFile) OnDisk() (config.Configuration, error) {
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil,
+		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "",
+		NavigationBackground: "", Pages: nil,
 	}, nil
 }
 
 func (validFile) Current() (config.Configuration, bool) {
 	return config.Configuration{
-		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil,
+		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "",
+		NavigationBackground: "", Pages: nil,
 	}, true
 }
 

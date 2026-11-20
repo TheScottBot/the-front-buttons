@@ -80,9 +80,10 @@ func TestDaemon_DrawsTheApplicationsOwnIcon_OnItsEdgeColour(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		running := startHarness(t)
 		running.configurations <- config.Configuration{
-			SchemaVersion:  config.CurrentSchemaVersion,
-			WorldClocks:    nil,
-			PlatformBridge: "",
+			SchemaVersion:        config.CurrentSchemaVersion,
+			WorldClocks:          nil,
+			PlatformBridge:       "",
+			NavigationBackground: "",
 			Pages: []config.Page{{Name: "Apps", Application: "", Keys: []config.Key{
 				appIconKey(appIconTestColumn, knownApplication, ""),
 				appIconKey(1, knownApplication, "#800000"),
@@ -133,9 +134,10 @@ func TestDaemon_LogsAMissingApplicationIcon_OncePerConfiguration(t *testing.T) {
 		running := startHarness(t)
 
 		configuration := config.Configuration{
-			SchemaVersion:  config.CurrentSchemaVersion,
-			WorldClocks:    nil,
-			PlatformBridge: "",
+			SchemaVersion:        config.CurrentSchemaVersion,
+			WorldClocks:          nil,
+			PlatformBridge:       "",
+			NavigationBackground: "",
 			Pages: []config.Page{
 				{Name: "Apps", Application: "", Keys: []config.Key{appIconKey(appIconTestColumn, "com.example.gone", "")}},
 				{Name: "Other", Application: "", Keys: []config.Key{button("other", 0, false)}},

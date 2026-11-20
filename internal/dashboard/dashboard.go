@@ -22,6 +22,7 @@ package dashboard
 
 import (
 	"image"
+	"image/color"
 	"log/slog"
 	"slices"
 	"time"
@@ -137,13 +138,15 @@ type Scene struct {
 }
 
 // Look is what drawing the dashboard needs beyond its layout: the renderer,
-// every page's name by its index, the marker held, drawn as on its page, and
-// an app screen's application icon, nil for none.
+// every page's name by its index, the marker held, drawn as on its page, an
+// app screen's application icon, nil for none, and the navigation keys'
+// background, which the paging tiles in the same corners take.
 type Look struct {
-	Renderer   *render.Renderer
-	PageNames  []string
-	Marker     func() image.Image
-	ScreenIcon func(pageIndex int) image.Image
+	Renderer             *render.Renderer
+	PageNames            []string
+	Marker               func() image.Image
+	ScreenIcon           func(pageIndex int) image.Image
+	NavigationBackground color.RGBA
 }
 
 // Tiles is the dashboard, by key index: its pages, or the world clocks.
@@ -232,7 +235,7 @@ func (scene Scene) Image(look Look, shown Tile, now time.Time) image.Image {
 		return renderer.RenderNavigation(direction, layout.PageIndication{
 			Number: scene.ScreenOffset/scene.Grid.Columns() + 1, Count: scene.ScreenRows(),
 			CurrentName: "", PreviousName: "", NextName: "",
-		}, true)
+		}, true, look.NavigationBackground)
 	case RoleDigit, RoleZoneLabel, RoleWorld, RoleDate:
 		return scene.ClockImage(renderer, shown, now)
 	case RoleEmpty, RoleReserved:

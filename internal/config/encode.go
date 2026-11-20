@@ -67,6 +67,11 @@ func (decoder Decoder) Encode(configuration Configuration) ([]byte, error) {
 		root.Content = append(root.Content, textNode(worldClocksName), clocksNode)
 	}
 
+	if configuration.NavigationBackground != "" {
+		root.Content = append(root.Content,
+			textNode(navigationBackgroundName), textNode(configuration.NavigationBackground))
+	}
+
 	root.Content = append(root.Content, textNode(pagesName), pagesNode)
 
 	encoded, dumpError := yaml.Dump(root, yaml.WithIndent(encodingIndent))

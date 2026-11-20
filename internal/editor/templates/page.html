@@ -28,6 +28,23 @@
 <caption>{{if .ScreenTitle}}{{.ScreenCaption}}, opened from its app key on the deck{{else}}Page {{.PageNumber}} of {{.PageCount}}: {{.PageName}}{{end}}. {{if .Selecting}}Tick the keys to copy, move or remove.{{else}}Choose a key to edit it.{{end}}</caption>
 {{range .Rows}}<tr>{{range .}}<td data-tile="{{.Tile}}" data-state="{{.State}}"{{if .Found}} class="found"{{end}}>{{if .Reserved}}{{if .Image}}<span class="reserved app-icon" aria-label="{{.Name}}"><img src="{{.Image}}" alt="" width="56" height="56"></span>{{else if .Href}}<a class="reserved" href="{{.Href}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</a>{{else}}<span class="reserved" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{end}}{{else if and $.Selecting .Selectable}}<span class="select-key"><input type="checkbox" id="tile-{{.SelectID}}" name="tile" value="{{.Select}}" form="copy-keys"{{if .Checked}} checked{{end}}> <label for="tile-{{.SelectID}}" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</label></span><label class="select-hit" for="tile-{{.SelectID}}" aria-hidden="true" draggable="true"></label>{{else if $.Selecting}}<span class="select-empty" aria-label="{{.Name}}">{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{end}}</span>{{else}}<a href="{{.Href}}" aria-label="{{.Name}}"{{if eq .State "key"}} draggable="true"{{end}}>{{if and $.DeckRender .Face}}<img class="deck-face" src="{{.Face}}" alt="" width="96" height="96">{{else}}{{.Text}}{{if .Kind}}<span class="kind">{{.Kind}}</span>{{end}}{{end}}</a>{{end}}</td>{{end}}</tr>
 {{end}}</table>
+<p class="navigation-shortcut"><a href="/page?page={{.PageIndex}}&amp;navigation=1#navigation-colour">Colour the back and forward keys</a></p>
+<details class="maintenance navigation-colour" id="navigation-colour"{{if .NavigationOpen}} open{{end}}>
+<summary>Back and forward keys</summary>
+<div class="maintenance-body">
+<form method="post" action="/navigation/colour" class="navigation-colour-form">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="page" value="{{.PageIndex}}">
+<div class="field">
+<label for="navigation-background">Background colour</label>
+<input type="color" id="navigation-background" name="background" value="{{.NavigationColour}}">
+</div>
+<button type="submit">Colour them</button>
+{{if .NavigationColoured}}<button type="submit" name="clear" value="1">Back to the usual grey</button>
+{{end}}</form>
+<p class="help">One colour for the back and forward keys on every page and app screen, and for the dashboard's paging tiles; their arrows and words are drawn in black or white, whichever reads better on it. Clicking those keys on the grid pages, as on the deck, so their colour is set here.</p>
+</div>
+</details>
 <details class="maintenance select-drawer" id="select-drawer"{{if .Selecting}} open{{end}}>
 <summary>Select keys</summary>
 <div class="maintenance-body">

@@ -64,7 +64,7 @@ func (decoder Decoder) Decode(fileContent []byte) (Configuration, error) {
 // rejected is Decode's result for a refused file: no configuration, and every
 // problem found.
 func rejected(list problemList) (Configuration, error) {
-	return Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", Pages: nil},
+	return Configuration{SchemaVersion: 0, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: nil},
 		&RejectionError{Problems: list.problems}
 }
 
@@ -184,9 +184,12 @@ func mappingValue(mapping *yaml.Node, entryName string) *yaml.Node {
 }
 
 func (decoder Decoder) decodeRoot(root *yaml.Node, list *problemList) Configuration {
-	configuration := Configuration{SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil}
+	configuration := Configuration{
+		SchemaVersion: CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", NavigationBackground: "", Pages: nil,
+	}
 
-	entries, isMapping := list.mappingEntries(root, "", schemaVersionName, platformBridgeName, worldClocksName, pagesName)
+	entries, isMapping := list.mappingEntries(root, "", schemaVersionName, platformBridgeName, worldClocksName,
+		navigationBackgroundName, pagesName)
 	if !isMapping {
 		return configuration
 	}
@@ -197,6 +200,10 @@ func (decoder Decoder) decodeRoot(root *yaml.Node, list *problemList) Configurat
 
 	if clocksNode, present := entries[worldClocksName]; present {
 		configuration.WorldClocks = decodeWorldClocks(clocksNode, list)
+	}
+
+	if backgroundNode, present := entries[navigationBackgroundName]; present {
+		configuration.NavigationBackground = decodeNavigationBackground(backgroundNode, list)
 	}
 
 	pagesNode, pagesPresent := entries[pagesName]

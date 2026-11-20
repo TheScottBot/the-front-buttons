@@ -104,7 +104,7 @@ func savedMessages() map[string]string {
 		"key": savedMessage, removedQuery: removedMessage, "credential": credentialMessage,
 		copiedQuery: copiedMessage, clocksQuery: clocksMessage, movedQuery: movedMessage,
 		reorderedQuery: reorderedMessage, colouredQuery: colouredMessage, undoneQuery: undoneMessage,
-		redoneQuery: redoneMessage, muralQuery: muralMessage,
+		redoneQuery: redoneMessage, muralQuery: muralMessage, navigationQuery: navigationMessage,
 	}
 }
 
@@ -154,7 +154,8 @@ func (pages *pageHandlers) configuration() (config.Configuration, []string) {
 	lastGood, hasLastGood := pages.options.Store.Current()
 	if !hasLastGood {
 		lastGood = config.Configuration{
-			SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "", Pages: nil,
+			SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "",
+			NavigationBackground: "", Pages: nil,
 		}
 	}
 
@@ -293,6 +294,12 @@ type pageView struct {
 	// any section, so it keeps one width however its sections open.
 	FixedGroups []appGroupView
 	DrawerChars int
+	// NavigationOpen opens the navigation keys' colour drawer, which the
+	// shortcut beside the grid asks for; NavigationColour is the colour it
+	// starts at, and NavigationColoured that the file names one.
+	NavigationOpen     bool
+	NavigationColour   string
+	NavigationColoured bool
 }
 
 func (pages *pageHandlers) showPage(writer http.ResponseWriter, request *http.Request) {
@@ -390,7 +397,10 @@ func (pages *pageHandlers) pageViewFor(
 
 		Selecting: false, SelectTargets: nil, ReorderPlaces: reorderPlaces(configuration.Pages, pageIndex),
 		FixedGroups: fixedGroupViews(), DrawerChars: 0, CanUndo: false, CanRedo: false, Find: "", FindResults: nil,
+		NavigationOpen: false, NavigationColour: "", NavigationColoured: false,
 	}
+
+	view.NavigationOpen, view.NavigationColour, view.NavigationColoured = navigationDrawer(request, configuration)
 
 	view.CanUndo, view.CanRedo = pages.history.can()
 
@@ -1083,7 +1093,8 @@ func (pages *pageHandlers) pagingPicture(
 
 	indication, hasIndication := pageIndication(configuration.Pages, pageIndex)
 
-	return pages.options.Renderer.RenderNavigation(direction, indication, hasIndication)
+	return pages.options.Renderer.RenderNavigation(direction, indication, hasIndication,
+		render.NavigationBackgroundFrom(configuration.NavigationBackground))
 }
 
 // keyPreview is how a key is drawn: the form's unsaved fields, or with no

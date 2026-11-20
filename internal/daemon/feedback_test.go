@@ -104,7 +104,10 @@ func closingConfiguration() config.Configuration {
 
 	return config.Configuration{
 		SchemaVersion: config.CurrentSchemaVersion, WorldClocks: nil, PlatformBridge: "",
-		Pages: []config.Page{{Name: firstPageName, Application: "", Keys: []config.Key{button("first", 0, false), closing}}},
+		NavigationBackground: "",
+		Pages: []config.Page{
+			{Name: firstPageName, Application: "", Keys: []config.Key{button("first", 0, false), closing}},
+		},
 	}
 }
 
