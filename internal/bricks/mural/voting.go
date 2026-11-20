@@ -227,7 +227,7 @@ func (key voting) read(readContext context.Context) (brick.LiveState, time.Durat
 
 	tally, tallyError := key.board.TallyVoting(readContext, key.muralID, session.id)
 	if tallyError != nil {
-		state.ErrorReason = timerFailureCategory(tallyError)
+		state.ErrorReason = muralFailureCategory(tallyError)
 
 		return state, countdownRetry
 	}
@@ -250,5 +250,5 @@ func (key voting) read(readContext context.Context) (brick.LiveState, time.Durat
 
 // votingFailed says why a press could not run the board's voting.
 func votingFailed(failure error) error {
-	return fmt.Errorf("using the board's voting: %w", brick.Categorised(timerFailureCategory(failure), failure))
+	return fmt.Errorf("using the board's voting: %w", brick.Categorised(muralFailureCategory(failure), failure))
 }

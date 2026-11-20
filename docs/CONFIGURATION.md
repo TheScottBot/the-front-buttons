@@ -264,6 +264,12 @@ only the session it started, while the daemon runs: a session started on the
 board itself, or one left running when the daemon restarted, is not shown, and
 must be ended on the board. It needs the `murals:read` scope too.
 
+`mural_sticky_count` shows how many sticky notes are on the board, such as
+12 stickies, with a note icon, or how many are in one area when `area` names
+its title, as the board shows it, ignoring case. It counts every thirty
+seconds, and a press counts again at once. An area the board does not have
+shows no_area. It needs the `murals:read` scope too.
+
 ```yaml
       - row: 2
         column: 0
@@ -310,6 +316,12 @@ must be ended on the board. It needs the `murals:read` scope too.
           link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
           title: Which idea first?
           votes: 3
+      - row: 1
+        column: 0
+        kind: mural_sticky_count
+        parameters:
+          link: https://app.mural.co/t/team/m/team/1712345678901/0a1b2c3d
+          area: Parking lot
 ```
 
 ### Signing in to Mural

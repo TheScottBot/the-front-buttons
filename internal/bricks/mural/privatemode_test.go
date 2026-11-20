@@ -17,16 +17,19 @@ import (
 
 // boardFake records what the private mode key asks of Mural.
 type boardFake struct {
-	mutex   sync.Mutex
-	calls   []string
-	failure error
-	active  bool
-	tally   murals.VotingTally
+	mutex    sync.Mutex
+	calls    []string
+	failure  error
+	active   bool
+	tally    murals.VotingTally
+	area     string
+	stickies int
 }
 
 func newBoardFake(failure error, active bool) *boardFake {
 	return &boardFake{
 		mutex: sync.Mutex{}, calls: nil, failure: failure, active: active, tally: murals.VotingTally{Total: 0, Top: 0},
+		area: "", stickies: 0,
 	}
 }
 
@@ -85,6 +88,39 @@ func (fake *boardFake) TallyVoting(_ context.Context, muralID string, sessionID 
 	return fake.tally, fake.failure
 }
 
+func (fake *boardFake) FindArea(_ context.Context, muralID string, title string) (string, error) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.calls = append(fake.calls, fmt.Sprintf("find %s %q", muralID, title))
+
+	if fake.failure != nil {
+		return "", fake.failure
+	}
+
+	if fake.area == "" {
+		return "", murals.ErrNoArea
+	}
+
+	return fake.area, nil
+}
+
+func (fake *boardFake) CountStickyNotes(_ context.Context, muralID string, areaID string) (int, error) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.calls = append(fake.calls, fmt.Sprintf("count %s %q", muralID, areaID))
+
+	return fake.stickies, fake.failure
+}
+
+func (fake *boardFake) setStickies(count int) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+
+	fake.stickies = count
+}
+
 func (fake *boardFake) setTally(tally murals.VotingTally) {
 	fake.mutex.Lock()
 	defer fake.mutex.Unlock()
@@ -106,14 +142,20 @@ func (fake *boardFake) recorded() []string {
 	return append([]string(nil), fake.calls...)
 }
 
-// privateModeKey builds a private mode key for the board over the fake,
-// hiding authors or not.
-func privateModeKey(t *testing.T, fake murals.Board, hideAuthors bool) interface {
+// liveBoardKey is a live Mural key over the board port: watched, pressed
+// with its state, drawn from it and labelled.
+type liveBoardKey interface {
 	brick.LiveSource
 	brick.LivePressable
 	brick.LiveDrawn
 	brick.DefaultLabelled
-} {
+}
+
+// boardKey builds a key of a kind over the board fake, from a registry of its
+// own.
+//
+//nolint:ireturn // keys are built as the interfaces the daemon uses them through
+func boardKey(t *testing.T, kindName string, parameters any, fake murals.Board) liveBoardKey {
 	t.Helper()
 
 	registry := brick.NewRegistry()
@@ -123,26 +165,30 @@ func privateModeKey(t *testing.T, fake murals.Board, hideAuthors bool) interface
 		t.Fatal(registerError)
 	}
 
-	kind, _ := registry.Kind(mural.PrivateModeKindName)
+	kind, _ := registry.Kind(kindName)
 
-	constructed, constructError := kind.Construct(
-		&mural.PrivateModeParameters{Appearance: noAppearance(), Link: boardLink, HideAuthors: hideAuthors},
-		brick.Ports{MuralBoard: fake})
+	constructed, constructError := kind.Construct(parameters, brick.Ports{MuralBoard: fake})
 	if constructError != nil {
 		t.Fatal(constructError)
 	}
 
-	key, _ := constructed.(interface {
-		brick.LiveSource
-		brick.LivePressable
-		brick.LiveDrawn
-		brick.DefaultLabelled
-	})
+	key, _ := constructed.(liveBoardKey)
 	if key == nil {
-		t.Fatal("want the private mode key live, pressed with its state, drawn from it and labelled")
+		t.Fatalf("want %s live, pressed with its state, drawn from it and labelled", kindName)
 	}
 
 	return key
+}
+
+// privateModeKey builds a private mode key for the board over the fake,
+// hiding authors or not.
+//
+//nolint:ireturn // keys are built as the interfaces the daemon uses them through
+func privateModeKey(t *testing.T, fake murals.Board, hideAuthors bool) liveBoardKey {
+	t.Helper()
+
+	return boardKey(t, mural.PrivateModeKindName,
+		&mural.PrivateModeParameters{Appearance: noAppearance(), Link: boardLink, HideAuthors: hideAuthors}, fake)
 }
 
 // modeShown is the state of a private mode key, on or off.

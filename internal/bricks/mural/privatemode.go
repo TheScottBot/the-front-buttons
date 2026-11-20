@@ -101,7 +101,7 @@ func (key privateMode) Watch(watchContext context.Context, publish func(state br
 		wait := privateModeRead
 
 		if readError != nil {
-			state.ErrorReason, state.Playing = timerFailureCategory(readError), false
+			state.ErrorReason, state.Playing = muralFailureCategory(readError), false
 			wait = countdownRetry
 		}
 
@@ -144,7 +144,7 @@ func (key privateMode) PressWithState(pressContext context.Context, state brick.
 
 	if actError != nil {
 		return fmt.Errorf("using the board's private mode: %w",
-			brick.Categorised(timerFailureCategory(actError), actError))
+			brick.Categorised(muralFailureCategory(actError), actError))
 	}
 
 	wakeUp(key.wake)

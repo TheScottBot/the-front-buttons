@@ -179,7 +179,7 @@ func newTimerKey(
 func (key timerKey) Press(pressContext context.Context) error {
 	actError := key.act(pressContext, key.timer, key.muralID)
 	if actError != nil {
-		return fmt.Errorf("using the board's timer: %w", brick.Categorised(timerFailureCategory(actError), actError))
+		return fmt.Errorf("using the board's timer: %w", brick.Categorised(muralFailureCategory(actError), actError))
 	}
 
 	return nil
@@ -188,15 +188,16 @@ func (key timerKey) Press(pressContext context.Context) error {
 // DefaultLabel says what a press does when the key has no label of its own.
 func (key timerKey) DefaultLabel() string { return key.label }
 
-// timerFailureCategory is the reason a timer key shows for each way Mural
+// muralFailureCategory is the reason a Mural key shows for each way Mural
 // fails.
-func timerFailureCategory(actError error) string {
+func muralFailureCategory(actError error) string {
 	for failure, category := range map[error]string{
 		murals.ErrNotSetUp:     "not_set_up",
 		murals.ErrNotConnected: "not_connected",
 		murals.ErrNotFound:     "not_found",
 		murals.ErrRefused:      "refused",
 		errNoTimer:             noTimerCategory,
+		murals.ErrNoArea:       noAreaCategory,
 	} {
 		if errors.Is(actError, failure) {
 			return category

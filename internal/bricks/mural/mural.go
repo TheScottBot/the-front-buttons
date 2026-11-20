@@ -54,7 +54,12 @@ func Register(registry *brick.Registry) error {
 		return privateModeError
 	}
 
-	return registerVoting(registry, shared, newBallots())
+	votingError := registerVoting(registry, shared, newBallots())
+	if votingError != nil {
+		return votingError
+	}
+
+	return registerStickyCount(registry, shared)
 }
 
 func constructShare(parameters ShareParameters, ports brick.Ports) (any, error) {

@@ -156,7 +156,7 @@ func (key countdown) Watch(watchContext context.Context, publish func(state bric
 
 		if readError != nil {
 			show(brick.LiveState{
-				Status: render.StatusNone, ErrorReason: timerFailureCategory(readError), TargetURL: "",
+				Status: render.StatusNone, ErrorReason: muralFailureCategory(readError), TargetURL: "",
 				Picture: nil, Playing: false, Text: "", Urgent: false,
 			})
 
@@ -223,7 +223,7 @@ func (key countdown) PressWithState(pressContext context.Context, state brick.Li
 	}
 
 	if actError != nil {
-		return fmt.Errorf("using the board's timer: %w", brick.Categorised(timerFailureCategory(actError), actError))
+		return fmt.Errorf("using the board's timer: %w", brick.Categorised(muralFailureCategory(actError), actError))
 	}
 
 	wakeUp(key.wake)

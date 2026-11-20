@@ -40,6 +40,8 @@ var (
 	// ErrUnreachable reports Mural not reached, or not answering as it
 	// should.
 	ErrUnreachable = errors.New("mural could not be reached")
+	// ErrNoArea reports a board with no area of the title asked for.
+	ErrNoArea = errors.New("the board has no such area")
 )
 
 // Timer is a mural's timer, through Mural's API, for the person signed in:
@@ -55,8 +57,9 @@ type Timer interface {
 
 // Board is the rest of a mural's facilitation, through Mural's API, for the
 // person signed in: starting and ending private mode, hiding who wrote what
-// or not, and reading whether it is on; and starting a voting session, ending
-// it, and tallying its results.
+// or not, and reading whether it is on; starting a voting session, ending it,
+// and tallying its results; and finding an area by its title, and counting
+// the sticky notes on the board or in an area.
 type Board interface {
 	StartPrivateMode(boardContext context.Context, muralID string, hideAuthors bool) error
 	EndPrivateMode(boardContext context.Context, muralID string) error
@@ -64,6 +67,8 @@ type Board interface {
 	StartVoting(boardContext context.Context, muralID string, options VotingOptions) (string, error)
 	EndVoting(boardContext context.Context, muralID string) error
 	TallyVoting(boardContext context.Context, muralID string, sessionID string) (VotingTally, error)
+	FindArea(boardContext context.Context, muralID string, title string) (string, error)
+	CountStickyNotes(boardContext context.Context, muralID string, areaID string) (int, error)
 }
 
 // VotingOptions is how a voting session starts: its title, the votes each

@@ -31,6 +31,9 @@ code since the previous tag, and which author gates were cleared at which commit
   the most votes any one item has. The title, the votes each and whether
   anyone can end it are the key's to set. The keys remember the session they
   started while the daemon runs, since Mural's API cannot say which one runs.
+- `mural_sticky_count` shows how many sticky notes are on a board, or in the
+  area its `area` names by title, counting every thirty seconds and at once
+  after a press. An area the board does not have shows `no_area`.
 - The navigation keys' colour. `navigation_background`, written `#RRGGBB`,
   colours the back and forward keys on every page and app screen, and the
   dashboard's paging tiles; their arrow and words are drawn in black or

@@ -670,6 +670,79 @@ func TestClient_TalliesAVotingSessionsResults(t *testing.T) {
 	}
 }
 
+// TestClient_FindsAnAreaByItsTitle: areas are listed page by page and the
+// first whose title matches, ignoring case and spaces around it, is the one;
+// none matching is no area.
+func TestClient_FindsAnAreaByItsTitle(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFakeAnswering(t, "")
+	fake.answers = []string{
+		`{"value":[{"id":"0-1","type":"area","title":"Ideas"}],"next":"page-2"}`,
+		`{"value":[{"id":"0-2","type":"area","title":" Parking Lot "}]}`,
+	}
+
+	areaID, findError := client.FindArea(t.Context(), "team.1712345678901", "parking lot")
+	if findError != nil || areaID != "0-2" {
+		t.Fatalf("want the Parking Lot area 0-2, got %q (%v)", areaID, findError)
+	}
+
+	widgets := "GET /api/public/v1/murals/team.1712345678901/widgets"
+	want := []string{
+		widgets + "?limit=99&type=areas Bearer access-1 ",
+		widgets + "?limit=99&next=page-2&type=areas Bearer access-1 ",
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+
+	_, none := newTimerFakeAnswering(t, `{"value":[{"id":"0-1","type":"area","title":"Ideas"}]}`)
+
+	_, noneError := none.FindArea(t.Context(), "team.1712345678901", "Parking lot")
+	if !errors.Is(noneError, murals.ErrNoArea) {
+		t.Errorf("want no area, got %v", noneError)
+	}
+}
+
+// TestClient_CountsStickyNotes: sticky notes are listed page by page, on the
+// whole board or in one area, and counted.
+func TestClient_CountsStickyNotes(t *testing.T) {
+	t.Parallel()
+
+	fake, client := newTimerFakeAnswering(t, "")
+	fake.answers = []string{
+		`{"value":[{"id":"a","type":"sticky note"},{"id":"b","type":"sticky note"}],"next":"page-2"}`,
+		`{"value":[{"id":"c","type":"sticky note"}]}`,
+		`{"value":[{"id":"d","type":"sticky note","parentId":"0-2"}]}`,
+	}
+
+	board, boardError := client.CountStickyNotes(t.Context(), "team.1712345678901", "")
+	area, areaError := client.CountStickyNotes(t.Context(), "team.1712345678901", "0-2")
+
+	if boardError != nil || areaError != nil || board != 3 || area != 1 {
+		t.Fatalf("want 3 on the board and 1 in the area, got %d (%v) and %d (%v)", board, boardError, area, areaError)
+	}
+
+	widgets := "GET /api/public/v1/murals/team.1712345678901/widgets"
+	want := []string{
+		widgets + "?limit=99&type=sticky%20notes Bearer access-1 ",
+		widgets + "?limit=99&next=page-2&type=sticky%20notes Bearer access-1 ",
+		widgets + "?limit=99&parentId=0-2&type=sticky%20notes Bearer access-1 ",
+	}
+
+	if fmt.Sprint(fake.requests) != fmt.Sprint(want) {
+		t.Errorf("want %v, got %v", want, fake.requests)
+	}
+
+	_, garbled := newTimerFakeAnswering(t, `{"value":`)
+
+	_, garbledError := garbled.CountStickyNotes(t.Context(), "team.1712345678901", "")
+	if !errors.Is(garbledError, murals.ErrUnreachable) {
+		t.Errorf("want an answer that is not widgets unreachable, got %v", garbledError)
+	}
+}
+
 // TestClient_SaysWhyMuralRefusedTheTimer: no such mural is not found, a
 // refusal is refused by Mural's code, a sign in without the scope a request
 // needs must sign in again, and a mural ID that is not one is never sent.

@@ -1637,6 +1637,19 @@ A brick kind.
 | `duration` | duration | optional | 1s to 1h30m |  | How long the timer runs; five minutes if left out. |
 | `silent` | boolean | optional |  |  | Start the timer without its sound at the end. |
 
+### `mural_sticky_count`
+
+A brick kind.
+
+| Field | Type | Required | Bounds | Format | Description |
+|---|---|---|---|---|---|
+| `label` | text | optional | 0 to 24 characters |  | Text shown on the key. |
+| `icon` | text | optional | 1 to 64 characters | identifier | Name of a bundled icon. |
+| `background` | text | optional |  | colour | Key background colour, written #RRGGBB. |
+| `icon_file` | text | optional | 5 to 128 characters | png_file | A PNG of your own in the icons folder beside the configuration, used instead of Icon: up to 512 pixels square and 1 MB. |
+| `link` | text | required | 1 to 2048 characters | mural_board | The board's address, as its browser shows it; the key counts that board's sticky notes. |
+| `area` | text | optional | 0 to 200 characters |  | The title of the area to count in, as the board shows it, ignoring case; the whole board if left out. |
+
 ### `mural_stop_timer`
 
 A brick kind.
